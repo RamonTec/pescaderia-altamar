@@ -14,6 +14,7 @@ import ListItemText from '@mui/material/ListItemText'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import LogoutIcon from '@mui/icons-material/Logout'
+import PersonIcon from '@mui/icons-material/Person'
 import { createClient } from '@/lib/supabase/client'
 import { signOutAction } from '@/app/login/actions'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
@@ -116,6 +117,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {rol ? ` · ${rol}` : ''}
             </Typography>
           ) : null}
+          <Button
+            size="small"
+            color="inherit"
+            component={Link}
+            href="/perfil"
+            startIcon={<PersonIcon />}
+            sx={{ color: 'text.secondary', mr: 1 }}
+          >
+            Perfil
+          </Button>
           <form action={signOutAction}>
             <Button
               type="submit"

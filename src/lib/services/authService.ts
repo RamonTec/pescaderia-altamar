@@ -1,4 +1,4 @@
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 
 /**
@@ -32,6 +32,20 @@ export async function getSession(): Promise<Session | null> {
   const supabase = await createClient()
   const { data } = await supabase.auth.getSession()
   return data.session
+}
+
+export async function getUser(): Promise<User | null> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return user
+}
+
+export async function updatePassword(password: string): Promise<AuthResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.auth.updateUser({ password })
+  return { error: error ? 'No se pudo actualizar la contraseña' : null }
 }
 
 export type Rol = 'admin' | 'operador'
