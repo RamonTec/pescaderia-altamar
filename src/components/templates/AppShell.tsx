@@ -15,6 +15,7 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonIcon from '@mui/icons-material/Person'
+import GroupIcon from '@mui/icons-material/Group'
 import { createClient } from '@/lib/supabase/client'
 import { signOutAction } from '@/app/login/actions'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
@@ -29,7 +30,12 @@ import PaymentsIcon from '@mui/icons-material/Payments'
 
 const NAV_WIDTH = 240
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string
+  label: string
+  icon: React.ReactNode
+  adminOnly?: boolean
+}[] = [
   { href: '/', label: 'Dashboard', icon: <DashboardIcon /> },
   { href: '/catalogos', label: 'Catálogos', icon: <CategoryIcon /> },
   { href: '/compras', label: 'Compras', icon: <ShoppingBagIcon /> },
@@ -37,6 +43,7 @@ const NAV_ITEMS = [
   { href: '/pedidos', label: 'Pedidos / POS', icon: <PointOfSaleIcon /> },
   { href: '/cobros', label: 'Cobros y Pagos', icon: <PaymentsIcon /> },
   { href: '/inventario', label: 'Inventario', icon: <Inventory2Icon /> },
+  { href: '/usuarios', label: 'Usuarios', icon: <GroupIcon />, adminOnly: true },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -79,21 +86,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Typography>
       </Toolbar>
       <List>
-        {NAV_ITEMS.map((item) => {
-          const active =
-            item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-          return (
-            <ListItemButton
-              key={item.href}
-              component={Link}
-              href={item.href}
-              selected={active}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          )
-        })}
+        {NAV_ITEMS.filter((item) => !item.adminOnly || rol === 'admin').map(
+          (item) => {
+            const active =
+              item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href)
+            return (
+              <ListItemButton
+                key={item.href}
+                component={Link}
+                href={item.href}
+                selected={active}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            )
+          }
+        )}
       </List>
     </Box>
   )

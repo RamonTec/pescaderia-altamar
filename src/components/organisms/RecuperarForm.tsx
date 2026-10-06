@@ -9,29 +9,21 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
-import ScaleIcon from '@mui/icons-material/Scale'
-import { loginAction, type LoginState } from '@/app/login/actions'
+import { recuperarAction, type RecuperarState } from '@/app/recuperar/actions'
 
-const initialState: LoginState = { error: null }
+const initialState: RecuperarState = { error: null, success: null }
 
-export function LoginForm() {
+export function RecuperarForm() {
   const [state, formAction, isPending] = useActionState(
-    loginAction,
+    recuperarAction,
     initialState
   )
 
   return (
     <Box sx={{ width: '100%', maxWidth: 400 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <ScaleIcon color="primary" sx={{ fontSize: 32, mr: 1 }} />
-        <Typography variant="h5" component="h1">
-          Pescadería
-        </Typography>
-      </Box>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Gestión interna · Ingresa con tu cuenta
+      <Typography variant="h5" component="h1" gutterBottom>
+        Recuperar contraseña
       </Typography>
-
       <Box component="form" action={formAction} sx={{ display: 'grid', gap: 2 }}>
         <TextField
           name="email"
@@ -41,26 +33,18 @@ export function LoginForm() {
           fullWidth
           autoComplete="email"
         />
-        <TextField
-          name="password"
-          label="Contraseña"
-          type="password"
-          required
-          fullWidth
-          autoComplete="current-password"
-        />
         {state.error ? <Alert severity="error">{state.error}</Alert> : null}
+        {state.success ? <Alert severity="success">{state.success}</Alert> : null}
         <Button
           type="submit"
           variant="contained"
-          size="large"
           disabled={isPending}
           startIcon={isPending ? <CircularProgress size={18} color="inherit" /> : null}
         >
-          Entrar
+          Enviar enlace
         </Button>
-        <Button component={Link} href="/recuperar" size="small">
-          Olvidé mi contraseña
+        <Button component={Link} href="/login" size="small">
+          Volver al login
         </Button>
       </Box>
     </Box>
