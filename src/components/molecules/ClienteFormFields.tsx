@@ -43,7 +43,7 @@ function Seccion({
  * Contacto y Crédito. Usa FormProvider (useFormContext), por lo que debe
  * estar dentro de un <FormProvider> montado por el organismo ClienteForm.
  */
-export function ClienteFormFields() {
+export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefault?: number } = {}) {
   const {
     register,
     control,
@@ -157,6 +157,29 @@ export function ClienteFormFields() {
                   disabled={field.disabled}
                   error={!!errors.limite_credito_usd}
                   helperText={errors.limite_credito_usd?.message}
+                />
+              )}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Controller
+              name="dias_credito"
+              control={control}
+              render={({ field }) => (
+                <NumberField
+                  label="Días de crédito"
+                  placeholder={`Por defecto: ${diasCreditoDefault}`}
+                  suffix="días"
+                  decimals={0}
+                  fullWidth
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={field.disabled}
+                  error={!!errors.dias_credito}
+                  helperText={
+                    errors.dias_credito?.message ??
+                    'Se precargan al vender a crédito; se pueden cambiar en cada venta.'
+                  }
                 />
               )}
             />

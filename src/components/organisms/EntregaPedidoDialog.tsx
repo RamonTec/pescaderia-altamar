@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
+import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
 import {
   pedirConfirmacionTasaManual,
   TasaSelector,
@@ -38,6 +39,8 @@ export interface EntregaPedidoDialogProps {
   pedido: PedidoDetalle | null
   /** Config de tasas de `config_negocio` (08-tasas Fase D). */
   configTasas: TasaSelectorConfig
+  /** Días de crédito del negocio para clientes sin días propios (09). */
+  diasCreditoDefault: number
   onClose: () => void
 }
 
@@ -46,6 +49,7 @@ function vacio(pedidoId: string): EntregaPedidoInput {
     pedido_id: pedidoId,
     fecha: fechaHoy(),
     condicion: 'credito',
+    dias_credito: null,
     // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
     // completa origen/fuente/valor (o exige la manual).
     tasa_origen: 'referencial',
@@ -60,7 +64,12 @@ function vacio(pedidoId: string): EntregaPedidoInput {
  * factura con esos kg. La tasa se elige con `TasaSelector` (referencial por
  * fecha o manual). Montar con `key={pedido.id}` para reiniciar el form.
  */
-export function EntregaPedidoDialog({ pedido, configTasas, onClose }: EntregaPedidoDialogProps) {
+export function EntregaPedidoDialog({
+  pedido,
+  configTasas,
+  diasCreditoDefault,
+  onClose,
+}: EntregaPedidoDialogProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -81,6 +90,7 @@ export function EntregaPedidoDialog({ pedido, configTasas, onClose }: EntregaPed
           pedido_id: pedido.id,
           fecha: fechaHoy(),
           condicion: 'credito',
+          dias_credito: pedido.cliente?.dias_credito ?? diasCreditoDefault,
           tasa_origen: 'referencial',
           tasa_fuente: null,
           tasa: null,
@@ -91,8 +101,11 @@ export function EntregaPedidoDialog({ pedido, configTasas, onClose }: EntregaPed
         }
       : undefined,
   })
-  const { control, register, handleSubmit, setError, formState } = methods
-  const fecha = useWatch({ control, name: 'fecha' })
+  const { control, register, handleSubmit, setError, setValue, formState } = methods
+  const [fecha, condicion, diasCredito] = useWatch({
+    control,
+    name: ['fecha', 'condicion', 'dias_credito'],
+  })
 
   // Referencial vigente que el `TasaSelector` reporta (08-tasas).
   const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
@@ -207,6 +220,18 @@ export function EntregaPedidoDialog({ pedido, configTasas, onClose }: EntregaPed
                 />
               </Grid>
             </Grid>
+
+            {condicion === 'credito' ? (
+              <DiasCreditoField
+                value={diasCredito}
+                onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
+                fecha={fecha || fechaHoy()}
+                diasHabituales={pedido.cliente?.dias_credito ?? diasCreditoDefault}
+                error={!!formState.errors.dias_credito}
+                helperText={formState.errors.dias_credito?.message}
+                disabled={isPending}
+              />
+            ) : null}
 
             <Box sx={{ display: 'grid', gap: 1.5 }}>
               <Typography variant="h6">Peso real entregado</Typography>

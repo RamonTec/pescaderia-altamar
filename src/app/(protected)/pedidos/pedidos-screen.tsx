@@ -21,11 +21,14 @@ export function PedidosScreen({
   clientes,
   productos,
   configTasas,
+  diasCreditoDefault,
 }: {
   pedidos: PedidoResumen[]
   clientes: Cliente[]
   productos: Producto[]
   configTasas: TasaSelectorConfig
+  /** Días de crédito por defecto del negocio (09-cuentas-por-cobrar). */
+  diasCreditoDefault: number
 }) {
   const notify = useNotify()
   const confirm = useConfirm()
@@ -82,12 +85,14 @@ export function PedidosScreen({
         clientes={clientes}
         productos={productos}
         configTasas={configTasas}
+        diasCreditoDefault={diasCreditoDefault}
       />
 
       <EntregaPedidoDialog
         key={entregando?.id ?? 'entrega-cerrado'}
         pedido={entregando}
         configTasas={configTasas}
+        diasCreditoDefault={diasCreditoDefault}
         onClose={() => setEntregando(null)}
       />
     </>

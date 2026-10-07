@@ -81,6 +81,7 @@ export async function crearPedidoAction(
       const resultado = await crearFactura({
         cliente_id: v.cliente_id,
         condicion: v.condicion,
+        dias_credito: v.condicion === 'credito' ? v.dias_credito : 0,
         fecha: v.fecha,
         forzar_limite: forzarLimite,
         tasa: entradaTasaDe(v),
@@ -137,6 +138,7 @@ export async function entregarPedidoAction(
     const { aviso } = await entregarPedido({
       pedido_id: v.pedido_id,
       condicion: v.condicion,
+      dias_credito: v.condicion === 'credito' ? v.dias_credito : 0,
       fecha: v.fecha,
       forzar_limite: forzarLimite,
       pesos_reales: v.pesos_reales,

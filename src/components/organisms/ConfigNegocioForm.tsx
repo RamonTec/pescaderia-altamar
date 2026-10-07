@@ -30,6 +30,12 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     umbral_stock_bajo_kg: c?.umbral_stock_bajo_kg ?? null,
     // 08-tasas: default de la migración (10 %) si la fila no lo trae.
     umbral_desviacion_tasa_pct: c?.umbral_desviacion_tasa_pct ?? 10,
+    // 09-cuentas-por-cobrar: defaults de la migración si la fila no los trae.
+    dias_credito_default: c?.dias_credito_default ?? 15,
+    dias_aviso_por_vencer: c?.dias_aviso_por_vencer ?? 3,
+    nombre_comercial: c?.nombre_comercial ?? 'Altamar Sea Food',
+    email_respuesta: c?.email_respuesta ?? '',
+    instrucciones_pago: c?.instrucciones_pago ?? '',
   }
 }
 
@@ -49,6 +55,9 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
   const ivaPct = useWatch({ control, name: 'iva_pct' })
   const umbralKg = useWatch({ control, name: 'umbral_stock_bajo_kg' })
   const umbralTasa = useWatch({ control, name: 'umbral_desviacion_tasa_pct' })
+  const diasCredito = useWatch({ control, name: 'dias_credito_default' })
+  const diasAviso = useWatch({ control, name: 'dias_aviso_por_vencer' })
+  const instrucciones = useWatch({ control, name: 'instrucciones_pago' })
 
   React.useEffect(() => {
     reset(toFormValues(config))
@@ -84,8 +93,8 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <Box>
             <Typography variant="h6">Configuración del negocio</Typography>
             <Typography variant="caption" color="text.secondary">
-              IVA por defecto, fuente de tasa preferida, umbral de stock bajo y umbral de
-              desviación de la tasa manual.
+              IVA por defecto, fuente de tasa preferida, umbrales, vencimiento de las ventas a
+              crédito y datos de los recordatorios de cobro.
             </Typography>
           </Box>
           <Divider />
@@ -135,6 +144,93 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
               'Si una tasa manual difiere más que esto de la referencial, se pide confirmación antes de guardar.'
             }
           />
+
+          <Divider />
+          <Box>
+            <Typography variant="h6" component="h3">
+              Cuentas por cobrar
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Vencimiento de las ventas a crédito y datos que salen en los recordatorios de cobro.
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <NumberField
+              label="Días de crédito por defecto *"
+              fullWidth
+              decimals={0}
+              suffix="días"
+              value={diasCredito}
+              onChange={(v) => methods.setValue('dias_credito_default', v ?? 0, { shouldDirty: true })}
+              error={!!formState.errors.dias_credito_default}
+              helperText={
+                formState.errors.dias_credito_default?.message ??
+                'Para clientes sin días propios.'
+              }
+            />
+            <NumberField
+              label="Aviso «por vencer» (días) *"
+              fullWidth
+              decimals={0}
+              suffix="días"
+              value={diasAviso}
+              onChange={(v) => methods.setValue('dias_aviso_por_vencer', v ?? 0, { shouldDirty: true })}
+              error={!!formState.errors.dias_aviso_por_vencer}
+              helperText={
+                formState.errors.dias_aviso_por_vencer?.message ??
+                'Una factura pasa a "por vencer" cuando le quedan estos días o menos.'
+              }
+            />
+          </Box>
+
+          <TextField
+            label="Nombre comercial *"
+            fullWidth
+            {...register('nombre_comercial')}
+            error={!!formState.errors.nombre_comercial}
+            helperText={formState.errors.nombre_comercial?.message ?? 'Encabezado de los recordatorios.'}
+          />
+
+          <TextField
+            label="Correo de respuesta"
+            type="email"
+            fullWidth
+            {...register('email_respuesta')}
+            error={!!formState.errors.email_respuesta}
+            helperText={
+              formState.errors.email_respuesta?.message ??
+              'Las respuestas a los correos de cobranza llegan aquí.'
+            }
+          />
+
+          <TextField
+            label="Instrucciones de pago"
+            fullWidth
+            multiline
+            minRows={4}
+            placeholder={'Pago Móvil: 0412-0000000 · V-12345678 · Banco …\nZelle: pagos@…'}
+            {...register('instrucciones_pago')}
+            error={!!formState.errors.instrucciones_pago}
+            helperText={
+              formState.errors.instrucciones_pago?.message ??
+              'Se incluyen al final de cada recordatorio.'
+            }
+          />
+
+          {instrucciones?.trim() ? (
+            <Box
+              aria-label="Vista previa de las instrucciones en el mensaje"
+              sx={{ p: 2, borderRadius: '8px', border: 1, borderColor: 'divider', bgcolor: 'background.default' }}
+            >
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                Así sale en el mensaje
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+                {`Datos de pago:\n${instrucciones.trim()}`}
+              </Typography>
+            </Box>
+          ) : null}
 
           {serverError ? <Alert severity="error">{serverError}</Alert> : null}
 

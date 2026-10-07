@@ -15,6 +15,7 @@ import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
 import FilterListOffOutlinedIcon from '@mui/icons-material/FilterListOffOutlined'
+import { CarteraIndicador } from '@/components/molecules/CarteraIndicador'
 import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
 import { StatusChips } from '@/components/molecules/StatusChips'
 import type { EmptyStateProps } from '@/components/molecules/EmptyState'
@@ -24,28 +25,34 @@ import {
   writeUrlParams,
 } from '@/components/organisms/AppDataGrid'
 import { colAcciones, colMonto } from '@/components/organisms/appDataGridColumns'
+import { gravedadCartera } from '@/lib/cartera/resumen'
+import type { ResumenCartera } from '@/lib/cartera/types'
 import type { Cliente } from '@/types/domain'
 
 /** Filtro del listado; vive en `?estado=` (sin parámetro = activos). */
-export type FiltroClientes = 'activos' | 'bloqueados' | 'todos'
+export type FiltroClientes = 'activos' | 'bloqueados' | 'vencidas' | 'todos'
 
 const FILTROS: { value: FiltroClientes; label: string }[] = [
   { value: 'activos', label: 'Activos' },
   { value: 'bloqueados', label: 'Bloqueados' },
+  { value: 'vencidas', label: 'Con facturas vencidas' },
   { value: 'todos', label: 'Todos' },
 ]
 
 const VACIO_FILTRO: Record<Exclude<FiltroClientes, 'todos'>, string> = {
   activos: 'No hay clientes activos',
   bloqueados: 'No hay clientes bloqueados',
+  vencidas: 'Ningún cliente tiene facturas vencidas',
 }
 
 export function filtroDesdeParam(value: string | null): FiltroClientes {
-  return value === 'bloqueados' || value === 'todos' ? value : 'activos'
+  return value === 'bloqueados' || value === 'vencidas' || value === 'todos' ? value : 'activos'
 }
 
 export interface ClientesTableProps {
   clientes: Cliente[]
+  /** Resumen de cartera por id de cliente (09); sin entrada = sin facturas. */
+  cartera: Record<string, ResumenCartera>
   esAdmin: boolean
   /** Cliente con una acción en curso: su `⋮` queda deshabilitado con indicador. */
   estaPendiente: (id: string) => boolean
@@ -66,6 +73,7 @@ const searchValues = (c: Cliente) => [c.nombre, c.rif_ci, c.telefono]
  */
 export function ClientesTable({
   clientes,
+  cartera,
   esAdmin,
   estaPendiente,
   onNuevo,
@@ -78,13 +86,19 @@ export function ClientesTable({
   const searchParams = useSearchParams()
   const filtro = filtroDesdeParam(searchParams.get('estado'))
 
+  const tieneVencidas = React.useCallback(
+    (c: Cliente) => (cartera[c.id]?.conteo.vencida ?? 0) > 0,
+    [cartera]
+  )
+
   const conteo = React.useMemo(
     () => ({
       activos: clientes.filter((c) => c.activo).length,
       bloqueados: clientes.filter((c) => c.bloqueado).length,
+      vencidas: clientes.filter(tieneVencidas).length,
       todos: clientes.length,
     }),
-    [clientes]
+    [clientes, tieneVencidas]
   )
 
   const filas = React.useMemo(
@@ -92,9 +106,10 @@ export function ClientesTable({
       clientes.filter((c) => {
         if (filtro === 'activos') return c.activo
         if (filtro === 'bloqueados') return c.bloqueado
+        if (filtro === 'vencidas') return tieneVencidas(c)
         return true
       }),
-    [clientes, filtro]
+    [clientes, filtro, tieneVencidas]
   )
 
   const cambiarFiltro = (next: FiltroClientes) => {
@@ -161,6 +176,22 @@ export function ClientesTable({
         ),
       },
       {
+        // Esencial (también en xs): ordena por gravedad, vencidas primero.
+        field: 'cartera',
+        headerName: 'Facturas',
+        type: 'number',
+        width: 88,
+        align: 'center',
+        headerAlign: 'center',
+        sortingOrder: ['desc', 'asc', null],
+        valueGetter: (_v, row) => gravedadCartera(cartera[row.id]),
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <CarteraIndicador resumen={cartera[row.id] ?? null} />
+          </Box>
+        ),
+      },
+      {
         field: 'telefono',
         headerName: 'Teléfono',
         flex: 1,
@@ -201,7 +232,7 @@ export function ClientesTable({
         isPending: (row) => estaPendiente(row.id),
       }),
     ],
-    [getActions, estaPendiente]
+    [getActions, estaPendiente, cartera]
   )
 
   const emptyState: EmptyStateProps =
@@ -264,13 +295,18 @@ export function ClientesTable({
         status: (
           <StatusChips bloqueado={row.bloqueado} motivoBloqueo={row.motivo_bloqueo} activo={row.activo} />
         ),
+        // Fuera del enlace de la tarjeta: tocar el indicador muestra el
+        // tooltip sin abrir la ficha.
         actions: (
-          <RowActionsMenu
-            label={row.nombre}
-            actions={getActions(row)}
-            pending={estaPendiente(row.id)}
-            size="medium"
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CarteraIndicador resumen={cartera[row.id] ?? null} />
+            <RowActionsMenu
+              label={row.nombre}
+              actions={getActions(row)}
+              pending={estaPendiente(row.id)}
+              size="medium"
+            />
+          </Box>
         ),
       })}
     />

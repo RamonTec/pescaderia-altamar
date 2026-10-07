@@ -7,14 +7,17 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Fade from '@mui/material/Fade'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
 import type { GridColDef } from '@mui/x-data-grid'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined'
+import { CarteraResumenCards } from '@/components/molecules/CarteraResumenCards'
 import { CopyableText } from '@/components/molecules/CopyableText'
 import { CreditoResumen } from '@/components/molecules/CreditoResumen'
 import { DocumentoUpload } from '@/components/molecules/DocumentoUpload'
@@ -25,29 +28,29 @@ import type { RowAction } from '@/components/molecules/RowActionsMenu'
 import { StatusChips } from '@/components/molecules/StatusChips'
 import { AppDataGrid } from '@/components/organisms/AppDataGrid'
 import {
+  DocumentosCarteraTable,
+  type FiltroCartera,
+} from '@/components/organisms/DocumentosCarteraTable'
+import { HistorialRecordatorios } from '@/components/organisms/HistorialRecordatorios'
+import { RecordatorioDialog } from '@/components/organisms/RecordatorioDialog'
+import {
   EstadoChip,
   colEstado,
   colFecha,
-  colMonto,
   type EstadoDef,
 } from '@/components/organisms/appDataGridColumns'
 import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
-import { formatFecha, formatUsd } from '@/lib/format'
+import { formatFecha } from '@/lib/format'
+import type { EstadoCartera } from '@/lib/cartera/types'
+import type { CarteraDeCliente } from '@/lib/services/carteraService'
 import type {
   Cliente,
-  EstadoDoc,
   EstadoPedido,
-  Factura,
   Pedido,
+  RecordatorioCobro,
   RepresentanteLegal,
 } from '@/types/domain'
 import { useClienteAcciones } from '../useClienteAcciones'
-
-const ESTADO_FACTURA: Record<EstadoDoc, EstadoDef> = {
-  abierta: { label: 'Por cobrar', color: 'warning' },
-  pagada: { label: 'Pagada', color: 'success' },
-  anulada: { label: 'Anulada', color: 'default' },
-}
 
 const ESTADO_PEDIDO: Record<EstadoPedido, EstadoDef> = {
   pendiente: { label: 'Pendiente', color: 'warning' },
@@ -55,13 +58,6 @@ const ESTADO_PEDIDO: Record<EstadoPedido, EstadoDef> = {
   facturado: { label: 'Facturado', color: 'success' },
   anulado: { label: 'Anulado', color: 'default' },
 }
-
-const COLUMNAS_FACTURAS: GridColDef<Factura>[] = [
-  { field: 'numero', headerName: 'N.º', minWidth: 90, flex: 0.6 },
-  colFecha<Factura>('fecha', 'Fecha', { flex: 1 }),
-  colMonto<Factura>('total_usd', 'Total', { flex: 1 }),
-  colEstado<Factura>('estado', 'Estado', ESTADO_FACTURA, { flex: 1 }),
-]
 
 const COLUMNAS_PEDIDOS: GridColDef<Pedido>[] = [
   colFecha<Pedido>('fecha', 'Fecha', { flex: 1 }),
@@ -78,20 +74,32 @@ export function ClienteFicha({
   saldo,
   esAdmin,
   representantes,
-  facturas,
   pedidos,
+  cartera,
+  recordatorios,
+  diasCreditoDefault,
 }: {
   cliente: Cliente
   saldo: number | null
   esAdmin: boolean
   representantes: RepresentanteLegal[]
-  facturas: Factura[]
   pedidos: Pedido[]
+  /** 09-cuentas-por-cobrar: resumen + documentos (sin montos para el operador). */
+  cartera: CarteraDeCliente
+  recordatorios: RecordatorioCobro[]
+  diasCreditoDefault: number
 }) {
   const router = useRouter()
+  const refrescar = React.useCallback(() => router.refresh(), [router])
   const { acciones, dialogos, estaPendiente } = useClienteAcciones({
-    onCambio: () => router.refresh(),
+    onCambio: refrescar,
+    diasCreditoDefault,
   })
+  const [filtroCartera, setFiltroCartera] = React.useState<FiltroCartera>('todas')
+  // `key` nuevo en cada apertura: el diálogo vuelve a preparar el recordatorio.
+  const [recordatorioKey, setRecordatorioKey] = React.useState<number | null>(null)
+  const { resumen, documentos, contexto } = cartera
+  const abiertas = resumen.conteo.vencida + resumen.conteo.por_vencer + resumen.conteo.pendiente
   const pendiente = estaPendiente(cliente.id)
   const juridica = cliente.tipo_persona === 'juridica'
   const documentoStore = React.useMemo(() => makeClienteDocumentoStore(cliente.id), [cliente.id])
@@ -254,31 +262,60 @@ export function ClienteFicha({
               </FichaSeccion>
             ) : null}
 
-            <FichaSeccion titulo="Facturas">
-              {facturas.length === 0 ? (
-                <EmptyState
-                  compact
-                  icon={<ReceiptLongOutlinedIcon />}
-                  title="Aún no hay facturas para este cliente"
-                />
-              ) : (
-                <AppDataGrid<Factura>
-                  tableId="cliente-facturas"
-                  label="Facturas del cliente"
-                  rows={facturas}
-                  columns={COLUMNAS_FACTURAS}
-                  searchable={false}
-                  pageParam="pfacturas"
-                  embedded
-                  emptyState={{ title: 'Aún no hay facturas para este cliente' }}
-                  mobileCard={(f) => ({
-                    primary: `Factura N.º ${f.numero}`,
-                    secondary: formatFecha(f.fecha),
-                    status: <EstadoChip {...ESTADO_FACTURA[f.estado]} />,
-                    amount: formatUsd(f.total_usd),
-                  })}
-                />
-              )}
+            <FichaSeccion
+              titulo="Facturas y cobranza"
+              accion={
+                esAdmin ? (
+                  <Tooltip
+                    title={abiertas === 0 ? 'No hay facturas pendientes ni vencidas' : ''}
+                    disableHoverListener={abiertas > 0}
+                    disableFocusListener={abiertas > 0}
+                    disableTouchListener={abiertas > 0}
+                  >
+                    <span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<NotificationsActiveOutlinedIcon />}
+                        disabled={abiertas === 0 || !cliente.activo}
+                        onClick={() => setRecordatorioKey(Date.now())}
+                      >
+                        Enviar recordatorio
+                      </Button>
+                    </span>
+                  </Tooltip>
+                ) : null
+              }
+            >
+              <CarteraResumenCards
+                resumen={resumen}
+                seleccionado={filtroCartera === 'todas' ? null : (filtroCartera as EstadoCartera)}
+                onSeleccionar={(estado) =>
+                  setFiltroCartera(estado && estado !== 'anulada' ? estado : 'todas')
+                }
+                label="Resumen de facturas del cliente"
+              />
+              <DocumentosCarteraTable
+                tableId="cliente-facturas"
+                label="Facturas del cliente"
+                documentos={documentos}
+                hoy={contexto.hoy}
+                diasAviso={contexto.diasAviso}
+                mostrarMontos={contexto.mostrarMontos}
+                filtro={filtroCartera}
+                onFiltroChange={setFiltroCartera}
+                pageParam="pfacturas"
+                embedded
+              />
+              <Divider />
+              <Typography variant="subtitle1" component="h3">
+                Historial de recordatorios
+              </Typography>
+              <HistorialRecordatorios
+                recordatorios={recordatorios}
+                puedeReintentar={esAdmin}
+                onReintentado={refrescar}
+              />
             </FichaSeccion>
 
             <FichaSeccion titulo="Pedidos">
@@ -320,6 +357,20 @@ export function ClienteFicha({
         </Box>
 
         {dialogos}
+        {esAdmin && recordatorioKey !== null ? (
+          <RecordatorioDialog
+            key={recordatorioKey}
+            open
+            clienteId={cliente.id}
+            clienteNombre={cliente.nombre}
+            onClose={() => setRecordatorioKey(null)}
+            onEditarCliente={() => {
+              setRecordatorioKey(null)
+              acciones.editar(cliente)
+            }}
+            onEnviado={refrescar}
+          />
+        ) : null}
       </Box>
     </Fade>
   )

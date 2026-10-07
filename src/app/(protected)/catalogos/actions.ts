@@ -182,11 +182,18 @@ export async function updateConfigAction(
       fuente_tasa_default: safe.data.fuente_tasa_default,
       umbral_stock_bajo_kg: safe.data.umbral_stock_bajo_kg,
       umbral_desviacion_tasa_pct: safe.data.umbral_desviacion_tasa_pct,
+      dias_credito_default: safe.data.dias_credito_default,
+      dias_aviso_por_vencer: safe.data.dias_aviso_por_vencer,
+      nombre_comercial: safe.data.nombre_comercial,
+      email_respuesta: safe.data.email_respuesta || null,
+      instrucciones_pago: safe.data.instrucciones_pago.trim() || null,
     })
   } catch (e) {
     return { error: toActionError(e).error, success: null }
   }
 
   revalidatePath('/catalogos')
+  revalidatePath('/clientes', 'layout')
+  revalidatePath('/cobros')
   return { error: null, success: 'Configuración guardada' }
 }

@@ -22,6 +22,7 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { PedidoItemsFieldArray, pedidoItemVacio } from '@/components/molecules/PedidoItemsFieldArray'
+import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
 import {
   pedirConfirmacionTasaManual,
   TasaSelector,
@@ -45,6 +46,8 @@ export interface PedidoFormProps {
   productos: Producto[]
   /** Config de tasas de `config_negocio` (08-tasas Fase D). */
   configTasas: TasaSelectorConfig
+  /** Días de crédito del negocio para clientes sin días propios (09). */
+  diasCreditoDefault: number
 }
 
 function vacio(): PedidoFormInput {
@@ -54,6 +57,7 @@ function vacio(): PedidoFormInput {
     fecha: fechaHoy(),
     fecha_entrega: null,
     condicion: 'contado',
+    dias_credito: null,
     notas: '',
     // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
     // completa origen/fuente/valor; solo la venta directa la exige.
@@ -74,7 +78,14 @@ function vacio(): PedidoFormInput {
  * advertencia estructurada y aquí se pide confirmación; al confirmar se reintenta
  * con `forzar_limite = true`.
  */
-export function PedidoForm({ open, onClose, clientes, productos, configTasas }: PedidoFormProps) {
+export function PedidoForm({
+  open,
+  onClose,
+  clientes,
+  productos,
+  configTasas,
+  diasCreditoDefault,
+}: PedidoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -89,11 +100,13 @@ export function PedidoForm({ open, onClose, clientes, productos, configTasas }: 
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
-  const [clienteId, entregaInmediata, condicion, fecha, items] = useWatch({
+  const [clienteId, entregaInmediata, condicion, fecha, items, diasCredito] = useWatch({
     control,
-    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'fecha', 'items'],
+    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'fecha', 'items', 'dias_credito'],
   })
   const cliente = clientes.find((c) => c.id === clienteId) ?? null
+  // 09: días habituales del cliente (o el default) para precargar la venta a crédito.
+  const diasHabituales = cliente?.dias_credito ?? diasCreditoDefault
 
   // Referencial vigente que el `TasaSelector` reporta (08-tasas): se usa
   // para la confirmación del umbral al enviar.
@@ -204,6 +217,8 @@ export function PedidoForm({ open, onClose, clientes, productos, configTasas }: 
                         onChange={(_, next) => {
                           field.onChange(next?.id ?? '')
                           if (next?.bloqueado) setValue('condicion', 'contado')
+                          // Precarga los días del nuevo cliente (editables).
+                          setValue('dias_credito', next?.dias_credito ?? diasCreditoDefault)
                         }}
                         onBlur={field.onBlur}
                         getOptionLabel={(c) => (c.rif_ci ? `${c.nombre} · ${c.rif_ci}` : c.nombre)}
@@ -319,6 +334,18 @@ export function PedidoForm({ open, onClose, clientes, productos, configTasas }: 
                   />
                 </Grid>
               </Grid>
+
+              {entregaInmediata && condicion === 'credito' ? (
+                <DiasCreditoField
+                  value={diasCredito}
+                  onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
+                  fecha={fecha || fechaHoy()}
+                  diasHabituales={diasHabituales}
+                  error={!!formState.errors.dias_credito}
+                  helperText={formState.errors.dias_credito?.message}
+                  disabled={isPending}
+                />
+              ) : null}
 
               {!entregaInmediata ? (
                 <TextField

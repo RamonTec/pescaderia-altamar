@@ -5,17 +5,22 @@ import Box from '@mui/material/Box'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { ClientesTable } from '@/components/organisms/ClientesTable'
+import type { ResumenCartera } from '@/lib/cartera/types'
 import type { Cliente } from '@/types/domain'
 import { useClienteAcciones } from './useClienteAcciones'
 
 export function ClientesScreen({
   clientes,
   esAdmin,
+  cartera,
+  diasCreditoDefault,
 }: {
   clientes: Cliente[]
   esAdmin: boolean
+  cartera: Record<string, ResumenCartera>
+  diasCreditoDefault: number
 }) {
-  const { acciones, dialogos, estaPendiente } = useClienteAcciones()
+  const { acciones, dialogos, estaPendiente } = useClienteAcciones({ diasCreditoDefault })
 
   return (
     <>
@@ -32,6 +37,7 @@ export function ClientesScreen({
       <Box sx={{ pb: { xs: 10, sm: 0 } }}>
         <ClientesTable
           clientes={clientes}
+          cartera={cartera}
           esAdmin={esAdmin}
           estaPendiente={estaPendiente}
           onNuevo={acciones.nuevo}

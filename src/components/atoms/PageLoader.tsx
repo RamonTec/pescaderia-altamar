@@ -69,7 +69,14 @@ const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
   ficha: FichaLoader,
 }
 
-export function PageLoader({ variant = 'table' }: { variant?: PageLoaderVariant }) {
+export function PageLoader({
+  variant = 'table',
+  children,
+}: {
+  variant?: PageLoaderVariant
+  /** Skeleton extra debajo del de la variante (ej. una sección de la ficha). */
+  children?: React.ReactNode
+}) {
   // Mientras el skeleton de un `loading.tsx` está montado, corre la barra de navegación.
   useNavigationPending(true)
   return (
@@ -78,6 +85,7 @@ export function PageLoader({ variant = 'table' }: { variant?: PageLoaderVariant 
         Cargando…
       </Typography>
       {React.createElement(LOADERS[variant])}
+      {children ? <Box sx={{ mt: 3 }}>{children}</Box> : null}
     </Box>
   )
 }

@@ -1,23 +1,16 @@
-import { AppShell } from '@/components/templates/AppShell'
 import { CobrosScreen } from './cobros-screen'
-import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
 import { getConfigTasas } from '@/lib/services/tasaService'
-import { createClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/services/authService'
+import { cobrosAbiertos } from '@/lib/services/carteraService'
 
 export default async function CobrosPage() {
-  const db = await createClient()
-  const [facturas, configTasas, esAdmin] = await Promise.all([
-    makeFacturaRepository(db).list('abierta'),
+  const [cobros, configTasas] = await Promise.all([
+    // 09-cuentas-por-cobrar: facturas abiertas como documentos de cartera
+    // (estado, vencimiento) + resumen global; sin montos para el operador.
+    cobrosAbiertos(),
     // 08-tasas Fase D: fuente default + umbral de desviación para el
     // `TasaSelector` del abono.
-    getConfigTasas(db),
-    requireAdmin(),
+    getConfigTasas(),
   ])
 
-  return (
-    <AppShell>
-      <CobrosScreen facturas={facturas} esAdmin={esAdmin} configTasas={configTasas} />
-    </AppShell>
-  )
+  return <CobrosScreen cobros={cobros} configTasas={configTasas} />
 }

@@ -24,6 +24,8 @@ export interface ClienteFormProps {
   onClose: () => void
   /** Tras crear/actualizar con éxito (ej. `router.refresh()` en la ficha). */
   onGuardado?: () => void
+  /** Días de crédito del negocio, para el placeholder "Por defecto: 15" (09). */
+  diasCreditoDefault?: number
 }
 
 function toFormValues(cliente: Cliente | null): ClienteFormValues {
@@ -37,6 +39,7 @@ function toFormValues(cliente: Cliente | null): ClienteFormValues {
       direccion: '',
       notas: '',
       limite_credito_usd: null,
+      dias_credito: null,
       representantes: [],
     }
   }
@@ -49,6 +52,7 @@ function toFormValues(cliente: Cliente | null): ClienteFormValues {
     direccion: cliente.direccion ?? '',
     notas: cliente.notas ?? '',
     limite_credito_usd: cliente.limite_credito_usd,
+    dias_credito: cliente.dias_credito ?? null,
     representantes: [],
   }
 }
@@ -59,7 +63,13 @@ function toFormValues(cliente: Cliente | null): ClienteFormValues {
  * Mientras guarda: campos y "Cancelar" deshabilitados, el diálogo no se
  * cierra y un segundo envío se ignora.
  */
-export function ClienteForm({ open, cliente, onClose, onGuardado }: ClienteFormProps) {
+export function ClienteForm({
+  open,
+  cliente,
+  onClose,
+  onGuardado,
+  diasCreditoDefault = 15,
+}: ClienteFormProps) {
   const notify = useNotify()
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
@@ -163,7 +173,7 @@ export function ClienteForm({ open, cliente, onClose, onGuardado }: ClienteFormP
     >
       <FormProvider {...methods}>
         <Box sx={{ display: 'grid', gap: 4 }}>
-          <ClienteFormFields />
+          <ClienteFormFields diasCreditoDefault={diasCreditoDefault} />
           {tipoPersona === 'juridica' ? <RepresentantesLegalesFieldArray /> : null}
           <Box sx={{ display: 'grid', gap: 2 }}>
             <Typography variant="h6" component="h3">

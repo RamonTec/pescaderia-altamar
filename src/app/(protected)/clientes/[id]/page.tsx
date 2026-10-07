@@ -3,11 +3,13 @@ import { ClienteFicha } from './cliente-ficha'
 import {
   getCliente,
   getSaldoPendiente,
-  listarFacturasDeCliente,
   listarPedidosDeCliente,
   listarRepresentantes,
 } from '@/lib/services/clienteService'
 import { requireAdmin } from '@/lib/services/authService'
+import { carteraDeCliente } from '@/lib/services/carteraService'
+import { getDiasCreditoDefault } from '@/lib/services/configService'
+import { historialDeCliente } from '@/lib/services/recordatorioService'
 
 /**
  * Ficha del cliente: todo se carga aquí, en paralelo, y llega por props.
@@ -26,13 +28,17 @@ export default async function ClienteFichaPage({
   const cliente = await getCliente(id)
   if (!cliente) notFound()
 
-  const [saldo, esAdmin, representantes, facturas, pedidos] = await Promise.all([
-    getSaldoPendiente(id),
-    requireAdmin(),
-    listarRepresentantes(id),
-    listarFacturasDeCliente(id),
-    listarPedidosDeCliente(id),
-  ])
+  const [saldo, esAdmin, representantes, pedidos, cartera, recordatorios, diasCreditoDefault] =
+    await Promise.all([
+      getSaldoPendiente(id),
+      requireAdmin(),
+      listarRepresentantes(id),
+      listarPedidosDeCliente(id),
+      // 09-cuentas-por-cobrar: facturas con estado de cobro + historial.
+      carteraDeCliente(id),
+      historialDeCliente(id),
+      getDiasCreditoDefault(),
+    ])
 
   return (
     <ClienteFicha
@@ -40,8 +46,10 @@ export default async function ClienteFichaPage({
       saldo={saldo}
       esAdmin={esAdmin}
       representantes={representantes}
-      facturas={facturas}
       pedidos={pedidos}
+      cartera={cartera}
+      recordatorios={recordatorios}
+      diasCreditoDefault={diasCreditoDefault}
     />
   )
 }

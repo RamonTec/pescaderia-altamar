@@ -29,7 +29,10 @@ type ClienteAction = (prev: ClienteActionState, formData: FormData) => Promise<C
  * `onCambio` se llama tras cada acción exitosa (la ficha lo usa para
  * `router.refresh()`; el listado ya se revalida con `revalidatePath`).
  */
-export function useClienteAcciones({ onCambio }: { onCambio?: () => void } = {}) {
+export function useClienteAcciones({
+  onCambio,
+  diasCreditoDefault,
+}: { onCambio?: () => void; diasCreditoDefault?: number } = {}) {
   const notify = useNotify()
   const confirm = useConfirm()
   const [pendientes, setPendientes] = React.useState<ReadonlySet<string>>(() => new Set())
@@ -123,6 +126,7 @@ export function useClienteAcciones({ onCambio }: { onCambio?: () => void } = {})
           setEditando(null)
         }}
         onGuardado={onCambio}
+        diasCreditoDefault={diasCreditoDefault}
       />
       <BloqueoDialog
         open={!!bloqueando}
