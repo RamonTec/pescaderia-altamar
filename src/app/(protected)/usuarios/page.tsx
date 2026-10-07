@@ -8,7 +8,6 @@ import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Chip from '@mui/material/Chip'
-import { AppShell } from '@/components/templates/AppShell'
 import { CrearUsuarioForm } from '@/components/organisms/CrearUsuarioForm'
 import { requireAdmin, listUsuarios } from '@/lib/services/authService'
 
@@ -18,7 +17,7 @@ export default async function UsuariosPage() {
   const usuarios = await listUsuarios()
 
   return (
-    <AppShell>
+    <>
       <Typography variant="h4" gutterBottom>
         Usuarios
       </Typography>
@@ -53,6 +52,6 @@ export default async function UsuariosPage() {
           </TableBody>
         </Table>
       </Paper>
-    </AppShell>
+    </>
   )
 }

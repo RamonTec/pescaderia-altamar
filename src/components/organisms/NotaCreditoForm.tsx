@@ -29,7 +29,7 @@ import { emitirNotaCreditoAction } from '@/app/(protected)/notas-credito/actions
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface NotaCreditoFormProps {
   open: boolean
@@ -289,7 +289,7 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
                 <Typography variant="caption" color="text.secondary">
                   Subtotal a devolver
                 </Typography>
-                <Typography variant="h6" sx={MONO}>
+                <Typography variant="h6" sx={NUM}>
                   {formatUsd(totalDevolucion)}
                 </Typography>
               </Box>

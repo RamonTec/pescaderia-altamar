@@ -1,4 +1,3 @@
-import { AppShell } from '@/components/templates/AppShell'
 import { ClientesScreen } from './clientes-screen'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
 import { createClient } from '@/lib/supabase/server'
@@ -10,8 +9,6 @@ export default async function ClientesPage() {
   const esAdmin = await requireAdmin()
 
   return (
-    <AppShell>
-      <ClientesScreen clientes={clientes} esAdmin={esAdmin} />
-    </AppShell>
+    <ClientesScreen clientes={clientes} esAdmin={esAdmin} />
   )
 }

@@ -15,7 +15,7 @@ import { formatFecha, formatUsd } from '@/lib/format'
 import type { CompraResumen } from '@/lib/repositories/interfaces'
 import type { EstadoDoc } from '@/types/domain'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 /** Para el operador los importes llegan en `null` (costos y balances son de admin). */
 export type CompraFila = Omit<CompraResumen, 'subtotal_usd' | 'pagado_usd'> & {
@@ -99,7 +99,7 @@ export function ComprasTable({ compras, esAdmin, onPagar, onNueva }: ComprasTabl
             type: 'number',
             width: 130,
             renderCell: (params) => (
-              <Typography variant="body2" sx={MONO}>
+              <Typography variant="body2" sx={NUM}>
                 {formatUsd(Number(params.row.subtotal_usd))}
               </Typography>
             ),
@@ -113,7 +113,7 @@ export function ComprasTable({ compras, esAdmin, onPagar, onNueva }: ComprasTabl
             renderCell: (params) => (
               <Typography
                 variant="body2"
-                sx={MONO}
+                sx={NUM}
                 color={params.value > 0 ? 'text.primary' : 'text.secondary'}
               >
                 {formatUsd(params.value)}

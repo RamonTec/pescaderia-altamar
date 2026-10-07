@@ -1,4 +1,3 @@
-import { AppShell } from '@/components/templates/AppShell'
 import { ProcesamientoScreen } from './procesamiento-screen'
 import type { ProcesoFila } from '@/components/organisms/ProcesamientosTable'
 import type { CrudoConStock } from '@/components/organisms/ProcesamientoForm'
@@ -45,13 +44,11 @@ export default async function ProcesamientoPage() {
     })
 
   return (
-    <AppShell>
-      <ProcesamientoScreen
-        filas={filas}
-        crudos={crudos}
-        procesados={activos.filter((p) => p.tipo === 'procesado')}
-        esAdmin={esAdmin}
-      />
-    </AppShell>
+    <ProcesamientoScreen
+      filas={filas}
+      crudos={crudos}
+      procesados={activos.filter((p) => p.tipo === 'procesado')}
+      esAdmin={esAdmin}
+    />
   )
 }

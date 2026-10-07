@@ -4,6 +4,7 @@ import * as React from 'react'
 import Box from '@mui/material/Box'
 import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
+import { useNavigationPending } from '@/components/atoms/NavigationProgress'
 
 export type PageLoaderVariant = 'table' | 'form' | 'ficha'
 
@@ -69,6 +70,8 @@ const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
 }
 
 export function PageLoader({ variant = 'table' }: { variant?: PageLoaderVariant }) {
+  // Mientras el skeleton de un `loading.tsx` está montado, corre la barra de navegación.
+  useNavigationPending(true)
   return (
     <Box sx={{ width: '100%', p: { xs: 1, sm: 0 } }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>

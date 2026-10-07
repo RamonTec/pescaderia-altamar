@@ -1,4 +1,3 @@
-import { AppShell } from '@/components/templates/AppShell'
 import { NotasCreditoScreen } from './notas-credito-screen'
 import { makeNotaCreditoRepository } from '@/lib/repositories/notaCreditoRepository'
 import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
@@ -14,8 +13,6 @@ export default async function NotasCreditoPage() {
   ])
 
   return (
-    <AppShell>
-      <NotasCreditoScreen notas={notas} facturas={facturas} esAdmin={esAdmin} />
-    </AppShell>
+    <NotasCreditoScreen notas={notas} facturas={facturas} esAdmin={esAdmin} />
   )
 }

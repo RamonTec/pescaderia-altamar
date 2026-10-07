@@ -24,7 +24,7 @@ import Typography from '@mui/material/Typography'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
-import BlockIcon from '@mui/icons-material/Block'
+import BlockIcon from '@mui/icons-material/BlockOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
@@ -55,7 +55,7 @@ interface PedidoRow {
   estado: EstadoPedido
 }
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 const ESTADO_FACTURA: Record<EstadoDoc, { label: string; color: ChipProps['color'] }> = {
   abierta: { label: 'Por cobrar', color: 'warning' },
@@ -256,7 +256,7 @@ export function ClienteFicha({
                         {representantes.map((r) => (
                           <TableRow key={r.id}>
                             <TableCell>{r.nombre}</TableCell>
-                            <TableCell sx={MONO}>{r.cedula}</TableCell>
+                            <TableCell sx={NUM}>{r.cedula}</TableCell>
                             <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{r.cargo || '—'}</TableCell>
                             <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{r.telefono || '—'}</TableCell>
                           </TableRow>
@@ -287,9 +287,9 @@ export function ClienteFicha({
                     <TableBody>
                       {facturas.map((f) => (
                         <TableRow key={f.id}>
-                          <TableCell sx={MONO}>{f.numero}</TableCell>
+                          <TableCell sx={NUM}>{f.numero}</TableCell>
                           <TableCell>{formatFecha(f.fecha)}</TableCell>
-                          <TableCell align="right" sx={MONO}>
+                          <TableCell align="right" sx={NUM}>
                             {formatUsd(f.total_usd)}
                           </TableCell>
                           <TableCell>

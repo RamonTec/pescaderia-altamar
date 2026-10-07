@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined'
 import { useNotify } from '@/lib/useNotify'
 
 export interface CopyableTextProps {
@@ -36,7 +36,7 @@ export function CopyableText({ value, display, mono = true }: CopyableTextProps)
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
       <Typography
         variant="body2"
-        sx={mono ? { fontFamily: 'var(--font-geist-mono)' } : undefined}
+        sx={mono ? { fontVariantNumeric: 'tabular-nums' } : undefined}
       >
         {display ?? value}
       </Typography>

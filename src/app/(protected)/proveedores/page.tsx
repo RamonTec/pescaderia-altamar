@@ -1,4 +1,3 @@
-import { AppShell } from '@/components/templates/AppShell'
 import { ProveedoresScreen } from './proveedores-screen'
 import { makeProveedorRepository } from '@/lib/repositories/proveedorRepository'
 import { createClient } from '@/lib/supabase/server'
@@ -10,8 +9,6 @@ export default async function ProveedoresPage() {
   const esAdmin = await requireAdmin()
 
   return (
-    <AppShell>
-      <ProveedoresScreen proveedores={proveedores} esAdmin={esAdmin} />
-    </AppShell>
+    <ProveedoresScreen proveedores={proveedores} esAdmin={esAdmin} />
   )
 }

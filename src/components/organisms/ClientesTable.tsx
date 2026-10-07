@@ -19,7 +19,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import SearchIcon from '@mui/icons-material/Search'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import BlockIcon from '@mui/icons-material/Block'
+import BlockIcon from '@mui/icons-material/BlockOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
@@ -41,7 +41,7 @@ export interface ClientesTableProps {
   onActivar: (cliente: Cliente) => void
 }
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 /** Minúsculas, sin acentos ni separadores: "V-12.345" y "v12345" coinciden. */
 function normalizar(s: string | null | undefined): string {
@@ -107,7 +107,7 @@ export function ClientesTable({
           <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
             {row.nombre}
           </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap sx={MONO}>
+          <Typography variant="caption" color="text.secondary" noWrap sx={NUM}>
             {row.rif_ci ?? 'Sin RIF / cédula'}
           </Typography>
         </Box>
@@ -122,7 +122,7 @@ export function ClientesTable({
       minWidth: 120,
       renderCell: ({ value }) =>
         value ? (
-          <Box component="span" sx={MONO}>
+          <Box component="span" sx={NUM}>
             {formatUsd(value)}
           </Box>
         ) : (

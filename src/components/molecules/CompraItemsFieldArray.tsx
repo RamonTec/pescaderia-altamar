@@ -17,7 +17,7 @@ import type { CompraFormInput } from '@/lib/compraValidation'
 import type { Producto } from '@/types/domain'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface CompraItemsFieldArrayProps {
   /** Solo productos crudos activos. */
@@ -168,7 +168,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ mt: 1, textAlign: 'right', ...MONO }}
+                sx={{ mt: 1, textAlign: 'right', ...NUM }}
               >
                 {formatMonto(importe)}
               </Typography>

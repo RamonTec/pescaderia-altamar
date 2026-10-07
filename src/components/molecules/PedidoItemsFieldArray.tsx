@@ -17,7 +17,7 @@ import type { PedidoFormInput } from '@/lib/pedidoValidation'
 import type { Producto } from '@/types/domain'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface PedidoItemsFieldArrayProps {
   productos: Producto[]
@@ -169,7 +169,7 @@ export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFi
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ mt: 1, textAlign: 'right', ...MONO }}
+                sx={{ mt: 1, textAlign: 'right', ...NUM }}
               >
                 {formatUsd(importe)}
               </Typography>

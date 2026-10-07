@@ -4,8 +4,8 @@ import * as React from 'react'
 import TextField, { type TextFieldProps } from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
-import VisibilityIcon from '@mui/icons-material/Visibility'
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined'
 
 export type PasswordFieldProps = Omit<TextFieldProps, 'type' | 'ref'> & {
   /** Va al `<input>` (compatible con `register()` de react-hook-form). */

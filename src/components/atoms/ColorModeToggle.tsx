@@ -3,9 +3,9 @@
 import * as React from 'react'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
-import LightModeIcon from '@mui/icons-material/LightMode'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
+import LightModeIcon from '@mui/icons-material/LightModeOutlined'
+import DarkModeIcon from '@mui/icons-material/DarkModeOutlined'
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightnessOutlined'
 import { useColorScheme } from '@mui/material/styles'
 
 const CYCLE: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']

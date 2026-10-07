@@ -14,46 +14,137 @@ Este módulo se ejecuta **antes de `01-auth`** (el login ya debe usar estos est�
 - **Tailwind** es dueño de: layout entre componentes (`flex`, `grid`, `gap`, márgenes entre bloques, anchos responsivos). **Nunca clases de color de Tailwind** (`text-red-500`, `bg-white`, etc.) — eso rompe el modo oscuro porque Tailwind no conoce los color schemes de MUI. Esto ya estaba implícito en `/SPEC.md` §3 ("Tailwind v4 (layout/spacing; preflight desactivado)"); aquí se hace explícito y obligatorio.
 - Si una pantalla necesita un color que no es ninguno de los `palette` de MUI, se agrega como token nuevo al theme (ver abajo), no como valor hardcodeado ni clase de Tailwind.
 
+## Identidad visual "Peñero" (aprobada el 2026-10-06)
+
+**Muestra visual aprobada por el usuario el 2026-10-07**: [Estándares visuales Altamar](https://claude.ai/artifact/3WKKVWcmPJVK7MnaKEPDyo) (lienzo privado del usuario). Tiene sistema base, loaders, shell con la tabla de Clientes y el indicador de facturas, modal en curso, y el teléfono con tarjetas y diálogo a pantalla completa, cada uno en claro y oscuro. Es la referencia visual de la Fase 2: si esta spec y la muestra difieren, se consulta al usuario.
+
+Marca: **Altamar Sea Food**. La dirección se inspira en el peñero, la lancha de pesca artesanal venezolana: casco azul petróleo, borda pintada con franjas ocre, blanca y roja, y neutros fríos de hielo y acero de cava. Los tokens viven en `src/theme/theme.ts` (`palette.*` y `palette.brand.*`); **ninguna pantalla usa hex sueltos**.
+
+| Token | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `primary` (casco) | `#0E4A5C` | `#7CC3D6` | acciones principales, selección, enlaces |
+| `secondary` (borda roja) | `#B8402E` | `#E58A74` | acento puntual; nunca compite con `primary` en la misma vista |
+| `brand.ochre` | `#E8B931` | `#D9A92A` | **solo franjas decorativas, nunca texto ni fondo de texto** |
+| `background.default` (hielo) | `#F3F6F6` | `#0F2229` | fondo de la app |
+| `background.paper` | `#FFFFFF` | `#15303A` | superficies: tablas, tarjetas, diálogos, inputs |
+| `text.primary` / `text.secondary` | `#13262C` / `#4A5D63` | `#E4EDEF` / `#9DB3B9` | |
+
+**Un solo gesto memorable: la borda.** Las franjas ocre, blanca y roja (`atoms/PeneroStripes`) son el **único** elemento decorativo del sistema, y aparecen solo en cuatro lugares: el loader global, la barra de progreso de navegación, el marcador del ítem activo del menú y el panel de login. Todo lo demás es sobrio: superficies planas sobre hielo, bordes de 1 px (`divider`) y cero sombras en elementos en reposo. **No se agregan** degradados, sombras decorativas, tarjetas "flotantes" ni íconos de colores.
+
+Jerarquía de superficies y radios (la forma comunica qué es cada cosa):
+
+| Elemento | Radio | Elevación | Borde |
+|---|---|---|---|
+| Chip / etiqueta de estado (etiqueta de cava) | 4 | 0 | según estado |
+| Input, botón | 6 | 0 | input: `divider` |
+| Tarjeta, tabla, sección de ficha | 8 | 0 | 1 px `divider` |
+| Diálogo, menú, popover, tooltip (lo que flota) | 12 (diálogo) / 8 (menú) | sombra del theme | — |
+
+Íconos: un solo set, **`@mui/icons-material` en variante `Outlined`** (`ReceiptLongOutlined`, etc.). No se mezclan variantes rellenas y delineadas. El tamaño por defecto es 20 px en tablas y menús, y 24 px en la navegación.
+
 ## Modo oscuro / claro
 
-Estado actual: `src/theme/theme.ts` tiene `cssVariables: true` (correcto, es lo que permite cambiar de esquema sin re-renderizar todo) pero `palette.mode: 'light'` fijo — no hay modo oscuro todavía.
-
-Estándar a implementar:
-
-1. `theme.ts` pasa de `palette: {...}` a `colorSchemes: { light: {...}, dark: {...} }` (API de MUI v7 para cssVariables). Paleta oscura: no son los mismos colores a menor opacidad — ajustar `background.default`/`background.paper` a grises oscuros reales (`#121212`/`#1e1e1e` como base) y verificar contraste de `primary`/`secondary` sobre ese fondo (AA mínimo, ver sección de accesibilidad).
-2. Persistencia de preferencia: cookie (no solo `localStorage`) para que el servidor pueda renderizar el `<html>` con el esquema correcto desde el primer byte y evitar parpadeo (flash of wrong theme). Usar `InitColorSchemeScript` de `@mui/material-nextjs` si se agrega esa dependencia, o un script inline equivalente si se prefiere mantener el `ThemeRegistry` custom actual.
-3. Toggle: componente `components/atoms/ColorModeToggle.tsx` (ícono sol/luna), ubicado en el `AppBar` de `AppShell.tsx`. Tres estados: `light`, `dark`, `system` (por defecto `system`).
-4. Tailwind no necesita variante `dark:` porque no maneja color (ver sección anterior) — si en el futuro se decide que Tailwind sí maneje algún color de layout (ej. un borde sutil), se define el custom variant en `globals.css` apuntando al atributo que use MUI (`data-mui-color-scheme`), nunca `prefers-color-scheme` directo, para que ambos sistemas queden sincronizados con el mismo toggle.
+Implementado: `colorSchemes` light/dark en `theme.ts`, `ColorModeToggle` (claro/oscuro/sistema) en la barra superior, persistencia en la cookie `mui-mode` + `InitColorSchemeScript`. Regla vigente: toda pantalla nueva se revisa en ambos esquemas antes de cerrar su checklist. Tailwind no maneja color (ver la sección anterior).
 
 ## Tipografía
 
-Fuente ya definida: Geist Sans (texto) / Geist Mono (números/código) — mantener, no cambiar sin pedirlo el usuario.
+Familias (reemplaza "Geist Sans", vigente hasta el 2026-10-06):
 
-| Uso | Variant MUI | Cuándo |
+| Familia | Variable | Rol |
 |---|---|---|
-| Título de página (ej. "Clientes", "Inventario") | `h4` | Uno solo por página, dentro de un `PageHeader` (ver componentes compartidos) |
-| Título de sección dentro de una página | `h6` | Encabezado de card/tabla |
-| Texto de tabla / formulario | `body2` | Default de DataGrid y form labels |
-| Texto secundario / ayuda | `caption` + `color="text.secondary"` | Hints bajo un campo, timestamps |
-| Números monetarios y de peso | `body2` con `fontFamily: 'var(--font-geist-mono)'` | Para que las cifras alineen visualmente en columnas (tabular figures) |
+| **Barlow Condensed** 500/600 | `--font-display` | títulos (`h4`–`h6`) y cifras protagonistas (KPI, total de una factura). Condensada como la rotulación de las lanchas: carácter sin ocupar ancho. |
+| **Barlow** 400/500/600 | `--font-body` | todo el texto de interfaz: formularios, tablas, menús, botones |
+| Cifras tabulares | `font-variant-numeric: tabular-nums` | montos, kg y tasas en tablas, para que alineen por columna. **Verificar** si Barlow trae cifras tabulares (`tnum`). Si las trae, **se retira Geist Mono** y los montos usan Barlow tabular, para no mezclar familias. Si no, Geist Mono queda solo para montos/kg/tasas en columnas. |
 
-No usar tamaños de fuente arbitrarios (`fontSize: 13`) — siempre un `variant` de la escala o, si hace falta algo intermedio, se agrega una nueva entrada a esta tabla primero, no se improvisa en el componente.
+Escala (no se usan tamaños sueltos; si falta uno, se agrega primero a esta tabla):
+
+| Variant | Tamaño / interlínea | Peso | Uso |
+|---|---|---|---|
+| `h4` | 34 px / 1.1 (28 px en `xs`) | Condensed 600 | título de página, uno por pantalla, en `PageHeader` |
+| `h5` | 26 px / 1.15 | Condensed 600 | cifra protagonista, título de ficha |
+| `h6` | 20,8 px / 1.2 | Condensed 600 | título de sección, tarjeta y diálogo |
+| `subtitle1` | 16 px / 1.5 | 500 | nombre principal en una fila o lista |
+| `body1` | 16 px / 1.5 | 400 | texto corrido (alertas, descripciones) |
+| `body2` | 14 px / 1.43 | 400 | tablas, formularios, menús |
+| `caption` | 12,5 px / 1.4 | 400 | ayudas, fechas secundarias, RIF bajo el nombre |
+| `button` | 14,5 px | 500 | sentence case, sin mayúsculas forzadas |
+
+Reglas de texto:
+- **Sentence case** en todo: títulos, botones, columnas. No se usan etiquetas en MAYÚSCULAS ni `overline`.
+- Párrafos de ≤ 75 caracteres de ancho (`maxWidth: '75ch'`) en alertas, estados vacíos y descripciones.
+- Montos: `formatUsd`/`formatBs` + cifras tabulares + alineados a la derecha en tablas. El símbolo nunca se separa del número en dos líneas.
+- Copy: los botones dicen lo que hacen ("Guardar cliente", "Registrar abono"), y el toast repite el mismo verbo ("Cliente guardado", "Abono registrado"). Los errores dicen qué pasó y cómo resolverlo, sin disculpas.
 
 ## Responsive
 
-Breakpoints: los de MUI por defecto (`xs <600, sm <900, md <1200, lg <1536, xl ≥1536`) — no se definen breakpoints propios.
+Breakpoints de MUI por defecto (`xs <600, sm <900, md <1200, lg <1536`). Anchos obligatorios de revisión: **375, 768, 1024 y 1440 px**.
 
-- **`AppShell.tsx` actual no es responsive** (el `Drawer` es `variant="permanent"` con ancho fijo 240px, se monta encima del contenido en pantallas chicas). Estándar: `Drawer` pasa a `variant="temporary"` por debajo de `md`, con un botón de menú (`IconButton` + `MenuIcon`) en el `AppBar` que lo abre/cierra; en `md` y superior sigue `permanent` como está.
-- Tablas (`DataGrid`): en `xs`/`sm`, ocultar columnas secundarias (usar `columnVisibilityModel` de DataGrid) en vez de forzar scroll horizontal como único recurso — definir por tabla cuáles columnas son "esenciales" vs "secundarias" al construirla.
-- Formularios con varios campos en fila (`Grid` de MUI): una columna en `xs`, dos en `sm+`, nunca más de 2 columnas de inputs de texto (3+ se sienten apretados incluso en desktop).
+- **Shell persistente**: `AppShell` vive en `src/app/(protected)/layout.tsx`, **no** dentro de cada `page.tsx` como hoy (14 páginas lo envuelven por su cuenta). Hoy cada navegación desmonta el menú, el `loading.tsx` reemplaza la pantalla entera (menú incluido, de ahí el parpadeo) y la sesión y el rol se vuelven a pedir desde el navegador en cada página. Con el shell en el layout, el menú queda fijo, solo cambia el contenido, y la sesión y el rol llegan del servidor una sola vez.
+- Navegación: `md+` menú lateral permanente de 248 px; `sm` menú lateral colapsado a riel de íconos de 72 px con tooltip; `xs` menú temporal (botón de menú en la barra superior).
+- **Acción principal en móvil**: en `xs` el botón primario del `PageHeader` ("Nueva venta", "Nuevo cliente") pasa a ser un `Fab` fijo abajo a la derecha (respetando `env(safe-area-inset-bottom)`); el resto de las acciones van a un menú `⋮` en el encabezado.
+- Contenido: ancho máximo de 1440 px, márgenes laterales de 16 px (`xs`), 24 px (`sm`–`md`) y 32 px (`lg+`). Espaciado vertical entre bloques: 24 px (`xs`) y 32 px (`md+`).
+- Áreas táctiles de ≥ 44 × 44 px en `xs` (`IconButton` `size="medium"`, filas de lista de ≥ 56 px).
+- Formularios: 1 columna en `xs`, 2 en `sm+`, nunca más de 2 columnas de inputs de texto.
+- Tablas: ver "Tablas y paginación" (tarjetas en `xs`).
+- Diálogos: ver "Modales" (pantalla completa en `xs`).
 
 ## Loaders y estados de carga
 
-Regla: **nunca una pantalla en blanco mientras carga**. Tres niveles:
+Regla: **nunca una pantalla en blanco, nunca un spinner genérico centrado.** Cinco niveles, de mayor a menor alcance:
 
-1. **Carga de página completa** (navegación entre rutas): `app/<ruta>/loading.tsx` de Next.js, renderiza `components/atoms/PageLoader.tsx` (un `Skeleton` del layout de esa pantalla, no un spinner centrado genérico — un skeleton de tabla si la página es una tabla, de formulario si es un formulario).
-2. **Carga de datos dentro de un componente ya montado** (ej. refrescar una tabla): `Skeleton` de MUI sobre las filas, o el prop `loading` nativo de `DataGrid`. Nunca ocultar la tabla completa y mostrar un spinner solo — mantener la estructura visible.
-3. **Acción puntual** (guardar un formulario, confirmar un diálogo): `CircularProgress` tamaño 16-20px **dentro** del botón que disparó la acción (reemplaza el texto del botón o va al lado), botón `disabled` mientras dura. Nunca bloquear toda la pantalla con un overlay para una sola acción salvo que la acción afecte a toda la pantalla (ej. generar un PDF de contrato).
+| Nivel | Cuándo | Componente | Comportamiento |
+|---|---|---|---|
+| 1. **Global con logo** | carga inicial de la app tras el login, cerrar sesión y operaciones que bloquean toda la pantalla (generar el PDF de un contrato, reinicios de datos) | `organisms/BrandLoader` (pantalla completa) + `useGlobalLoader()` (`show(mensaje?)` / `hide()`, contador para llamadas anidadas) | Logo de Altamar centrado; debajo, las franjas de la borda recorren de izquierda a derecha como progreso indeterminado. **Aparece a los 150 ms** (si la operación termina antes, no parpadea) y, una vez visible, **dura al menos 400 ms**. Mensaje opcional en `body2` ("Generando contrato"). `role="status"` + `aria-live="polite"`. Con `prefers-reduced-motion`: logo estático y franjas quietas. |
+| 2. **Navegación** | cambio de ruta | `atoms/NavigationProgress` (barra de 3 px con las franjas, arriba del área de contenido) + `loading.tsx` de la ruta | La barra se activa con `useLinkStatus` en los ítems del menú y con los `loading.tsx`; el menú y la barra superior no se mueven. |
+| 3. **Contenido de la página** | primera carga de los datos de la pantalla | `PageLoader` (`table`, `form`, `ficha`) dentro del shell | Skeleton con la forma de la pantalla real; `Fade` (`duration.short`) al llegar el contenido. |
+| 4. **Refresco de datos** | filtrar, paginar en servidor o recargar una tabla montada | `AppDataGrid` `loading` con `slotProps.loadingOverlay.variant: 'skeleton'` (o `'linear-progress'` si ya hay filas) | La estructura de la tabla nunca desaparece. |
+| 5. **Acción puntual** | guardar, confirmar, enviar | `Button` con la prop nativa **`loading`** de MUI | Ver "Botones y acciones en curso". |
+
+Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los íconos de Next). Mientras llega, `atoms/BrandMark` dibuja un isotipo provisional en SVG (proa de peñero + franjas de la borda, usando los tokens `brand.*`) con la misma interfaz (`size`, `variant: 'full' | 'isotipo'`). Cuando llegue el archivo (SVG, idealmente con versión monocroma), se reemplaza **solo dentro de `BrandMark`**, y se generan `favicon` e íconos de la app con él.
+
+## Botones y acciones en curso
+
+- **Toda acción asíncrona usa `loading` de MUI** (`<Button loading={isPending}>`): el botón se deshabilita solo y muestra el indicador en el lugar del texto (`loadingPosition="start"` si tiene ícono). Se reemplazan los `startIcon={isPending ? <CircularProgress …/> : null}` actuales.
+- **Mientras una acción está en curso, se bloquea todo lo que podría competir con ella**: en un formulario o diálogo, `useForm({ disabled: isPending })` deshabilita todos los campos, el botón secundario ("Cancelar") queda `disabled`, y el diálogo no se cierra con Esc ni haciendo clic fuera. En una fila de tabla, el menú `⋮` de esa fila queda deshabilitado con su indicador; las demás filas siguen operables.
+- **Doble envío imposible**: además del `disabled`, el handler ignora llamadas mientras `isPending` (dos clics rápidos antes del re-render).
+- Consultas de solo lectura (búsqueda, filtros) **no** bloquean botones: muestran el nivel 4 de carga y cancelan la consulta anterior (debounce de 300 ms + `AbortController`).
+- Jerarquía por vista: **un solo** botón `contained` (la acción principal); los secundarios `outlined` o `text`; los destructivos `color="error"` y siempre con `ConfirmDialog`. En diálogos: secundario a la izquierda, primario a la derecha.
+- Tamaños: `medium` por defecto; `small` solo dentro de tablas y tarjetas densas; en `xs` los botones primarios de formularios ocupan el ancho completo.
+
+## Tablas y paginación
+
+Todas las tablas usan **`organisms/AppDataGrid`**, un envoltorio de `DataGrid` con los defaults del sistema. Hoy las 8 tablas repiten su configuración, y el tamaño de página varía entre 10 y 25.
+
+- **Idioma**: `esES` de `@mui/x-data-grid/locales` aplicado **en el theme**, para todas las tablas ("Filas por página", "1–25 de 132", etc.).
+- **Anatomía**: barra superior (búsqueda rápida a la izquierda, filtros como chips, acciones de tabla a la derecha) → encabezado de 44 px sobre hielo, peso 600, `text.secondary`, sin separadores de columna → filas de 52 px con divisor de 1 px → pie de paginación.
+- **Columnas**: texto alineado a la izquierda; **montos, kg y tasas a la derecha, con cifras tabulares**; fechas con `formatFecha`; estados con chips de 22 px; la columna de acciones es la última, con menú `⋮` (nunca más de un ícono suelto por fila). Si la fila abre una ficha, toda la fila es clicable (`cursor: pointer`, fondo `action.hover` con `transitions.create('background-color')`) y el menú detiene la propagación.
+- **Paginación**:
+
+  | Tipo de tabla | Modo | Ejemplos |
+  |---|---|---|
+  | Catálogos que crecen poco | **cliente** (`paginationMode="client"`) | clientes, proveedores, productos |
+  | Registros que crecen con el tiempo | **servidor** (`paginationMode="server"`, `rowCount` + `.range()` y `count: 'exact'` de Supabase, orden y filtros también en servidor) | compras, facturas, pedidos, notas de crédito, movimientos, lotes, historial de tasas, recordatorios |
+
+  Tamaño por defecto **25**, opciones `[25, 50, 100]`. El tamaño elegido se recuerda por tabla en `localStorage` (con `try/catch`). La página actual vive en la URL (`?pagina=2`), así que volver atrás desde una ficha regresa a la misma página. En `xs` se oculta el selector de tamaño y queda "‹ 1–25 de 132 ›".
+- **Móvil (`xs`)**: si la tabla define `mobileCard`, `AppDataGrid` muestra **tarjetas en lista** en vez de la grilla: línea principal (`subtitle1`), secundaria (`caption`), estado (chip) a la derecha y monto alineado. Misma paginación, misma búsqueda y el mismo menú `⋮`. Las tablas que no lo definen ocultan sus columnas secundarias (`columnVisibilityModel`). Ninguna tabla genera scroll horizontal de la página.
+- **Estados**: `noRowsOverlay` → `EmptyState` con su acción ("Aún no hay compras" + "Registrar compra"); `noResultsOverlay` → "Sin resultados para «…»" + "Limpiar búsqueda"; error → `ErrorState` dentro del área de la tabla.
+- Altura: la tabla crece con su contenido hasta la página (25 filas); no hay scroll interno salvo en tablas embebidas en diálogos.
+
+## Modales
+
+Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confirmar). Hoy hay 12 diálogos armados a mano con anchos y estructuras distintas.
+
+| Tamaño | Ancho | Para |
+|---|---|---|
+| `xs` | 400 px | confirmaciones, bloqueo con motivo, un solo campo |
+| `sm` | 600 px | formularios de una entidad simple (producto, abono, nota de crédito) |
+| `md` | 900 px | formularios con secciones o pasos (cliente, proveedor, compra, venta) |
+
+- **Anatomía**: encabezado (título `h6` = la acción, "Registrar abono"; subtítulo opcional en `body2` con el contexto, "Factura 0123 · Restaurante El Muelle"; botón cerrar `IconButton` con `aria-label="Cerrar"`) → contenido con scroll propio y divisores arriba y abajo solo cuando hay scroll → pie fijo (secundario a la izquierda, primario a la derecha).
+- **`xs`**: los `sm`/`md` pasan a **pantalla completa** con entrada `Slide` desde abajo, el pie fijo respeta el área segura, y el botón primario ocupa el ancho. Los `xs` (confirmaciones) siguen centrados.
+- **Comportamiento**: foco al primer campo al abrir y de vuelta al disparador al cerrar. Con cambios sin guardar (`isDirty`), cerrar (X, Esc, clic fuera) pide confirmación ("¿Descartar cambios?"). Mientras hay una acción en curso, no se puede cerrar (ver "Botones y acciones en curso"). Los errores del servidor aparecen como `Alert` arriba del pie, además del error en cada campo.
+- **Nunca** un diálogo abre otro diálogo de formulario; la única excepción es `ConfirmDialog`. Si un flujo necesita más pantalla, va como pasos (`Stepper`) dentro del mismo `AppDialog md`.
+- Transición: `Fade` (por defecto) en escritorio; `Slide` arriba en pantalla completa. Duraciones del theme.
 
 ## Estados vacíos y de error
 
@@ -110,19 +201,31 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 |---|---|---|
 | `ColorModeToggle` | `atoms` | Cambiar claro/oscuro/sistema |
 | `NumberField` | `atoms` | Input numérico con formato USD/Bs/kg |
-| `PageLoader` | `atoms` | Skeleton de carga de página completa |
-| `PageHeader` | `molecules` | Título `h4` + acciones de la página (ej. botón "Nuevo") |
+| `PageLoader` | `atoms` | Skeleton de carga de página completa (`table`/`form`/`ficha`); mientras está montado enciende `NavigationProgress` |
+| `PageHeader` | `molecules` | Título `h4` + subtítulo + acciones. `primaryAction` (contained en `sm+`, `Fab` en `xs`) y `secondaryActions` (outlined en `sm+`, menú `⋮` en `xs`); `children` sigue funcionando |
 | `EmptyState` | `molecules` | Lista/tabla vacía |
 | `ErrorState` | `molecules` | Error al cargar datos |
 | `ConfirmDialog` | `molecules` | Confirmación de acción destructiva |
-| `AppShell` | `templates` | Ya existe — se actualiza para responsive (ver arriba) |
+| `AppShell` | `templates` | Shell persistente en `(protected)/layout.tsx`: menú 248 px (`md+`) / riel 72 px (`sm`) / temporal (`xs`), barra superior con `topBarStart`, cuenta y modo; usuario y rol por props desde el servidor |
 | `NotificationProvider` | `organisms` | Toasts de éxito/error, vía `useNotify()` |
 | `DocumentoUpload` | `molecules` | Subir/ver/reemplazar documentos vía adaptador `DocumentoStore` (drag&drop, validación, compresión, reemplazo real) |
 | `RepresentantesLegalesFieldArray` | `molecules` | Lista editable de representantes legales (tipado genérico, filas con `Collapse`) |
 | `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast |
 | `StatusChips` | `molecules` | Chips de bloqueado / doc. incompleta / inactivo con tooltip |
+| `PeneroStripes` | `atoms` | Franjas de la borda: único elemento decorativo (ver "Identidad visual") |
+| `BrandMark` | `atoms` | Logo de Altamar (`variant: full / isotipo`, `size`, `orientation`); isotipo provisional en SVG hasta tener el archivo real (ícono de la app en `src/app/icon.svg`) |
+| `NavigationProgress` | `atoms` | Barra de 3 px con las franjas; `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
+| `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global con logo: `show(msg, { untilNavigation })` devuelve `release`, `hide()`, `run(tarea, msg)`; 150 ms de retardo, 400 ms mínimo, contador |
+| `AppDataGrid` | `organisms` | Toda tabla: toolbar (búsqueda, filtros, acciones), `mode` cliente/servidor (`rowCount` + `onQueryChange`), `?pagina=` en la URL (`paginaDesdeParam` para `page.tsx`), tamaño recordado por `tableId`, `mobileCard` en `xs`, `hideOnMobile`, `getRowHref`, estados vacío/sin resultados/error/cargando |
+| `AppDialog` | `organisms` | Todo diálogo de formulario: `size` xs/sm/md, `title`/`subtitle`, `primaryAction`, `pending`, `dirty`, `error`, `onSubmit` (el diálogo es un `<form>`); pantalla completa + `Slide` en `xs`, cierre protegido, foco al primer campo. Referencia: `ClienteForm` |
+| `colMonto` / `colKg` / `colTasa` / `colFecha` / `colEstado` / `colAcciones` + `EstadoChip` | `organisms/appDataGridColumns` | Columnas estándar de `AppDataGrid` (formato de `lib/format.ts`, montos a la derecha, chip `soft`, menú `⋮`) |
+| `RowActionsMenu` | `molecules` | Menú `⋮` de una fila o tarjeta, con estado `pending` y opciones destructivas |
+| `PeneroSweep` | `atoms` (en `PeneroStripes.tsx`) | Franjas barriendo (progreso indeterminado) para `NavigationProgress` y `BrandLoader` |
+| `TasaChip` | `molecules` | Chip de una tasa referencial: valor, fuente, fecha valor y aviso de "arrastrada" (08-tasas) |
+| `TasaSelector` | `organisms` | Selector de tasa de una operación (08-tasas): referencial por fecha (BCV/paralela, Server Action con debounce) o manual con desviación en vivo; escribe `tasa_origen`/`tasa_fuente`/`tasa` en el form dueño (`FormProvider`); `pedirConfirmacionTasaManual` centraliza el ConfirmDialog del umbral |
+| `TasaIndicador` | `molecules` | Chip compacto de la barra superior con las vigentes de hoy (BCV/paralela USD, EUR en `sm+`), tooltip con fecha valor/origen, ícono de advertencia si arrastrada, clic → `/tasas` (08-tasas) |
 
-Además de los anteriores: `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage), `lib/validationMessages.ts` (mensajes de validación compartidos), `lib/actionState.ts` (`ActionState` + `toActionError`), `lib/documentoStore.ts` (`DocumentoStore` para `DocumentoUpload`), `lib/bancosVe.ts` (catálogo de bancos y utilidades de cuenta).
+Además de los anteriores: `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage), `lib/validationMessages.ts` (mensajes de validación compartidos), `lib/actionState.ts` (`ActionState` + `toActionError`), `lib/documentoStore.ts` (`DocumentoStore` para `DocumentoUpload`), `lib/bancosVe.ts` (catálogo de bancos y utilidades de cuenta), `lib/useGlobalLoader.tsx` (`GlobalLoaderProvider` en el layout raíz + `useGlobalLoader`), variante de theme `Chip variant="soft"` (estados) y la página de muestra `/estandares` (solo desarrollo y admin).
 
 Cada módulo que cree un componente genérico nuevo (no específico de su dominio) debe agregarlo a esta tabla como parte de su propia tarea, para que el siguiente módulo lo encuentre.
 

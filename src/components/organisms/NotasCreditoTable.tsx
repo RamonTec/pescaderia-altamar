@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { formatFecha, formatUsd } from '@/lib/format'
 import type { NotaCreditoResumen } from '@/lib/repositories/interfaces'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface NotasCreditoTableProps {
   notas: NotaCreditoResumen[]
@@ -25,7 +25,7 @@ export function NotasCreditoTable({ notas, esAdmin, onAnular }: NotasCreditoTabl
       headerName: 'N.º',
       width: 90,
       renderCell: (params) => (
-        <Typography variant="body2" sx={MONO}>
+        <Typography variant="body2" sx={NUM}>
           {params.row.numero}
         </Typography>
       ),
@@ -65,7 +65,7 @@ export function NotasCreditoTable({ notas, esAdmin, onAnular }: NotasCreditoTabl
       type: 'number',
       width: 120,
       renderCell: (params) => (
-        <Typography variant="body2" sx={MONO}>
+        <Typography variant="body2" sx={NUM}>
           {formatUsd(Number(params.row.total_usd))}
         </Typography>
       ),

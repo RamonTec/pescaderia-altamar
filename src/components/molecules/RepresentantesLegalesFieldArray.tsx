@@ -28,7 +28,7 @@ export function RepresentantesLegalesFieldArray() {
   const {
     register,
     control,
-    formState: { errors },
+    formState: { errors, disabled },
   } = useFormContext<FormValuesConRepresentantes>()
 
   const { fields, append, remove } = useFieldArray({
@@ -43,6 +43,7 @@ export function RepresentantesLegalesFieldArray() {
         <Button
           size="small"
           startIcon={<AddIcon />}
+          disabled={disabled}
           onClick={() => append({ nombre: '', cedula: '', cargo: '', telefono: '' })}
         >
           Agregar
@@ -88,6 +89,7 @@ export function RepresentantesLegalesFieldArray() {
                         size="small"
                         value={cedulaField.value}
                         onChange={cedulaField.onChange}
+                        disabled={cedulaField.disabled}
                         error={!!errors.representantes?.[index]?.cedula}
                         helperText={errors.representantes?.[index]?.cedula?.message}
                       />
@@ -118,6 +120,7 @@ export function RepresentantesLegalesFieldArray() {
                   <IconButton
                     aria-label="Quitar representante"
                     color="error"
+                    disabled={disabled}
                     onClick={() => remove(index)}
                   >
                     <DeleteOutlinedIcon />

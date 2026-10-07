@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { formatFecha, formatUsd } from '@/lib/format'
 import type { FacturaResumen } from '@/lib/repositories/interfaces'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface FacturasAbiertasTableProps {
   facturas: FacturaResumen[]
@@ -25,7 +25,7 @@ export function FacturasAbiertasTable({ facturas, esAdmin, onPagar }: FacturasAb
       headerName: 'N.º',
       width: 90,
       renderCell: (params) => (
-        <Typography variant="body2" sx={MONO}>
+        <Typography variant="body2" sx={NUM}>
           {params.row.numero}
         </Typography>
       ),
@@ -80,7 +80,7 @@ export function FacturasAbiertasTable({ facturas, esAdmin, onPagar }: FacturasAb
             type: 'number',
             width: 130,
             renderCell: (params) => (
-              <Typography variant="body2" sx={MONO}>
+              <Typography variant="body2" sx={NUM}>
                 {formatUsd(Number(params.row.total_usd))}
               </Typography>
             ),
@@ -94,7 +94,7 @@ export function FacturasAbiertasTable({ facturas, esAdmin, onPagar }: FacturasAb
             renderCell: (params) => (
               <Typography
                 variant="body2"
-                sx={MONO}
+                sx={NUM}
                 color={params.value > 0 ? 'text.primary' : 'text.secondary'}
               >
                 {formatUsd(params.value)}

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -52,20 +53,41 @@ export async function updatePassword(password: string): Promise<AuthResult> {
 export type Rol = 'admin' | 'operador'
 
 export async function getRol(): Promise<Rol | null> {
+  return (await getUsuarioActual())?.rol ?? null
+}
+
+export interface UsuarioActual {
+  id: string
+  email: string
+  nombre: string | null
+  rol: Rol | null
+}
+
+/**
+ * Usuario de la sesión + su perfil, en una sola lectura por request
+ * (`cache` de React deduplica entre el layout protegido y las páginas).
+ * Lo consume `(protected)/layout.tsx` para pasarle sesión y rol a `AppShell`.
+ */
+export const getUsuarioActual = cache(async (): Promise<UsuarioActual | null> => {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('perfiles')
-    .select('rol')
+    .select('nombre, rol')
     .eq('id', user.id)
-    .single()
-  if (error) return null
-  return (data?.rol as Rol) ?? null
-}
+    .maybeSingle()
+
+  return {
+    id: user.id,
+    email: user.email ?? '',
+    nombre: (data?.nombre as string | null | undefined) ?? null,
+    rol: (data?.rol as Rol | undefined) ?? null,
+  }
+})
 
 export async function requireAdmin(): Promise<boolean> {
   return (await getRol()) === 'admin'

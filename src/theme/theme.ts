@@ -1,6 +1,8 @@
 'use client'
 
-import { createTheme } from '@mui/material/styles'
+import { createTheme, type Theme } from '@mui/material/styles'
+import { esES as materialEsES } from '@mui/material/locale'
+import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
 
 /**
@@ -38,6 +40,14 @@ interface BrandPalette {
   trim: string
 }
 
+declare module '@mui/material/Chip' {
+  interface ChipPropsVariantOverrides {
+    soft: true
+  }
+}
+
+const SOFT_COLORS = ['primary', 'secondary', 'success', 'warning', 'error', 'info'] as const
+
 const DISPLAY_FONT = 'var(--font-display), "Arial Narrow", sans-serif'
 
 /**
@@ -47,7 +57,8 @@ const DISPLAY_FONT = 'var(--font-display), "Arial Narrow", sans-serif'
  * El atributo coincide con el default de `InitColorSchemeScript`
  * (`data-mui-color-scheme`).
  */
-export const theme = createTheme({
+export const theme = createTheme(
+{
   cssVariables: { colorSchemeSelector: 'data-mui-color-scheme' },
   colorSchemes: {
     light: {
@@ -94,33 +105,110 @@ export const theme = createTheme({
     },
   },
   typography: {
+    // Escala de specs/00-estandares-ui/spec.md § Tipografía. No se usan
+    // tamaños sueltos: si falta uno, se agrega primero a la spec.
     fontFamily: 'var(--font-body), system-ui, sans-serif',
     h1: { fontFamily: DISPLAY_FONT, fontWeight: 600 },
     h2: { fontFamily: DISPLAY_FONT, fontWeight: 600 },
     h3: { fontFamily: DISPLAY_FONT, fontWeight: 600, lineHeight: 1.05 },
-    h4: { fontFamily: DISPLAY_FONT, fontWeight: 600, fontSize: '2.125rem', lineHeight: 1.1 },
+    h4: {
+      fontFamily: DISPLAY_FONT,
+      fontWeight: 600,
+      fontSize: '2.125rem',
+      lineHeight: 1.1,
+      // 28 px en xs (breakpoint sm = 600 px)
+      '@media (max-width:599.95px)': { fontSize: '1.75rem' },
+    },
     h5: { fontFamily: DISPLAY_FONT, fontWeight: 600, fontSize: '1.625rem', lineHeight: 1.15 },
     h6: { fontFamily: DISPLAY_FONT, fontWeight: 600, fontSize: '1.3rem', lineHeight: 1.2 },
-    button: { fontWeight: 500, textTransform: 'none', letterSpacing: 0 },
+    subtitle1: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
+    body1: { fontSize: '1rem', lineHeight: 1.5 },
+    body2: { fontSize: '0.875rem', lineHeight: 1.43 },
+    caption: { fontSize: '0.78125rem', lineHeight: 1.4 },
+    button: { fontSize: '0.90625rem', fontWeight: 500, textTransform: 'none', letterSpacing: 0 },
+    // Sentence case en todo: `overline` no se usa; si alguien lo usa, sin MAYÚSCULAS.
+    overline: { textTransform: 'none', letterSpacing: 0 },
   },
+  // Radios por jerarquía (spec § Identidad visual): chip 4, input/botón 6
+  // (`shape`), superficies 8 (`MuiPaper.rounded`), diálogo 12.
   shape: { borderRadius: 6 },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
     },
+    MuiFab: {
+      styleOverrides: { root: { borderRadius: 12, textTransform: 'none' } },
+    },
     MuiOutlinedInput: {
       // Campo blanco sobre el fondo "hielo" para que se lea como superficie editable.
       styleOverrides: { root: { backgroundColor: 'var(--mui-palette-background-paper)' } },
     },
-    MuiDialog: {
-      styleOverrides: { paper: { borderRadius: 12 } },
+    // Superficies en reposo: sin sombra y con borde de 1 px. Lo que flota
+    // (menú, popover, diálogo, drawer temporal) pasa su propia elevación.
+    MuiPaper: {
+      defaultProps: { elevation: 0 },
+      styleOverrides: { rounded: { borderRadius: 8 } },
+      variants: [
+        {
+          props: { variant: 'elevation', elevation: 0 },
+          style: ({ theme }) => ({ border: `1px solid ${theme.vars.palette.divider}` }),
+        },
+      ],
     },
-    // Chips como etiquetas de cava (rectas), no píldoras.
+    // Alert hereda de Paper con elevation 0: sin el borde de superficie.
+    MuiAlert: {
+      styleOverrides: { standard: { border: 0 }, filled: { border: 0 } },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        // Menú lateral fijo: solo el borde derecho, no el de superficie.
+        docked: ({ theme }) => ({
+          '& .MuiDrawer-paper': {
+            border: 0,
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+          },
+        }),
+      },
+    },
+    // El listado de Autocomplete flota: sombra en vez del borde de superficie.
+    MuiAutocomplete: {
+      styleOverrides: {
+        paper: ({ theme }) => ({ border: 0, boxShadow: theme.vars.shadows[8] }),
+      },
+    },
+    MuiDialog: {
+      styleOverrides: { paper: { borderRadius: 12 }, paperFullScreen: { borderRadius: 0 } },
+    },
+    MuiTooltip: {
+      styleOverrides: { tooltip: { borderRadius: 8 } },
+    },
+    // Chips como etiquetas de cava (rectas), no píldoras. `variant="soft"`:
+    // fondo tenue + texto oscuro del mismo color (estados en tablas).
     MuiChip: {
       styleOverrides: {
         root: { borderRadius: 4, fontWeight: 500 },
         sizeSmall: { height: 22 },
       },
+      variants: [
+        {
+          props: { variant: 'soft' },
+          style: ({ theme }) => ({
+            backgroundColor: theme.vars.palette.action.selected,
+            color: theme.vars.palette.text.secondary,
+          }),
+        },
+        ...SOFT_COLORS.map((color) => ({
+          props: { variant: 'soft' as const, color },
+          style: ({ theme }: { theme: Theme }) => ({
+            backgroundColor: `rgba(${theme.vars?.palette[color].mainChannel} / 0.12)`,
+            color: theme.vars?.palette[color].dark,
+            ...theme.applyStyles('dark', {
+              backgroundColor: `rgba(${theme.vars?.palette[color].mainChannel} / 0.16)`,
+              color: theme.vars?.palette[color].light,
+            }),
+          }),
+        })),
+      ],
     },
     // Encabezados de tabla sobre "hielo"; mismo tratamiento en Table y DataGrid.
     MuiTableCell: {
@@ -138,6 +226,7 @@ export const theme = createTheme({
         root: ({ theme }) => ({
           backgroundColor: theme.vars.palette.background.paper,
           borderColor: theme.vars.palette.divider,
+          borderRadius: 8,
           fontVariantNumeric: 'tabular-nums',
           '--DataGrid-containerBackground': theme.vars.palette.background.default,
         }),
@@ -149,4 +238,9 @@ export const theme = createTheme({
       },
     },
   },
-})
+},
+// Idioma: textos de DataGrid ("Filas por página", "1–25 de 132") y de los
+// componentes base de MUI en español, para todas las tablas.
+dataGridEsES,
+materialEsES,
+)

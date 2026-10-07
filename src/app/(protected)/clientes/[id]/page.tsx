@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { AppShell } from '@/components/templates/AppShell'
 import { ClienteFicha } from './cliente-ficha'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
 import { createClient } from '@/lib/supabase/server'
@@ -19,8 +18,6 @@ export default async function ClienteFichaPage({
   const [saldo, esAdmin] = await Promise.all([getSaldoPendiente(id), requireAdmin()])
 
   return (
-    <AppShell>
-      <ClienteFicha cliente={cliente} saldo={saldo} esAdmin={esAdmin} />
-    </AppShell>
+    <ClienteFicha cliente={cliente} saldo={saldo} esAdmin={esAdmin} />
   )
 }

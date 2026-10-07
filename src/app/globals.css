@@ -4,7 +4,15 @@
 /* Color lo maneja MUI (theme.ts); Tailwind solo layout/spacing. */
 @theme inline {
   --font-sans: var(--font-body);
-  --font-mono: var(--font-geist-mono);
+}
+
+/* COMPAT TEMPORAL (2026-10-07): Geist Mono se retiró (Barlow trae cifras
+   tabulares, ver specs/00-estandares-ui/tasks.md tarea 30). Algunos organisms
+   con cambios de 08-tasas sin commitear (CompraForm, RegistrarPagoDialog,
+   PagoProveedorDialog, PedidoForm) todavía referencian la variable: se apunta
+   a Barlow. Borrar cuando esos archivos dejen de usarla (Fase 2b). */
+:root {
+  --font-geist-mono: var(--font-body);
 }
 
 /* Franjas de peñero (PeneroStripes). Aquí y no con `keyframes` de emotion:
@@ -12,4 +20,23 @@
 @keyframes penero-paint {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
+}
+
+/* Franjas que barren de izquierda a derecha: progreso indeterminado
+   (BrandLoader, NavigationProgress). El bloque mide ~30-38 % del ancho. */
+@keyframes penero-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
+
+/* Aparición diferida (no parpadea si la operación es corta). */
+@keyframes penero-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Vaivén del isotipo en el loader global. */
+@keyframes penero-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }

@@ -32,7 +32,7 @@ import { crearProcesamientoAction } from '@/app/(protected)/procesamiento/action
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 const pctFormatter = new Intl.NumberFormat('es-VE', {
   style: 'percent',
@@ -212,7 +212,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                               sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, width: '100%' }}
                             >
                               <span>{etiqueta(c.producto)}</span>
-                              <Typography variant="body2" color="text.secondary" sx={MONO}>
+                              <Typography variant="body2" color="text.secondary" sx={NUM}>
                                 {formatKg(c.stock_kg)}
                               </Typography>
                             </Box>
@@ -400,7 +400,7 @@ function Resumen({ label, value, destacado }: { label: string; value: string; de
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant={destacado ? 'h6' : 'body2'} sx={MONO}>
+      <Typography variant={destacado ? 'h6' : 'body2'} sx={NUM}>
         {value}
       </Typography>
     </Box>

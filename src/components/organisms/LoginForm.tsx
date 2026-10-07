@@ -16,6 +16,7 @@ import Link from '@mui/material/Link'
 import CircularProgress from '@mui/material/CircularProgress'
 import { PasswordField } from '@/components/atoms/PasswordField'
 import { loginAction } from '@/app/(auth)/login/actions'
+import { useGlobalLoader } from '@/lib/useGlobalLoader'
 
 const schema = z.object({
   email: z.string().trim().min(1, 'Escribe tu email').email('Revisa el email, falta algo'),
@@ -27,6 +28,7 @@ type FormValues = z.infer<typeof schema>
 export function LoginForm() {
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
+  const globalLoader = useGlobalLoader()
 
   const {
     register,
@@ -43,8 +45,16 @@ export function LoginForm() {
       const formData = new FormData()
       formData.set('email', values.email)
       formData.set('password', values.password)
-      const result = await loginAction({ error: null }, formData)
-      setServerError(result.error)
+      // Si el login sale bien, la action redirige a `/`: el loader se libera
+      // solo al cambiar de ruta. Si falla, se libera aquí.
+      const release = globalLoader.show('Entrando', { untilNavigation: true })
+      // `finally`: si la action lanza (red caída), el loader no queda pegado.
+      try {
+        const result = await loginAction({ error: null }, formData)
+        setServerError(result.error)
+      } finally {
+        release()
+      }
     })
   })
 

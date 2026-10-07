@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Isotipo PROVISIONAL de Altamar (mismo dibujo que atoms/BrandMark). Reemplazar con el logo real. -->
+  <rect width="64" height="64" rx="12" fill="#F3F6F6"/>
+  <g transform="translate(0 12)">
+    <path d="M2 10 L9 14 H61 L52 34 Q50 37 46 37 H16 Q12 37 10 34 Z" fill="#0E4A5C"/>
+    <polygon points="9,14 61,14 59.4,18 10.2,18" fill="#E8B931"/>
+    <polygon points="10.2,18 59.4,18 58.8,19.6 10.7,19.6" fill="#EAF2F3"/>
+    <polygon points="10.7,19.6 58.8,19.6 57.2,23.6 11.9,23.6" fill="#B8402E"/>
+  </g>
+</svg>

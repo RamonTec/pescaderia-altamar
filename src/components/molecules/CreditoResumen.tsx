@@ -11,7 +11,7 @@ export interface CreditoResumenProps {
   saldoUsd: number | null
 }
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 /**
  * Bloque de crédito de un cliente: el dato que se consulta en el mostrador
@@ -47,7 +47,7 @@ export function CreditoResumen({ limiteUsd, saldoUsd }: CreditoResumenProps) {
             <Typography variant="body2" sx={{ color: 'brand.onHullMuted' }}>
               {disponible != null ? 'Disponible' : 'Límite'}
             </Typography>
-            <Typography sx={{ ...MONO, fontSize: { xs: '1.75rem', sm: '2.125rem' }, lineHeight: 1.15 }}>
+            <Typography sx={{ ...NUM, fontSize: { xs: '1.75rem', sm: '2.125rem' }, lineHeight: 1.15 }}>
               {formatUsd(disponible ?? limiteUsd)}
             </Typography>
           </Box>
@@ -78,7 +78,7 @@ export function CreditoResumen({ limiteUsd, saldoUsd }: CreditoResumenProps) {
               gridTemplateColumns: '1fr auto',
               rowGap: 0.75,
               '& dt': { typography: 'body2', color: 'brand.onHullMuted' },
-              '& dd': { m: 0, typography: 'body2', ...MONO, textAlign: 'right' },
+              '& dd': { m: 0, typography: 'body2', ...NUM, textAlign: 'right' },
             }}
           >
             <dt>Saldo pendiente</dt>

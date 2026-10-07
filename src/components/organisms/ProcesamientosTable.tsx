@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { formatFecha, formatKg, formatUsd } from '@/lib/format'
 import type { ProcesoItemDetalle } from '@/lib/repositories/interfaces'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 const pctFormatter = new Intl.NumberFormat('es-VE', {
   style: 'percent',
@@ -38,7 +38,7 @@ export interface ProcesamientosTableProps {
 }
 
 const kg = (n: number) => (
-  <Typography variant="body2" sx={MONO}>
+  <Typography variant="body2" sx={NUM}>
     {formatKg(n)}
   </Typography>
 )
@@ -98,7 +98,7 @@ export function ProcesamientosTable({ filas, esAdmin, onNuevo }: ProcesamientosT
       width: 120,
       valueGetter: (_v, row) => Number(row.peso_salida_kg) / Number(row.peso_entrada_kg),
       renderCell: (params) => (
-        <Typography variant="body2" sx={MONO}>
+        <Typography variant="body2" sx={NUM}>
           {pctFormatter.format(params.value)}
         </Typography>
       ),
@@ -113,7 +113,7 @@ export function ProcesamientosTable({ filas, esAdmin, onNuevo }: ProcesamientosT
             // Transferencia total (/SPEC.md §4.3): costo del lote / kg obtenidos.
             valueGetter: (_v, row) => Number(row.costo_total_usd) / Number(row.peso_salida_kg),
             renderCell: (params) => (
-              <Typography variant="body2" sx={MONO}>
+              <Typography variant="body2" sx={NUM}>
                 {formatUsd(params.value)}
               </Typography>
             ),

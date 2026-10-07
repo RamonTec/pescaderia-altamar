@@ -64,6 +64,7 @@ export function ClienteFormFields() {
               exclusive
               value={field.value}
               onChange={(_, next) => next && field.onChange(next)}
+              disabled={field.disabled}
               size="small"
               aria-label="Tipo de persona"
             >
@@ -95,6 +96,7 @@ export function ClienteFormFields() {
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   inputRef={field.ref}
+                  disabled={field.disabled}
                   error={!!errors.rif_ci}
                   helperText={errors.rif_ci?.message}
                 />
@@ -152,6 +154,7 @@ export function ClienteFormFields() {
                   fullWidth
                   value={field.value}
                   onChange={field.onChange}
+                  disabled={field.disabled}
                   error={!!errors.limite_credito_usd}
                   helperText={errors.limite_credito_usd?.message}
                 />

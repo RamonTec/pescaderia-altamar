@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed, Geist_Mono } from "next/font/google";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { NotificationProvider } from "@/components/organisms/NotificationProvider";
 import { ConfirmProvider } from "@/lib/useConfirm";
+import { GlobalLoaderProvider } from "@/lib/useGlobalLoader";
 
 const barlow = Barlow({
   variable: "--font-body",
@@ -17,11 +18,6 @@ const barlowCondensed = Barlow_Condensed({
   variable: "--font-display",
   weight: ["500", "600"],
   subsets: ["latin", "latin-ext"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
-      className={`${barlow.variable} ${barlowCondensed.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${barlow.variable} ${barlowCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
       data-mui-color-scheme={colorScheme ?? undefined}
     >
@@ -50,7 +46,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <InitColorSchemeScript defaultMode="system" />
         <ThemeRegistry>
           <NotificationProvider>
-            <ConfirmProvider>{children}</ConfirmProvider>
+            <ConfirmProvider>
+              <GlobalLoaderProvider>{children}</GlobalLoaderProvider>
+            </ConfirmProvider>
           </NotificationProvider>
         </ThemeRegistry>
       </body>

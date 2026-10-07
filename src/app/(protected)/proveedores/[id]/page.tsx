@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { AppShell } from '@/components/templates/AppShell'
 import { ProveedorFicha } from './proveedor-ficha'
 import { makeProveedorRepository } from '@/lib/repositories/proveedorRepository'
 import { createClient } from '@/lib/supabase/server'
@@ -20,8 +19,6 @@ export default async function ProveedorFichaPage({
   const esAdmin = await requireAdmin()
 
   return (
-    <AppShell>
-      <ProveedorFicha proveedor={proveedor} saldo={saldo} esAdmin={esAdmin} />
-    </AppShell>
+    <ProveedorFicha proveedor={proveedor} saldo={saldo} esAdmin={esAdmin} />
   )
 }
