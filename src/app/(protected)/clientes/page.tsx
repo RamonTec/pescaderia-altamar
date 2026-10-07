@@ -1,14 +1,9 @@
 import { ClientesScreen } from './clientes-screen'
-import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
-import { createClient } from '@/lib/supabase/server'
+import { listarClientes } from '@/lib/services/clienteService'
 import { requireAdmin } from '@/lib/services/authService'
 
 export default async function ClientesPage() {
-  const db = await createClient()
-  const clientes = await makeClienteRepository(db).list()
-  const esAdmin = await requireAdmin()
+  const [clientes, esAdmin] = await Promise.all([listarClientes(), requireAdmin()])
 
-  return (
-    <ClientesScreen clientes={clientes} esAdmin={esAdmin} />
-  )
+  return <ClientesScreen clientes={clientes} esAdmin={esAdmin} />
 }

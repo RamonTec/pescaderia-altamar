@@ -49,6 +49,19 @@ export function toActionError(e: unknown, options: ToActionErrorOptions = {}): {
   error: string
   fieldErrors?: Record<string, string>
 } {
+  // postgrest-js puede devolver errores con esa forma sin extender `Error`
+  // en algunas versiones: normalizar para no tragarnos el mensaje real.
+  let err: unknown = e
+  if (!(err instanceof Error) && typeof (err as PostgresErrorLike)?.message === 'string') {
+    const plano = err as PostgresErrorLike
+    const normalizado = new Error(plano.message) as Error & PostgresErrorLike
+    normalizado.code = plano.code
+    normalizado.details = plano.details
+    normalizado.hint = plano.hint
+    err = normalizado
+  }
+  e = err
+
   if (e instanceof Error) {
     const pg = e as Error & PostgresErrorLike
     console.error('[action] error:', {
@@ -82,5 +95,6 @@ export function toActionError(e: unknown, options: ToActionErrorOptions = {}): {
     if (pg.code) return { error: `${pg.message} [${pg.code}]` }
     return { error: pg.message }
   }
+  console.error('[action] error no-Error:', e)
   return { error: 'Ocurrió un error inesperado' }
 }

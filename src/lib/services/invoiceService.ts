@@ -9,7 +9,7 @@ import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { crearMovimiento } from './movimientoService'
-import { getStockProducto } from './costingService'
+import { getCostosPorProducto } from './costingService'
 import { resolverTasaOperacion } from './tasaService'
 import { getSaldoPendiente } from './clienteBalanceService'
 
@@ -20,7 +20,7 @@ import { getSaldoPendiente } from './clienteBalanceService'
  * Responsabilidades:
  *   - Validar cliente activo y, para crédito, no bloqueado (bloqueo duro).
  *   - Obtener `iva_pct` de `config_negocio`.
- *   - Snapshot de costo promedio por producto (`getStockProducto`).
+ *   - Snapshot de costo promedio por producto (`getCostosPorProducto`).
  *   - Calcular subtotal/IVA/total.
  *   - Verificar el límite de crédito del cliente contra su saldo pendiente.
  *   - Delegar la escritura atómica (factura + items + movimientos `venta`)
@@ -126,7 +126,16 @@ export async function crearFactura(
   db?: SupabaseClient
 ): Promise<CrearFacturaResultado> {
   const client = db ?? (await createClient())
-  const cliente = await makeClienteRepository(client).getById(input.cliente_id)
+  const clienteRepo = makeClienteRepository(client)
+
+  // Lecturas paralelas: cliente, config (IVA + fuente de tasa) y productos
+  // evitan 2 round-trips secuenciales contra el proyecto remoto.
+  const [cliente, config, productos] = await Promise.all([
+    clienteRepo.getById(input.cliente_id),
+    makeConfigNegocioRepository(client).get(),
+    makeProductoRepository(client).list(),
+  ])
+
   if (!cliente) throw new InvoiceError('El cliente no existe', 'cliente_id')
   if (!cliente.activo) throw new InvoiceError('El cliente está inactivo', 'cliente_id')
 
@@ -141,44 +150,48 @@ export async function crearFactura(
     throw new InvoiceError('Agrega al menos un producto', 'items')
   }
 
-  const config = await makeConfigNegocioRepository(client).get()
   const ivaPct = Number(config?.iva_pct ?? 16)
 
-  const productos = new Map(
-    (await makeProductoRepository(client).list()).map((p) => [p.id, p])
-  )
-  const items: FacturaItemNuevo[] = []
+  const productosMap = new Map(productos.map((p) => [p.id, p]))
   for (let index = 0; index < input.items.length; index++) {
     const it = input.items[index]
-    const p = productos.get(it.producto_id)
+    const p = productosMap.get(it.producto_id)
     if (!p || !p.activo) throw new InvoiceError('Producto no disponible', `items.${index}.producto_id`)
     if (it.peso_kg <= 0) throw new InvoiceError('El peso debe ser mayor a 0', `items.${index}.peso_kg`)
-
-    const stock = await getStockProducto(it.producto_id, client)
-    const costo = stock?.costo_usd_kg ?? 0
-    items.push({
-      producto_id: it.producto_id,
-      peso_kg: redondea6(it.peso_kg),
-      precio_usd_kg: redondea6(it.precio_usd_kg),
-      costo_usd_kg: redondea6(costo),
-    })
   }
+
+  const fecha = input.fecha ?? new Date().toISOString().slice(0, 10)
+
+  // Tasa y costos en paralelo: una sola query de movimientos para todos los
+  // items (antes, un round-trip por producto).
+  const [resultado, costos] = await Promise.all([
+    resolverTasaOperacion(
+      input.tasa,
+      fecha,
+      client,
+      config?.fuente_tasa_default
+    ),
+    getCostosPorProducto(
+      input.items.map((i) => i.producto_id),
+      client
+    ),
+  ])
+  if (resultado.error === 'sin_referencial' || !resultado.tasa_operacion) {
+    throw new InvoiceError(MSG_TASA_SIN_REFERENCIAL, 'tasa')
+  }
+  const tasaOperacion = resultado.tasa_operacion
+
+  const items: FacturaItemNuevo[] = input.items.map((it) => ({
+    producto_id: it.producto_id,
+    peso_kg: redondea6(it.peso_kg),
+    precio_usd_kg: redondea6(it.precio_usd_kg),
+    costo_usd_kg: redondea6(costos.get(it.producto_id) ?? 0),
+  }))
 
   const subtotal = subtotalItems(input.items)
   const iva = ivaSobre(subtotal, ivaPct)
   const total = redondea6(subtotal + iva)
   const contado = input.condicion === 'contado'
-
-  const fecha = input.fecha ?? new Date().toISOString().slice(0, 10)
-
-  // Tasa elegida, resuelta en el servidor para la fecha de la factura
-  // (08-tasas): la operación nunca falla por falta de referencial si el
-  // usuario mandó una tasa manual.
-  const resultado = await resolverTasaOperacion(input.tasa, fecha, client)
-  if (resultado.error === 'sin_referencial' || !resultado.tasa_operacion) {
-    throw new InvoiceError(MSG_TASA_SIN_REFERENCIAL, 'tasa')
-  }
-  const tasaOperacion = resultado.tasa_operacion
 
   const factura: FacturaNueva = {
     id: crypto.randomUUID(),

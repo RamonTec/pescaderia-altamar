@@ -132,6 +132,37 @@ export async function getStockProducto(
   return { producto, ...acumularMovimientos(movs) }
 }
 
+/**
+ * Costo promedio actual de varios productos en una sola query (evita un
+ * round-trip por item en `crearFactura`). Los productos sin movimientos no
+ * aparecen en el map (costo 0 en el invocador).
+ */
+export async function getCostosPorProducto(
+  productoIds: string[],
+  db: SupabaseClient = createClient()
+): Promise<Map<string, number>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await db
+    .from('movimientos_view')
+    .select('producto_id, peso_kg, costo_usd_kg')
+    .in('producto_id', productoIds)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+
+  const porProducto = new Map<string, FilaMovimiento[]>()
+  for (const m of (data ?? []) as FilaMovimiento[]) {
+    const lista = porProducto.get(m.producto_id) ?? []
+    lista.push(m)
+    porProducto.set(m.producto_id, lista)
+  }
+
+  const costos = new Map<string, number>()
+  for (const [productoId, movs] of porProducto) {
+    costos.set(productoId, acumularMovimientos(movs).costo_usd_kg)
+  }
+  return costos
+}
+
 export async function getInventarioValorizado(bsPorUsd: number): Promise<{
   items: StockProducto[]
   total_usd: number

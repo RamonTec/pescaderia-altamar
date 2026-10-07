@@ -158,6 +158,8 @@ export interface IPedidoRepository {
   create(pedido: Pedido, items: PedidoItemNuevo[]): Promise<string>
   list(filtroEstado?: Pedido['estado']): Promise<PedidoResumen[]>
   getById(id: string): Promise<PedidoDetalle | null>
+  /** Pedidos de un cliente, del más reciente al más antiguo (ficha del cliente). */
+  listByCliente(clienteId: string): Promise<Pedido[]>
 }
 
 export type FacturaItemNuevo = Pick<FacturaItem, 'producto_id' | 'peso_kg' | 'precio_usd_kg' | 'costo_usd_kg'>

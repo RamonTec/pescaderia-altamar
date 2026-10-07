@@ -4,7 +4,7 @@ import type {
   PedidoDetalle,
   PedidoResumen,
 } from './interfaces'
-import type { PedidoItem, Producto } from '@/types/domain'
+import type { Pedido, PedidoItem, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -65,6 +65,16 @@ export function makePedidoRepository(db: SupabaseClient = createClient()): IPedi
           producto: porId.get(i.producto_id) ?? { id: i.producto_id, nombre: '—', codigo: null },
         })),
       } satisfies PedidoDetalle
+    },
+    async listByCliente(clienteId) {
+      const { data, error } = await db
+        .from('pedidos')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as Pedido[]
     },
   }
 }

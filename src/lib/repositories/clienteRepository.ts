@@ -26,9 +26,11 @@ export function makeClienteRepository(
       return data as Cliente[]
     },
     async getById(id) {
-      const { data, error } = await db.from('clientes').select('*').eq('id', id).single()
+      // `maybeSingle`: un id inexistente devuelve `null` (la ficha muestra
+      // not-found) en vez de lanzar PGRST116 y caer en el `error.tsx`.
+      const { data, error } = await db.from('clientes').select('*').eq('id', id).maybeSingle()
       if (error) throw error
-      return data as Cliente
+      return (data as Cliente | null) ?? null
     },
     async create(input) {
       const { data, error } = await db.from('clientes').insert(input).select().single()

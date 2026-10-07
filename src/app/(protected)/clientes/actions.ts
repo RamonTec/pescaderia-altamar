@@ -22,6 +22,8 @@ async function requireAuth(): Promise<boolean> {
   return !!(await getSession())
 }
 
+const SIN_SESION = 'Tu sesión expiró. Vuelve a iniciar sesión para continuar.'
+
 function toError(e: unknown): string {
   return toActionError(e).error
 }
@@ -30,7 +32,7 @@ export async function upsertClienteAction(
   _prev: ClienteActionState,
   formData: FormData
 ): Promise<ClienteActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
 
   const id = (formData.get('id') as string) || null
   const raw = String(formData.get('payload') ?? '')
@@ -38,7 +40,10 @@ export async function upsertClienteAction(
   try {
     input = JSON.parse(raw)
   } catch {
-    return { error: 'Datos inválidos', success: null }
+    return {
+      error: 'Los datos del formulario llegaron incompletos. Recarga la página e intenta de nuevo.',
+      success: null,
+    }
   }
 
   try {
@@ -52,14 +57,14 @@ export async function upsertClienteAction(
   }
 
   revalidatePath('/clientes')
-  return { error: null, success: id ? 'Cliente actualizado' : 'Cliente creado' }
+  return { error: null, success: id ? 'Cliente actualizado' : 'Cliente guardado' }
 }
 
 export async function desactivarClienteAction(
   _prev: ClienteActionState,
   formData: FormData
 ): Promise<ClienteActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
   const id = String(formData.get('id') ?? '')
   try {
     await desactivar(id)
@@ -74,7 +79,7 @@ export async function activarClienteAction(
   _prev: ClienteActionState,
   formData: FormData
 ): Promise<ClienteActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
   const id = String(formData.get('id') ?? '')
   try {
     await activar(id)
@@ -89,7 +94,7 @@ export async function bloquearClienteAction(
   _prev: ClienteActionState,
   formData: FormData
 ): Promise<ClienteActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
   const id = String(formData.get('id') ?? '')
   const motivo = String(formData.get('motivo') ?? '')
   try {
@@ -105,7 +110,7 @@ export async function desbloquearClienteAction(
   _prev: ClienteActionState,
   formData: FormData
 ): Promise<ClienteActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
   const id = String(formData.get('id') ?? '')
   try {
     await desbloquear(id)

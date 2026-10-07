@@ -499,10 +499,12 @@ async function fuenteDefault(db: SupabaseClient): Promise<FuenteReferencial> {
 export async function resolverTasaOperacion(
   input: EntradaTasaOperacion,
   fecha: string,
-  db?: SupabaseClient
+  db?: SupabaseClient,
+  /** Fuente ya resuelta por el invocador (evita re-leer `config_negocio`). */
+  fuenteDefaultConocida?: FuenteReferencial
 ): Promise<ResultadoTasaOperacion> {
   const client = db ?? (await crearClienteServidor())
-  const fuente = input.tasa_fuente ?? (await fuenteDefault(client))
+  const fuente = input.tasa_fuente ?? fuenteDefaultConocida ?? (await fuenteDefault(client))
   const vigente = await getTasaVigente(fecha, fuente, 'USD', client)
 
   if (input.tasa_origen === 'referencial') {

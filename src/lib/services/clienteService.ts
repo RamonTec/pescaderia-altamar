@@ -1,5 +1,7 @@
-import type { Cliente, TipoPersona } from '@/types/domain'
+import type { Cliente, Factura, Pedido, RepresentanteLegal, TipoPersona } from '@/types/domain'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
+import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
+import { makePedidoRepository } from '@/lib/repositories/pedidoRepository'
 import { makeRepresentanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
 import { createClient } from '@/lib/supabase/server'
 import { getRol } from './authService'
@@ -218,6 +220,40 @@ export async function validarRepresentantes(clienteId: string): Promise<void> {
       'Un cliente persona jurídica debe tener al menos un representante legal'
     )
   }
+}
+
+/* ---------- lecturas (listado y ficha, en el servidor) ---------- */
+
+/** Todos los clientes (activos e inactivos) para el listado. */
+export async function listarClientes(): Promise<Cliente[]> {
+  const db = await createClient()
+  return makeClienteRepository(db).list()
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** `null` si no existe o si el id ni siquiera tiene forma de UUID (enlace mal escrito). */
+export async function getCliente(id: string): Promise<Cliente | null> {
+  if (!UUID_RE.test(id)) return null
+  const db = await createClient()
+  return makeClienteRepository(db).getById(id)
+}
+
+export async function listarRepresentantes(clienteId: string): Promise<RepresentanteLegal[]> {
+  const db = await createClient()
+  return makeRepresentanteLegalRepository(db).listByCliente(clienteId)
+}
+
+/** Facturas del cliente, de la más reciente a la más antigua. */
+export async function listarFacturasDeCliente(clienteId: string): Promise<Factura[]> {
+  const db = await createClient()
+  return makeFacturaRepository(db).getByCliente(clienteId)
+}
+
+/** Pedidos del cliente, del más reciente al más antiguo. */
+export async function listarPedidosDeCliente(clienteId: string): Promise<Pedido[]> {
+  const db = await createClient()
+  return makePedidoRepository(db).listByCliente(clienteId)
 }
 
 /**
