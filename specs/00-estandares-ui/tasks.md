@@ -96,6 +96,8 @@ Pedido del usuario: el apartado visual es básico y le falta acabado. Se definie
 
 ### Fase 2b — Migración de pantallas existentes
 
+> **Tarea agregada (2026-10-07)**: clientes (listado, ficha, `ClienteForm`, `BloqueoDialog`) se migra en el módulo `specs/10-refactor-visual-clientes/`, que cubre las tareas 40–43 para clientes y resuelve los pendientes (b) y (d) de la Fase 2a. Las pantallas siguientes reusan lo que deja: `FichaHeader`, `normalizeSearch` de `AppDataGrid`, `StatusChips` `soft` y `BloqueoDialog` sobre `AppDialog`.
+
 40. **Tablas** → `AppDataGrid`, con paginación en **servidor** para las que crecen con el tiempo (requiere `.range()` + `count` en sus repositorios): `ComprasTable`, `PedidosTable`, `NotasCreditoTable`, `ProcesamientosTable`, `FacturasAbiertasTable` (o su reemplazo de `09`). En **cliente**: `ClientesTable`, `ProveedoresTable`, `ProductosTable`. Cada una define su `mobileCard`.
 41. **Diálogos** → `AppDialog`: `ClienteForm`, `ProveedorForm`, `CompraForm`, `PedidoForm`, `ProcesamientoForm`, `ProductoForm`, `NotaCreditoForm`, `RegistrarPagoDialog`, `PagoProveedorDialog`, `EntregaPedidoDialog`, `BloqueoDialog`, `CrearUsuarioForm` (si es diálogo). Quitar los `CircularProgress` manuales de los botones.
 42. **Fichas** (cliente, proveedor): encabezado consistente (nombre `h5`, identificador en `caption`, estado con chips, acciones a la derecha o en `⋮` en `xs`) y secciones con el radio 8 + borde.
@@ -113,6 +115,7 @@ Pedido del usuario: el apartado visual es básico y le falta acabado. Se definie
 ## Componentes agregados después de la primera pasada
 - _(los módulos 01-05 anotan aquí cualquier componente genérico nuevo que creen, con fecha y motivo, y lo agregan también a la tabla de `spec.md`)_
 - **2026-10-06 (03-proveedores)**: `lib/validationMessages.ts` (cierra tarea 22), `lib/actionState.ts`, `lib/documentoStore.ts`, `lib/bancosVe.ts`, generalización de `DocumentoUpload` (adaptador `DocumentoStore`) y de `RepresentantesLegalesFieldArray` (tipado genérico + `Collapse`, cierra tarea 26), y `CopyableText` / `StatusChips` en `molecules`. Todos agregados a la tabla de `spec.md`.
+- **2026-10-07 (10-refactor-visual-clientes)**: `molecules/FichaHeader` (nuevo) y `lib/navigationOrigin.ts` (nuevo, para la vuelta de `FichaHeader`); `AppDataGrid` con `normalizeSearch` + `getSearchValues` (búsqueda en modo cliente resuelta por el propio componente, igual en grilla y tarjetas) y Enter en una celda para abrir la fila (`onCellKeyDown`, cierra el pendiente (b)); exporta `normalizarBusqueda` / `normalizarBusquedaSinSeparadores`, y `appDataGridColumns` exporta `ACTIONS_FIELD`; `StatusChips` en `soft` 22 px con `mostrarActivo`; `DocumentoUpload` con `disabled` y `Button loading` (cierra el pendiente (d)); `BloqueoDialog` sobre `AppDialog xs`; `EmptyState` con `compact`. Todos agregados a la tabla de `spec.md`.
 
 ## Nota de implementación (2026-10-06)
 

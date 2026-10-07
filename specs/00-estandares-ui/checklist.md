@@ -62,7 +62,7 @@
 
 ### Pendientes de la Fase 2a (2026-10-07)
 - [ ] (a) Volver desde una ficha a una tabla en modo servidor con la caché del router (la página vive en `?pagina=` escrita con `history.replaceState`): probarlo en la primera tabla que se migre a servidor (Fase 2b).
-- [ ] (b) Filas clicables de `AppDataGrid` (`getRowHref`) solo responden al mouse: `onRowClick` no se dispara con Enter. Decidir en la Fase 2b (enlace en la primera celda, manejar `onCellKeyDown` u otra solución).
+- [ ] (b) Filas clicables de `AppDataGrid` (`getRowHref`) solo responden al mouse: `onRowClick` no se dispara con Enter. Decidir en la Fase 2b (enlace en la primera celda, manejar `onCellKeyDown` u otra solución). _(Resuelto el 2026-10-07 en 10-refactor-visual-clientes: `onCellKeyDown` navega con Enter solo si `event.target === event.currentTarget` (el foco está en la propia celda, no en un control dentro de ella ni en el menú `⋮`, cuyo portal también burbujea al árbol de la celda) y la columna no es `ACTIONS_FIELD` ni `type: 'actions'`. Las flechas siguen siendo de la grilla; en `xs` las tarjetas ya eran `Link`. Implementado; falta la prueba con teclado en navegador del usuario, ver `10-refactor-visual-clientes/checklist.md`.)_
 - [ ] (c) Duraciones escritas a mano en animaciones en bucle: `PeneroSweep` 1400 ms, `BrandLoader` 2400 ms (`penero-bob`) y el retardo de 100 ms de `NavigationProgress`. Pasarlas a constantes o anotar la excepción en `spec.md`.
 - [ ] (d) `DocumentoUpload` sigue habilitado mientras `ClienteForm` guarda (no recibe `disabled`).
 - [ ] (e) Capas que ya venían mal (anteriores a la Fase 2): `ClienteForm` llama directo a `representanteLegalRepository` desde el cliente, y `authService` (`getUsuarioActual`) consulta `perfiles` sin repositorio.
