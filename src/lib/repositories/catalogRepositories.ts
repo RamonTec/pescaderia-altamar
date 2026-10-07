@@ -1,15 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type {
-  IClienteRepository,
-  IProductoRepository,
-  IProveedorRepository,
-} from './interfaces'
-import type { Cliente, Producto, Proveedor } from '@/types/domain'
+import type { IClienteRepository, IProductoRepository } from './interfaces'
+import type { Cliente, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
 
 /**
  * Implementación Supabase de los repositorios (LSP: sustituibles
  * por mocks u otra fuente sin cambiar los servicios).
+ *
+ * El repositorio de proveedores vive en `proveedorRepository.ts`; este
+ * archivo solo lo re-exporta para no romper imports existentes.
  */
 
 function makeProductoRepository(
@@ -72,37 +71,9 @@ function makeClienteRepository(db: SupabaseClient = createClient()): IClienteRep
   }
 }
 
-function makeProveedorRepository(db: SupabaseClient = createClient()): IProveedorRepository {
-  return {
-    async list() {
-      const { data, error } = await db.from('proveedores').select('*').order('nombre')
-      if (error) throw error
-      return data as Proveedor[]
-    },
-    async getById(id) {
-      const { data, error } = await db.from('proveedores').select('*').eq('id', id).single()
-      if (error) throw error
-      return data as Proveedor
-    },
-    async create(input) {
-      const { data, error } = await db.from('proveedores').insert(input).select().single()
-      if (error) throw error
-      return data as Proveedor
-    },
-    async update(id, input) {
-      const { data, error } = await db.from('proveedores').update(input).eq('id', id).select().single()
-      if (error) throw error
-      return data as Proveedor
-    },
-    async delete(id) {
-      const { error } = await db.from('proveedores').delete().eq('id', id)
-      if (error) throw error
-    },
-  }
-}
-
 export const productoRepository = makeProductoRepository()
 export const clienteRepository = makeClienteRepository()
-export const proveedorRepository = makeProveedorRepository()
 
-export { makeProductoRepository, makeClienteRepository, makeProveedorRepository }
+export { makeProductoRepository, makeClienteRepository }
+
+export { makeProveedorRepository, proveedorRepository } from './proveedorRepository'

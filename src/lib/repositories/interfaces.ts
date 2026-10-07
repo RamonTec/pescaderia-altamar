@@ -2,10 +2,14 @@ import type {
   Cliente,
   ClienteInput,
   DocumentoCliente,
+  DocumentoProveedor,
+  MetodoPagoProveedor,
   Producto,
   Proveedor,
   RepresentanteLegal,
+  RepresentanteProveedor,
   TipoDocumentoCliente,
+  TipoDocumentoProveedor,
 } from '@/types/domain'
 
 /**
@@ -29,11 +33,19 @@ export interface IClienteRepository {
   delete(id: string): Promise<void>
 }
 
+export interface ProveedorResumen extends Proveedor {
+  representantes_proveedor: RepresentanteProveedor[]
+  documentos_proveedor: Pick<DocumentoProveedor, 'tipo' | 'representante_id'>[]
+  metodos_pago_proveedor: MetodoPagoProveedor[]
+}
+
 export interface IProveedorRepository {
-  list(): Promise<Proveedor[]>
+  list(options?: { incluirInactivos?: boolean }): Promise<Proveedor[]>
+  listConResumen(): Promise<ProveedorResumen[]>
   getById(id: string): Promise<Proveedor | null>
-  create(data: Omit<Proveedor, 'id'>): Promise<Proveedor>
+  create(data: Omit<Proveedor, 'id' | 'bloqueado' | 'motivo_bloqueo' | 'activo'>): Promise<Proveedor>
   update(id: string, data: Partial<Proveedor>): Promise<Proveedor>
+  countCompras(id: string): Promise<number>
   delete(id: string): Promise<void>
 }
 
@@ -47,6 +59,32 @@ export interface IRepresentanteLegalRepository {
 export interface IDocumentoClienteRepository {
   listByCliente(clienteId: string): Promise<DocumentoCliente[]>
   create(clienteId: string, tipo: TipoDocumentoCliente, file: File): Promise<DocumentoCliente>
+  getUrlDescarga(id: string): Promise<string | null>
+  delete(id: string): Promise<void>
+}
+
+export interface IRepresentanteProveedorRepository {
+  listByProveedor(proveedorId: string): Promise<RepresentanteProveedor[]>
+  create(data: Omit<RepresentanteProveedor, 'id'>): Promise<RepresentanteProveedor>
+  update(id: string, data: Partial<RepresentanteProveedor>): Promise<RepresentanteProveedor>
+  delete(id: string): Promise<void>
+}
+
+export interface IMetodoPagoProveedorRepository {
+  listByProveedor(proveedorId: string): Promise<MetodoPagoProveedor[]>
+  create(data: Omit<MetodoPagoProveedor, 'id'>): Promise<MetodoPagoProveedor>
+  update(id: string, data: Partial<MetodoPagoProveedor>): Promise<MetodoPagoProveedor>
+  delete(id: string): Promise<void>
+}
+
+export interface IDocumentoProveedorRepository {
+  listByProveedor(proveedorId: string): Promise<DocumentoProveedor[]>
+  create(
+    proveedorId: string,
+    tipo: TipoDocumentoProveedor,
+    file: File,
+    options?: { representanteId?: string }
+  ): Promise<DocumentoProveedor>
   getUrlDescarga(id: string): Promise<string | null>
   delete(id: string): Promise<void>
 }
