@@ -1,4 +1,5 @@
 import type {
+  CanalRecordatorioId,
   Cliente,
   ClienteInput,
   Compra,
@@ -20,6 +21,7 @@ import type {
   ProcesoItem,
   Producto,
   Proveedor,
+  RecordatorioCobro,
   RepresentanteLegal,
   RepresentanteProveedor,
   TipoDocumentoCliente,
@@ -146,7 +148,7 @@ export interface ICompraRepository {
 export type PedidoItemNuevo = Pick<PedidoItem, 'producto_id' | 'peso_estimado_kg' | 'precio_usd_kg'>
 
 export interface PedidoResumen extends Pedido {
-  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'bloqueado'>
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'bloqueado' | 'dias_credito'>
 }
 
 export interface PedidoDetalle extends PedidoResumen {
@@ -186,6 +188,11 @@ export interface FacturaNueva {
   total_usd: number
   pagado_usd: number
   estado: Factura['estado']
+  /**
+   * Días de crédito otorgados (contado: 0). `fecha_vencimiento` la deriva la
+   * base (`fecha + dias_credito`, 09-cuentas-por-cobrar).
+   */
+  dias_credito: number
   /** Procedencia de la tasa (08-tasas): origen, fuente y referencial vigente. */
   tasa_origen: Factura['tasa_origen']
   tasa_fuente: Factura['tasa_fuente']
@@ -283,4 +290,57 @@ export interface IProcesamientoRepository {
    */
   create(procesamiento: Procesamiento, items: ProcesoItemNuevo[]): Promise<string>
   list(): Promise<ProcesamientoResumen[]>
+}
+
+/* ===================== CUENTAS POR COBRAR (09) ===================== */
+
+/** Fila de `cartera_clientes_view`: saldos `null` para el operador. */
+export interface FilaCarteraCliente {
+  cliente_id: string
+  pagadas: number
+  pendientes: number
+  por_vencer: number
+  vencidas: number
+  anuladas: number
+  saldo_usd: number | null
+  saldo_vencido_usd: number | null
+  vencida_mas_antigua_dias: number | null
+  ultimo_recordatorio_fecha: string | null
+  ultimo_recordatorio_canal: CanalRecordatorioId | null
+}
+
+/** Factura con la suma de sus notas de crédito emitidas (para cartera). */
+export interface FacturaCartera extends FacturaResumen {
+  creditos_usd: number
+}
+
+export interface ICarteraRepository {
+  /** Resumen de todos los clientes en una consulta a la vista (sin N+1). */
+  resumenPorCliente(): Promise<FilaCarteraCliente[]>
+  /** Facturas de un cliente + créditos emitidos, en una consulta con embedding. */
+  documentosPorCliente(clienteId: string): Promise<FacturaCartera[]>
+  /** Facturas `abierta` de todos los clientes (`/cobros`). */
+  documentosAbiertos(): Promise<FacturaCartera[]>
+}
+
+export type RecordatorioNuevo = Pick<
+  RecordatorioCobro,
+  | 'id'
+  | 'cliente_id'
+  | 'canal'
+  | 'destinatario'
+  | 'asunto'
+  | 'estado'
+  | 'error'
+  | 'proveedor_id_mensaje'
+> & { mensaje: string }
+
+export interface IRecordatorioRepository {
+  /** Recordatorio + facturas incluidas en una transacción (RPC `registrar_recordatorio_cobro`). */
+  registrar(recordatorio: RecordatorioNuevo, facturaIds: string[]): Promise<string>
+  /** Historial del cliente, del más reciente al más antiguo. */
+  listByCliente(clienteId: string): Promise<RecordatorioCobro[]>
+  /** Último recordatorio no fallido del cliente. */
+  ultimoPorCliente(clienteId: string): Promise<RecordatorioCobro | null>
+  getById(id: string): Promise<RecordatorioCobro | null>
 }

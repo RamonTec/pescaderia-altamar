@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MSG_EMAIL_INVALIDO } from './validationMessages'
 
 /**
  * Validación de la configuración del negocio (04-inventario, 08-tasas).
@@ -19,6 +20,20 @@ export const configFormSchema = z.object({
     .number({ message: 'Umbral requerido' })
     .min(0, 'El umbral no puede ser negativo')
     .max(100, 'El umbral no puede superar 100%'),
+  // 09-cuentas-por-cobrar: vencimientos y datos de los recordatorios de cobro.
+  dias_credito_default: z
+    .number({ message: 'Días requeridos' })
+    .int('Usa un número entero de días')
+    .min(0, 'No puede ser negativo')
+    .max(365, 'Máximo 365 días'),
+  dias_aviso_por_vencer: z
+    .number({ message: 'Días requeridos' })
+    .int('Usa un número entero de días')
+    .min(0, 'No puede ser negativo')
+    .max(60, 'Máximo 60 días'),
+  nombre_comercial: z.string().trim().min(1, 'Nombre comercial requerido').max(120, 'Máximo 120 caracteres'),
+  email_respuesta: z.string().trim().email(MSG_EMAIL_INVALIDO).or(z.literal('')),
+  instrucciones_pago: z.string().max(1500, 'Máximo 1500 caracteres'),
 })
 
 export type ConfigFormValues = z.infer<typeof configFormSchema>

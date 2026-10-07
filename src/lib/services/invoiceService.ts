@@ -77,6 +77,11 @@ export interface CrearFacturaInput {
   forzar_limite?: boolean
   pesos_reales?: { pedido_item_id: string; peso_kg: number }[]
   /**
+   * Días de crédito de esta factura (09-cuentas-por-cobrar). Sin valor, los
+   * del cliente o el default del negocio; en contado se fuerza 0.
+   */
+  dias_credito?: number | null
+  /**
    * Tasa elegida para esta factura (08-tasas): referencial (el servidor
    * recalculará el valor vigente) o manual (> 0).
    */
@@ -89,6 +94,30 @@ export interface CrearFacturaResultado {
   advertencia: AdvertenciaLimiteCredito | null
   /** La referencial vigente del servidor es otra que la que vio el cliente. */
   aviso?: 'referencial_cambio'
+}
+
+export const DIAS_CREDITO_DEFAULT = 15
+export const DIAS_CREDITO_MAX = 365
+
+/**
+ * Días de crédito de una factura: contado = 0; crédito = los indicados al
+ * emitir, o los habituales del cliente, o el default del negocio.
+ */
+export function resolverDiasCredito(
+  condicion: CondicionPago,
+  indicados: number | null | undefined,
+  cliente: Pick<Cliente, 'dias_credito'>,
+  defaultNegocio: number | null | undefined
+): number {
+  if (condicion === 'contado') return 0
+  const dias = indicados ?? cliente.dias_credito ?? defaultNegocio ?? DIAS_CREDITO_DEFAULT
+  if (!Number.isInteger(dias) || dias < 0 || dias > DIAS_CREDITO_MAX) {
+    throw new InvoiceError(
+      `Los días de crédito deben ser un entero entre 0 y ${DIAS_CREDITO_MAX}`,
+      'dias_credito'
+    )
+  }
+  return dias
 }
 
 export function subtotalItems(items: ItemFacturaInput[]): number {
@@ -161,6 +190,12 @@ export async function crearFactura(
   }
 
   const fecha = input.fecha ?? new Date().toISOString().slice(0, 10)
+  const diasCredito = resolverDiasCredito(
+    input.condicion,
+    input.dias_credito,
+    cliente,
+    config?.dias_credito_default
+  )
 
   // Tasa y costos en paralelo: una sola query de movimientos para todos los
   // items (antes, un round-trip por producto).
@@ -198,6 +233,7 @@ export async function crearFactura(
     cliente_id: cliente.id,
     fecha,
     condicion: input.condicion,
+    dias_credito: diasCredito,
     tasa_snapshot: redondea6(tasaOperacion.tasa_snapshot),
     iva_pct: ivaPct,
     subtotal_usd: subtotal,

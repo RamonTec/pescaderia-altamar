@@ -28,6 +28,8 @@ export interface EntregarPedidoInput {
   fecha: string
   pesos_reales: { pedido_item_id: string; peso_kg: number }[]
   forzar_limite?: boolean
+  /** Días de crédito de la factura (09); sin valor, los del cliente o el default. */
+  dias_credito?: number | null
   /** Tasa elegida en la entrega; resuelta en el servidor para la fecha de entrega. */
   tasa?: EntradaTasaOperacion
 }
@@ -89,6 +91,7 @@ export async function entregarPedido(
       condicion: input.condicion,
       fecha: input.fecha,
       forzar_limite: input.forzar_limite,
+      dias_credito: input.dias_credito,
       pesos_reales: input.pesos_reales,
       tasa,
     },

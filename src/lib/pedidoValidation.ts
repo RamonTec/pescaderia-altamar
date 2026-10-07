@@ -23,6 +23,20 @@ function numero(mensajeRequerido: string, base: z.ZodNumber = z.number()) {
 
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
+/**
+ * Días de crédito de la factura (09-cuentas-por-cobrar): entero 0–365. Solo
+ * aplica a crédito (en contado el servidor fuerza 0); `null` = los del
+ * cliente o el default del negocio. `fecha_vencimiento` nunca la envía el
+ * cliente: la deriva la base.
+ */
+export const diasCreditoSchema = z
+  .number()
+  .int('Usa un número entero de días')
+  .min(0, 'No puede ser negativo')
+  .max(365, 'Máximo 365 días')
+  .nullable()
+  .optional()
+
 export const pedidoItemFormSchema = z.object({
   producto_id: z.string().uuid('Selecciona un producto'),
   peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
@@ -39,6 +53,7 @@ export const pedidoFormSchema = z
       .nullable()
       .transform((v) => (v ? v : null)),
     condicion: z.enum(['contado', 'credito']),
+    dias_credito: diasCreditoSchema,
     notas: z.string(),
     ...camposTasaOpcionales,
     items: z.array(pedidoItemFormSchema).min(1, 'Agrega al menos un producto'),
@@ -65,6 +80,7 @@ export const entregaPedidoSchema = z
     pedido_id: z.string().uuid(),
     fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
     condicion: z.enum(['contado', 'credito']),
+    dias_credito: diasCreditoSchema,
     ...camposTasaOpcionales,
     pesos_reales: z
       .array(

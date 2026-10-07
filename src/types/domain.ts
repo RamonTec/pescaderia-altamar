@@ -82,6 +82,15 @@ export interface ConfigNegocio {
   umbral_stock_bajo_kg: number | null
   /** Umbral % de desviación de una tasa manual que pide confirmación (08-tasas). */
   umbral_desviacion_tasa_pct: number
+  /** Días de crédito si el cliente no tiene los suyos (09-cuentas-por-cobrar). */
+  dias_credito_default: number
+  /** Una factura pasa a "por vencer" cuando le quedan ≤ estos días. */
+  dias_aviso_por_vencer: number
+  /** Datos de pago (Pago Móvil, cuentas, Zelle) que se incluyen en los recordatorios. */
+  instrucciones_pago: string | null
+  nombre_comercial: string | null
+  /** `reply_to` de los correos de cobranza. */
+  email_respuesta: string | null
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -97,6 +106,8 @@ export interface Cliente {
   direccion: string | null
   notas: string | null
   limite_credito_usd: number | null
+  /** Días de crédito habituales; `null` = `config_negocio.dias_credito_default`. */
+  dias_credito: number | null
   bloqueado: boolean
   motivo_bloqueo: string | null
   activo: boolean
@@ -254,6 +265,10 @@ export interface Factura extends TasaProcedencia {
   cliente_id: string
   pedido_id: string | null
   fecha: string
+  /** Días de crédito otorgados en esta factura (contado: 0). */
+  dias_credito: number
+  /** `fecha + dias_credito`; la deriva la base (09-cuentas-por-cobrar). */
+  fecha_vencimiento: string
   condicion: CondicionPago
   tasa_snapshot: number
   iva_pct: number
@@ -313,4 +328,27 @@ export interface Movimiento {
   peso_kg: number
   costo_usd_kg: number
   ref_id: string | null
+}
+
+/* ==================== Cuentas por cobrar (09) ==================== */
+
+export type CanalRecordatorioId = 'whatsapp' | 'email'
+/** WhatsApp: `generado` (el usuario envía desde wa.me); correo: `enviado` / `fallido`. */
+export type EstadoEnvio = 'generado' | 'enviado' | 'fallido'
+
+/** Fila de `recordatorios_cobro_view`: `mensaje`/`asunto` llegan `null` al operador. */
+export interface RecordatorioCobro {
+  id: string
+  cliente_id: string
+  canal: CanalRecordatorioId
+  destinatario: string
+  asunto: string | null
+  mensaje: string | null
+  estado: EstadoEnvio
+  error: string | null
+  proveedor_id_mensaje: string | null
+  enviado_por: string | null
+  enviado_por_nombre: string | null
+  created_at: string
+  factura_ids: string[]
 }

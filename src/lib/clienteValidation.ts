@@ -35,6 +35,12 @@ export const clienteFormSchema = z
     direccion: z.string(),
     notas: z.string(),
     limite_credito_usd: z.number().nullable(),
+    dias_credito: z
+      .number()
+      .int('Usa un número entero de días')
+      .min(0, 'No puede ser negativo')
+      .max(365, 'Máximo 365 días')
+      .nullable(),
     representantes: z.array(representanteSchema),
   })
   .superRefine((data, ctx) => {

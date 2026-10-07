@@ -1,6 +1,5 @@
-import type { Cliente, Factura, Pedido, RepresentanteLegal, TipoPersona } from '@/types/domain'
+import type { Cliente, Pedido, RepresentanteLegal, TipoPersona } from '@/types/domain'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
-import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
 import { makePedidoRepository } from '@/lib/repositories/pedidoRepository'
 import { makeRepresentanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
 import { createClient } from '@/lib/supabase/server'
@@ -60,6 +59,8 @@ export interface ClienteCreateInput {
   direccion: string
   notas: string
   limite_credito_usd: number | null
+  /** Días de crédito habituales; `null` = el default del negocio (09). */
+  dias_credito: number | null
   representantes: RepresentanteInput[]
 }
 
@@ -67,6 +68,12 @@ function validarInput(input: ClienteCreateInput): void {
   if (!input.nombre.trim()) throw new ClienteValidationError('El nombre es obligatorio')
   if (!validarRifCi(input.rif_ci)) {
     throw new ClienteValidationError('Formato de RIF/Cédula inválido (V-/E-/J- + números)')
+  }
+  if (
+    input.dias_credito != null &&
+    (!Number.isInteger(input.dias_credito) || input.dias_credito < 0 || input.dias_credito > 365)
+  ) {
+    throw new ClienteValidationError('Los días de crédito deben ser un entero entre 0 y 365')
   }
   if (input.email.trim() && !validarEmail(input.email)) {
     throw new ClienteValidationError('Email inválido')
@@ -139,6 +146,7 @@ export async function crearCliente(input: ClienteCreateInput): Promise<Cliente> 
     direccion: input.direccion.trim() || null,
     notas: input.notas.trim() || null,
     limite_credito_usd: input.limite_credito_usd,
+    dias_credito: input.dias_credito,
   })
 
   await sincronizarRepresentantes(cliente.id, input.representantes)
@@ -162,6 +170,7 @@ export async function actualizarCliente(
     direccion: input.direccion.trim() || null,
     notas: input.notas.trim() || null,
     limite_credito_usd: input.limite_credito_usd,
+    dias_credito: input.dias_credito,
   })
 
   await sincronizarRepresentantes(id, input.representantes)
@@ -242,12 +251,6 @@ export async function getCliente(id: string): Promise<Cliente | null> {
 export async function listarRepresentantes(clienteId: string): Promise<RepresentanteLegal[]> {
   const db = await createClient()
   return makeRepresentanteLegalRepository(db).listByCliente(clienteId)
-}
-
-/** Facturas del cliente, de la más reciente a la más antigua. */
-export async function listarFacturasDeCliente(clienteId: string): Promise<Factura[]> {
-  const db = await createClient()
-  return makeFacturaRepository(db).getByCliente(clienteId)
 }
 
 /** Pedidos del cliente, del más reciente al más antiguo. */
