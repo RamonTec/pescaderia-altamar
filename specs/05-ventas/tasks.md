@@ -7,6 +7,8 @@ Depende de: `00-estandares-ui`, `02-clientes` completo, `04-inventario` completo
 1. **Migración `0007_facturas_secuencia.sql`**: `create sequence if not exists public.facturas_numero_seq;` y ajustar `facturas.numero` para usar `nextval('facturas_numero_seq')` como default, evitando colisiones (hoy `numero` no tiene default, es responsabilidad del código — mover a la BD es más seguro). *(Renumerar si `02-clientes`/`04-inventario` ya ocuparon este número al momento de ejecutar.)*
 2. **Migración `0008_notas_credito.sql`**: tabla `public.notas_credito` y `public.nota_credito_items` según el spec, más `create sequence if not exists public.notas_credito_numero_seq;`.
 
+> **Nota de renumeración (2026-10-06)**: al ejecutar, `04-inventario` (procesamiento) ya ocupó `0013`. Este módulo usó **`0015_facturas_secuencia.sql`** (tarea 1) y **`0016_notas_credito_y_rpc_ventas.sql`** (tarea 2, que además incluye las RPC transaccionales `registrar_pedido`, `registrar_factura`, `registrar_pago`, `registrar_nota_credito` y `anular_nota_credito`).
+
 ## Repositorios
 
 3. **`src/lib/repositories/pedidoRepository.ts`** (+ `IPedidoRepository` en `interfaces.ts`): `create(pedido, items)`, `list(filtro_estado?)`, `getById`, `marcarEntregado(id, pesosReales)`.
