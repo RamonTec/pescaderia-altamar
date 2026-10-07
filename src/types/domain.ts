@@ -35,13 +35,41 @@ export interface Producto {
   activo: boolean
 }
 
+export type TipoPersona = 'natural' | 'juridica'
+export type TipoDocumentoCliente = 'cedula' | 'rif' | 'otro'
+
 export interface Cliente {
   id: string
   nombre: string
+  tipo_persona: TipoPersona
   rif_ci: string | null
   telefono: string | null
+  email: string | null
+  direccion: string | null
   notas: string | null
+  limite_credito_usd: number | null
+  bloqueado: boolean
+  motivo_bloqueo: string | null
   activo: boolean
+}
+
+/** Campos que la UI/envío provee al crear; bloqueado/motivo/activo tienen default en BD. */
+export type ClienteInput = Omit<Cliente, 'id' | 'bloqueado' | 'motivo_bloqueo' | 'activo'>
+
+export interface RepresentanteLegal {
+  id: string
+  cliente_id: string
+  nombre: string
+  cedula: string
+  cargo: string | null
+  telefono: string | null
+}
+
+export interface DocumentoCliente {
+  id: string
+  cliente_id: string
+  tipo: TipoDocumentoCliente
+  url_storage: string
 }
 
 export interface Proveedor {
