@@ -21,6 +21,8 @@ async function requireAuth(): Promise<boolean> {
   return !!(await getSession())
 }
 
+const SIN_SESION = 'Tu sesión expiró. Vuelve a iniciar sesión para continuar.'
+
 function fieldErrorsDeZod(
   error: z.ZodError
 ): Record<string, string> {
@@ -32,6 +34,11 @@ function fieldErrorsDeZod(
   return out
 }
 
+/**
+ * Estado de `upsertProveedorAction`: además de error/success lleva
+ * `fieldErrors` para que el Stepper salte al paso del campo que falló
+ * (la Server Action corre `proveedorFormSchema.safeParse`, 03-proveedores).
+ */
 export interface UpsertProveedorState extends ActionState {
   id?: string | null
 }
@@ -40,7 +47,7 @@ export async function upsertProveedorAction(
   _prev: UpsertProveedorState,
   formData: FormData
 ): Promise<UpsertProveedorState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
 
   const id = (formData.get('id') as string) || null
   const raw = String(formData.get('payload') ?? '')
@@ -49,7 +56,10 @@ export async function upsertProveedorAction(
   try {
     parsed = JSON.parse(raw)
   } catch {
-    return { error: 'Datos inválidos', success: null }
+    return {
+      error: 'Los datos del formulario llegaron incompletos. Recarga la página e intenta de nuevo.',
+      success: null,
+    }
   }
 
   const safe = proveedorFormSchema.safeParse(parsed)
@@ -69,7 +79,7 @@ export async function upsertProveedorAction(
     } else {
       const creado = await crearProveedor(input)
       revalidatePath('/proveedores')
-      return { error: null, success: 'Proveedor creado', id: creado.id }
+      return { error: null, success: 'Proveedor guardado', id: creado.id }
     }
   } catch (e) {
     const { error, fieldErrors } = toActionError(e, { mapaCampos: MAPA_CAMPOS_RIF })
@@ -80,15 +90,20 @@ export async function upsertProveedorAction(
   return { error: null, success: 'Proveedor actualizado', id }
 }
 
+/** Estado simple de las acciones de fila (desactivar/activar/bloquear/desbloquear). */
+export interface ProveedorActionState {
+  error: string | null
+  success: string | null
+}
+
 export async function desactivarProveedorAction(
-  _prev: ActionState,
+  _prev: ProveedorActionState,
   formData: FormData
-): Promise<ActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
-  const parsed = z.string().uuid().safeParse(formData.get('id'))
-  if (!parsed.success) return { error: 'Id inválido', success: null }
+): Promise<ProveedorActionState> {
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
+  const id = String(formData.get('id') ?? '')
   try {
-    await desactivar(parsed.data)
+    await desactivar(id)
   } catch (e) {
     return { error: toActionError(e).error, success: null }
   }
@@ -97,14 +112,13 @@ export async function desactivarProveedorAction(
 }
 
 export async function activarProveedorAction(
-  _prev: ActionState,
+  _prev: ProveedorActionState,
   formData: FormData
-): Promise<ActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
-  const parsed = z.string().uuid().safeParse(formData.get('id'))
-  if (!parsed.success) return { error: 'Id inválido', success: null }
+): Promise<ProveedorActionState> {
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
+  const id = String(formData.get('id') ?? '')
   try {
-    await activar(parsed.data)
+    await activar(id)
   } catch (e) {
     return { error: toActionError(e).error, success: null }
   }
@@ -113,24 +127,20 @@ export async function activarProveedorAction(
 }
 
 export async function bloquearProveedorAction(
-  _prev: ActionState,
+  _prev: ProveedorActionState,
   formData: FormData
-): Promise<ActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
-  const idParsed = z.string().uuid().safeParse(formData.get('id'))
-  if (!idParsed.success) return { error: 'Id inválido', success: null }
+): Promise<ProveedorActionState> {
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
+  const id = String(formData.get('id') ?? '')
+  const motivo = String(formData.get('motivo') ?? '')
 
-  const motivoParsed = bloqueoSchema.safeParse({ motivo: formData.get('motivo') })
+  const motivoParsed = bloqueoSchema.safeParse({ motivo })
   if (!motivoParsed.success) {
-    return {
-      error: 'Revisa los campos marcados',
-      success: null,
-      fieldErrors: fieldErrorsDeZod(motivoParsed.error),
-    }
+    return { error: motivoParsed.error.issues[0]?.message ?? 'Motivo inválido', success: null }
   }
 
   try {
-    await bloquear(idParsed.data, motivoParsed.data.motivo)
+    await bloquear(id, motivoParsed.data.motivo)
   } catch (e) {
     return { error: toActionError(e).error, success: null }
   }
@@ -139,14 +149,13 @@ export async function bloquearProveedorAction(
 }
 
 export async function desbloquearProveedorAction(
-  _prev: ActionState,
+  _prev: ProveedorActionState,
   formData: FormData
-): Promise<ActionState> {
-  if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
-  const parsed = z.string().uuid().safeParse(formData.get('id'))
-  if (!parsed.success) return { error: 'Id inválido', success: null }
+): Promise<ProveedorActionState> {
+  if (!(await requireAuth())) return { error: SIN_SESION, success: null }
+  const id = String(formData.get('id') ?? '')
   try {
-    await desbloquear(parsed.data)
+    await desbloquear(id)
   } catch (e) {
     return { error: toActionError(e).error, success: null }
   }

@@ -1,35 +1,64 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Box from '@mui/material/Box'
-import IconButton from '@mui/material/IconButton'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import ListItemText from '@mui/material/ListItemText'
-import Switch from '@mui/material/Switch'
-import FormControlLabel from '@mui/material/FormControlLabel'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
+import type { GridColDef } from '@mui/x-data-grid'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import BlockIcon from '@mui/icons-material/BlockOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
-import { DataGrid, type GridColDef, type GridRowParams, GridToolbarQuickFilter } from '@mui/x-data-grid'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
+import FilterListOffOutlinedIcon from '@mui/icons-material/FilterListOffOutlined'
+import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
 import { StatusChips } from '@/components/molecules/StatusChips'
-import { EmptyState } from '@/components/molecules/EmptyState'
+import type { EmptyStateProps } from '@/components/molecules/EmptyState'
+import {
+  AppDataGrid,
+  normalizarBusquedaSinSeparadores,
+  writeUrlParams,
+} from '@/components/organisms/AppDataGrid'
+import { colAcciones, colMonto } from '@/components/organisms/appDataGridColumns'
 import { enmascararCuenta } from '@/lib/bancosVe'
+import { formatUsd } from '@/lib/format'
 import type { ProveedorResumen } from '@/lib/repositories/interfaces'
+
+/** Filtro del listado; vive en `?estado=` (sin parámetro = activos). */
+export type FiltroProveedores = 'activos' | 'bloqueados' | 'todos'
+
+const FILTROS: { value: FiltroProveedores; label: string }[] = [
+  { value: 'activos', label: 'Activos' },
+  { value: 'bloqueados', label: 'Bloqueados' },
+  { value: 'todos', label: 'Todos' },
+]
+
+const VACIO_FILTRO: Record<Exclude<FiltroProveedores, 'todos'>, string> = {
+  activos: 'No hay proveedores activos',
+  bloqueados: 'No hay proveedores bloqueados',
+}
+
+export function filtroDesdeParam(value: string | null): FiltroProveedores {
+  return value === 'bloqueados' || value === 'todos' ? value : 'activos'
+}
 
 export interface ProveedoresTableProps {
   proveedores: ProveedorResumen[]
+  /** Saldo pendiente real por id (04-inventario). */
+  saldos: Record<string, number>
   esAdmin: boolean
+  /** Proveedor con una acción en curso: su `⋮` queda deshabilitado con indicador. */
+  estaPendiente: (id: string) => boolean
+  onNuevo: () => void
   onEdit: (proveedor: ProveedorResumen) => void
   onBloquear: (proveedor: ProveedorResumen) => void
+  onDesbloquear: (proveedor: ProveedorResumen) => void
   onDesactivar: (proveedor: ProveedorResumen) => void
   onActivar: (proveedor: ProveedorResumen) => void
-  onDesbloquear: (proveedor: ProveedorResumen) => void
 }
 
 function metodoPreferidoLabel(p: ProveedorResumen): string | null {
@@ -43,240 +72,236 @@ function metodoPreferidoLabel(p: ProveedorResumen): string | null {
   return null
 }
 
+const searchValues = (p: ProveedorResumen) => [p.nombre, p.rif_ci, p.contacto_nombre]
+
+/**
+ * Listado de proveedores sobre `AppDataGrid` (catálogo: modo cliente).
+ * Búsqueda que ignora acentos, mayúsculas, espacios, puntos y guiones
+ * ("v12345" encuentra "V-12.345"); filtro en chips y en la URL; tarjetas en
+ * `xs` con el saldo visible; fila abre la ficha (clic o Enter).
+ */
 export function ProveedoresTable({
   proveedores,
+  saldos,
   esAdmin,
+  estaPendiente,
+  onNuevo,
   onEdit,
   onBloquear,
+  onDesbloquear,
   onDesactivar,
   onActivar,
-  onDesbloquear,
 }: ProveedoresTableProps) {
-  const router = useRouter()
-  const [soloActivos, setSoloActivos] = React.useState(true)
-  const [menuAnchor, setMenuAnchor] = React.useState<null | { el: HTMLElement; row: ProveedorResumen }>(null)
+  const searchParams = useSearchParams()
+  const filtro = filtroDesdeParam(searchParams.get('estado'))
 
-  const filas = React.useMemo(() => {
-    const base = soloActivos ? proveedores.filter((p) => p.activo) : proveedores
-    return base.map((p) => ({ ...p, id: p.id }))
-  }, [proveedores, soloActivos])
+  const conteo = React.useMemo(
+    () => ({
+      activos: proveedores.filter((p) => p.activo).length,
+      bloqueados: proveedores.filter((p) => p.bloqueado).length,
+      todos: proveedores.length,
+    }),
+    [proveedores]
+  )
 
-  const cerrarMenu = () => setMenuAnchor(null)
+  const filas = React.useMemo(
+    () =>
+      proveedores.filter((p) => {
+        if (filtro === 'activos') return p.activo
+        if (filtro === 'bloqueados') return p.bloqueado
+        return true
+      }),
+    [proveedores, filtro]
+  )
 
-  const columns: GridColDef[] = [
-    {
-      field: 'nombre',
-      headerName: 'Nombre',
-      flex: 1.5,
-      minWidth: 180,
-      renderCell: (params) => (
-        <Box>
-          <Typography variant="body2">{params.row.nombre}</Typography>
-          {params.row.rif_ci ? (
-            <Typography variant="caption" color="text.secondary">
-              {params.row.rif_ci}
-            </Typography>
-          ) : null}
-        </Box>
-      ),
-    },
-    {
-      field: 'estado',
-      headerName: 'Estado',
-      flex: 0.9,
-      minWidth: 130,
-      renderCell: (params) => (
-        <StatusChips
-          bloqueado={params.row.bloqueado}
-          motivoBloqueo={params.row.motivo_bloqueo}
-          activo={params.row.activo}
-        />
-      ),
-    },
-    { field: 'telefono', headerName: 'Teléfono', flex: 1, minWidth: 120 },
-    {
-      field: 'contacto_nombre',
-      headerName: 'Contacto',
-      flex: 1,
-      minWidth: 130,
-      valueGetter: (_v, row) => row.contacto_nombre ?? '—',
-    },
-    {
-      field: 'pago',
-      headerName: 'Método preferido',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (_v, row) => metodoPreferidoLabel(row) ?? '—',
-    },
-    {
-      field: 'saldo',
-      headerName: 'Saldo pendiente',
-      flex: 1,
-      minWidth: 130,
-      valueGetter: () => '—',
-    },
-    {
-      field: 'acciones',
-      headerName: '',
-      sortable: false,
-      filterable: false,
-      width: 60,
-      renderCell: (params) => (
-        <IconButton
-          aria-label="Acciones"
-          size="small"
-          onClick={(e) => setMenuAnchor({ el: e.currentTarget, row: params.row as ProveedorResumen })}
-        >
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
-      ),
-    },
-  ]
-
-  const handleRowClick = (params: GridRowParams) => {
-    router.push(`/proveedores/${params.row.id}`)
+  const cambiarFiltro = (next: FiltroProveedores) => {
+    if (next === filtro) return
+    // Al cambiar el filtro, la página vuelve a 1.
+    writeUrlParams({ estado: next === 'activos' ? null : next, pagina: null })
   }
 
-  return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={!soloActivos}
-              onChange={(e) => setSoloActivos(!e.target.checked)}
+  const getActions = React.useCallback(
+    (p: ProveedorResumen): RowAction[] => {
+      const lista: RowAction[] = [
+        { label: 'Editar', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => onEdit(p) },
+      ]
+      if (esAdmin) {
+        lista.push(
+          p.bloqueado
+            ? {
+                label: 'Desbloquear',
+                icon: <LockOpenOutlinedIcon fontSize="small" />,
+                onClick: () => onDesbloquear(p),
+              }
+            : {
+                label: 'Bloquear',
+                icon: <LockOutlinedIcon fontSize="small" />,
+                onClick: () => onBloquear(p),
+              }
+        )
+      }
+      lista.push(
+        p.activo
+          ? {
+              label: 'Desactivar',
+              icon: <BlockOutlinedIcon fontSize="small" />,
+              destructive: true,
+              onClick: () => onDesactivar(p),
+            }
+          : {
+              label: 'Activar',
+              icon: <CheckCircleOutlinedIcon fontSize="small" />,
+              onClick: () => onActivar(p),
+            }
+      )
+      return lista
+    },
+    [esAdmin, onEdit, onBloquear, onDesbloquear, onDesactivar, onActivar]
+  )
+
+  const columns = React.useMemo<GridColDef<ProveedorResumen>[]>(
+    () => [
+      {
+        field: 'nombre',
+        headerName: 'Proveedor',
+        flex: 1.6,
+        minWidth: 200,
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'grid', alignContent: 'center', height: '100%', minWidth: 0 }}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+              {row.nombre}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {row.rif_ci ?? 'Sin RIF / cédula'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'telefono',
+        headerName: 'Teléfono',
+        flex: 1,
+        minWidth: 130,
+        valueFormatter: (value: string | null) => value || '—',
+      },
+      {
+        field: 'contacto_nombre',
+        headerName: 'Contacto',
+        flex: 1,
+        minWidth: 130,
+        valueFormatter: (value: string | null) => value || '—',
+      },
+      {
+        field: 'pago',
+        headerName: 'Método de pago preferido',
+        flex: 1.2,
+        minWidth: 170,
+        valueGetter: (_v, row) => metodoPreferidoLabel(row) ?? '—',
+      },
+      colMonto<ProveedorResumen>('saldo_pendiente', 'Saldo pendiente', {
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (_v, row) => saldos[row.id] ?? 0,
+      }),
+      {
+        field: 'estado',
+        headerName: 'Estado',
+        sortable: false,
+        flex: 1,
+        minWidth: 150,
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <StatusChips
+              bloqueado={row.bloqueado}
+              motivoBloqueo={row.motivo_bloqueo}
+              activo={row.activo}
+              mostrarActivo
             />
-          }
-          label="Mostrar inactivos"
-        />
-      </Box>
+          </Box>
+        ),
+      },
+      colAcciones<ProveedorResumen>(getActions, {
+        rowLabel: (row) => row.nombre,
+        isPending: (row) => estaPendiente(row.id),
+      }),
+    ],
+    [getActions, estaPendiente, saldos]
+  )
 
-      {filas.length === 0 ? (
-        <EmptyState
-          title={soloActivos ? 'Aún no hay proveedores' : 'Sin resultados'}
-          description={
-            soloActivos
-              ? 'No hay proveedores activos. Crea uno nuevo o activa "Mostrar inactivos".'
-              : 'No hay proveedores registrados todavía.'
-          }
-        />
-      ) : (
-        <DataGrid
-          rows={filas}
-          columns={columns}
-          autoHeight
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-            columns: {
-              columnVisibilityModel: {
-                telefono: false,
-                contacto_nombre: false,
-                pago: false,
-                saldo: false,
-              },
-            },
-          }}
-          slots={{
-            toolbar: () => <GridToolbarQuickFilter debounceMs={250} />,
-            noRowsOverlay: () => (
-              <EmptyState title="Sin resultados" description="No hay proveedores que coincidan." />
-            ),
-          }}
-          sx={{ bgcolor: 'background.paper' }}
-        />
-      )}
+  const emptyState: EmptyStateProps =
+    proveedores.length === 0 || filtro === 'todos'
+      ? {
+          icon: <PeopleOutlinedIcon fontSize="large" />,
+          title: 'Aún no hay proveedores',
+          description:
+            'Con los proveedores registrados podrás recibir mercancía a crédito y ver cuánto se le debe a cada uno.',
+          action: (
+            <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={onNuevo}>
+              Nuevo proveedor
+            </Button>
+          ),
+        }
+      : {
+          icon: <FilterListOffOutlinedIcon fontSize="large" />,
+          title: VACIO_FILTRO[filtro],
+          action: (
+            <Button variant="outlined" onClick={() => cambiarFiltro('todos')}>
+              Ver todos
+            </Button>
+          ),
+        }
 
-      <Menu
-        anchorEl={menuAnchor?.el ?? null}
-        open={!!menuAnchor}
-        onClose={cerrarMenu}
-      >
-        {menuAnchor ? (
-          <>
-            <MenuItem
-              onClick={() => {
-                const row = menuAnchor.row
-                cerrarMenu()
-                router.push(`/proveedores/${row.id}`)
-              }}
-            >
-              <ListItemText>Ver ficha</ListItemText>
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const row = menuAnchor.row
-                cerrarMenu()
-                onEdit(row)
-              }}
-            >
-              <ListItemIcon>
-                <EditOutlinedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Editar</ListItemText>
-            </MenuItem>
-            {esAdmin ? (
-              menuAnchor.row.bloqueado ? (
-                <MenuItem
-                  onClick={() => {
-                    const row = menuAnchor.row
-                    cerrarMenu()
-                    onDesbloquear(row)
-                  }}
-                >
-                  <ListItemIcon>
-                    <LockOpenOutlinedIcon fontSize="small" color="success" />
-                  </ListItemIcon>
-                  <ListItemText>Desbloquear</ListItemText>
-                </MenuItem>
-              ) : (
-                <MenuItem
-                  onClick={() => {
-                    const row = menuAnchor.row
-                    cerrarMenu()
-                    onBloquear(row)
-                  }}
-                >
-                  <ListItemIcon>
-                    <LockOutlinedIcon fontSize="small" color="warning" />
-                  </ListItemIcon>
-                  <ListItemText>Bloquear</ListItemText>
-                </MenuItem>
-              )
-            ) : null}
-            {menuAnchor.row.activo ? (
-              <MenuItem
-                onClick={() => {
-                  const row = menuAnchor.row
-                  cerrarMenu()
-                  onDesactivar(row)
-                }}
-              >
-                <ListItemIcon>
-                  <BlockIcon fontSize="small" color="error" />
-                </ListItemIcon>
-                <ListItemText>Desactivar</ListItemText>
-              </MenuItem>
-            ) : (
-              <MenuItem
-                onClick={() => {
-                  const row = menuAnchor.row
-                  cerrarMenu()
-                  onActivar(row)
-                }}
-              >
-                <ListItemIcon>
-                  <LockOpenOutlinedIcon fontSize="small" color="success" />
-                </ListItemIcon>
-                <ListItemText>Activar</ListItemText>
-              </MenuItem>
-            )}
-          </>
-        ) : null}
-      </Menu>
-    </Box>
+  return (
+    <AppDataGrid<ProveedorResumen>
+      tableId="proveedores"
+      label="Proveedores"
+      mode="client"
+      rows={filas}
+      columns={columns}
+      emptyState={emptyState}
+      searchPlaceholder="Buscar por nombre, RIF o contacto"
+      normalizeSearch={normalizarBusquedaSinSeparadores}
+      getSearchValues={searchValues}
+      getRowHref={(row) => `/proveedores/${row.id}`}
+      initialSort={[{ field: 'nombre', sort: 'asc' }]}
+      // Secundarias: visibles en md+, ocultas en xs/sm cuando no hay tarjetas.
+      hideOnMobile={['telefono', 'contacto_nombre', 'pago', 'saldo_pendiente']}
+      filters={
+        <Box role="group" aria-label="Filtrar proveedores" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {FILTROS.map((f) => {
+            const activo = f.value === filtro
+            return (
+              <Chip
+                key={f.value}
+                label={`${f.label} (${conteo[f.value]})`}
+                variant={activo ? 'soft' : 'outlined'}
+                color={activo ? 'primary' : 'default'}
+                aria-pressed={activo}
+                onClick={() => cambiarFiltro(f.value)}
+              />
+            )
+          })}
+        </Box>
+      }
+      mobileCard={(row) => ({
+        primary: row.nombre,
+        secondary: row.rif_ci ?? 'Sin RIF / cédula',
+        // En la tarjeta solo lo que informa algo (Bloqueado / Inactivo /
+        // Doc. incompleta); "Activo" no se repite.
+        status: (
+          <StatusChips bloqueado={row.bloqueado} motivoBloqueo={row.motivo_bloqueo} activo={row.activo} />
+        ),
+        // El saldo es el motivo de consulta más común: visible en la tarjeta.
+        amount: formatUsd(saldos[row.id] ?? 0),
+        actions: (
+          <RowActionsMenu
+            label={row.nombre}
+            actions={getActions(row)}
+            pending={estaPendiente(row.id)}
+            size="medium"
+          />
+        ),
+      })}
+    />
   )
 }

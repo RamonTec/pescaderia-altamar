@@ -17,6 +17,8 @@ export interface DocumentosRequeridosProps {
   /** Set de tipos de documento ya presentes (para marcar ✓/⚠). */
   tiposPresentes: Set<TipoDocumentoProveedor>
   representanteConCedula: Set<string>
+  /** Bloquea subir/reemplazar/eliminar mientras el formulario dueño guarda. */
+  disabled?: boolean
 }
 
 const LABEL_TIPO: Record<TipoDocumentoProveedor, string> = {
@@ -40,6 +42,7 @@ export function DocumentosRequeridos({
   makeStore,
   tiposPresentes,
   representanteConCedula,
+  disabled = false,
 }: DocumentosRequeridosProps) {
   const items: Item[] = []
 
@@ -85,6 +88,7 @@ export function DocumentosRequeridos({
               tipo={item.tipo}
               label={LABEL_TIPO[item.tipo]}
               representanteId={item.representanteId}
+              disabled={disabled}
               accept="image/jpeg,image/png,image/webp,application/pdf"
             />
           </Box>
@@ -98,6 +102,7 @@ export function DocumentosRequeridos({
             store={makeStore()}
             tipo="otro"
             label="Otro documento"
+            disabled={disabled}
             accept="image/jpeg,image/png,image/webp,application/pdf"
           />
         </Grid>

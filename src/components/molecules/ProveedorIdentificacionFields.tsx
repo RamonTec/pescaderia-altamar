@@ -10,6 +10,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import FormControl from '@mui/material/FormControl'
 import FormLabel from '@mui/material/FormLabel'
 import Collapse from '@mui/material/Collapse'
+import { useTheme } from '@mui/material/styles'
 import { RifCiField } from '@/components/atoms/RifCiField'
 import { RepresentantesLegalesFieldArray } from '@/components/molecules/RepresentantesLegalesFieldArray'
 import type { ProveedorFormValues } from '@/lib/proveedorValidation'
@@ -20,6 +21,7 @@ import type { ProveedorFormValues } from '@/lib/proveedorValidation'
  * representantes (reutiliza RepresentantesLegalesFieldArray).
  */
 export function ProveedorIdentificacionFields() {
+  const theme = useTheme()
   const {
     register,
     control,
@@ -137,7 +139,7 @@ export function ProveedorIdentificacionFields() {
         </Grid>
       </Grid>
 
-      <Collapse in={tipoPersona === 'juridica'} timeout={300}>
+      <Collapse in={tipoPersona === 'juridica'} timeout={theme.transitions.duration.standard}>
         <Box sx={{ mt: tipoPersona === 'juridica' ? 1 : 0 }}>
           <RepresentantesLegalesFieldArray />
         </Box>

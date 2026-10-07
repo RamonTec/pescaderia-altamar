@@ -6,41 +6,43 @@ import { useForm, useWatch, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
 import Stepper from '@mui/material/Stepper'
 import Step from '@mui/material/Step'
 import StepButton from '@mui/material/StepButton'
 import StepLabel from '@mui/material/StepLabel'
-import Alert from '@mui/material/Alert'
 import Fade from '@mui/material/Fade'
-import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import { ProveedorIdentificacionFields } from '@/components/molecules/ProveedorIdentificacionFields'
 import { MetodosPagoFieldArray } from '@/components/molecules/MetodosPagoFieldArray'
 import { DocumentosRequeridos } from '@/components/molecules/DocumentosRequeridos'
-import { makeRepresentanteProveedorRepository } from '@/lib/repositories/representanteProveedorRepository'
+import { AppDialog } from '@/components/organisms/AppDialog'
 import { makeProveedorDocumentoStore } from '@/lib/repositories/documentoProveedorRepository'
-import { makeDocumentoProveedorRepository } from '@/lib/repositories/documentoProveedorRepository'
 import {
   proveedorFormSchema,
   CAMPOS_POR_PASO,
   type ProveedorFormValues,
 } from '@/lib/proveedorValidation'
-import type { Proveedor, TipoDocumentoProveedor } from '@/types/domain'
+import type { Proveedor } from '@/types/domain'
 import { upsertProveedorAction } from '@/app/(protected)/proveedores/actions'
+import type { DatosEdicionProveedor } from '@/app/(protected)/proveedores/useProveedorAcciones'
 import { useNotify } from '@/lib/useNotify'
-import { useConfirm } from '@/lib/useConfirm'
 
 export interface ProveedorFormProps {
   open: boolean
   proveedor: Proveedor | null
   onClose: () => void
-  /** Paso inicial (la usa "Completar documentos"). */
+  /** Tras crear/actualizar con éxito (ej. `router.refresh()` en la ficha). */
+  onGuardado?: () => void
+  /** Paso inicial (la usa "Completar documentos": abre en el paso 3). */
   pasoInicial?: number
+  /**
+   * Representantes y documentos ya cargados por quien abre el form (la ficha
+   * y el listado los traen del servidor; `ProveedorResumen` los incluye).
+   * Sin `proveedor` no aplica; con `proveedor` y sin datos, los pasos 1 y 3
+   * arrancan vacíos (nunca se consultan desde el navegador).
+   */
+  datosEdicion?: DatosEdicionProveedor | null
 }
 
 const PASOS = ['Identificación', 'Pagos', 'Documentos']
@@ -77,82 +79,75 @@ function toFormValues(p: Proveedor): ProveedorFormValues {
   }
 }
 
-export function ProveedorForm({ open, proveedor, onClose, pasoInicial = 0 }: ProveedorFormProps) {
+/**
+ * Formulario de proveedor sobre `AppDialog md` (spec § Modales): conserva el
+ * Stepper de 3 pasos con su pie de navegación (Anterior / Siguiente /
+ * "Guardar y continuar" / Finalizar). Mientras guarda: campos deshabilitados
+ * (`useForm({ disabled })`), el diálogo no se cierra y el doble envío se
+ * ignora (ref síncrona, leída en el handler del evento). Cerrar con cambios
+ * sucios pide "¿Descartar cambios?" (lo gestiona AppDialog).
+ */
+export function ProveedorForm({
+  open,
+  proveedor,
+  onClose,
+  onGuardado,
+  pasoInicial = 0,
+  datosEdicion = null,
+}: ProveedorFormProps) {
   const notify = useNotify()
-  const confirm = useConfirm()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
-  const [isPending, startTransition] = useTransition()
+  const [isPending] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [paso, setPaso] = React.useState(pasoInicial)
+  // "Guardar y continuar" crea y avanza sin cerrar: conserva el id creado.
   const [idCreado, setIdCreado] = React.useState<string | null>(proveedor?.id ?? null)
-  const [representantesGuardados, setRepresentantesGuardados] = React.useState<
-    { id: string; nombre: string; cedula: string }[]
-  >([])
-  const [docsCargados, setDocsCargados] = React.useState<{
-    tipos: Set<TipoDocumentoProveedor>
-    conRep: Set<string>
-  }>({ tipos: new Set(), conRep: new Set() })
 
   const methods = useForm<ProveedorFormValues>({
     resolver: zodResolver(proveedorFormSchema),
     mode: 'onSubmit',
     defaultValues: vacio(),
+    disabled: isPending,
   })
 
-  const { handleSubmit, reset, trigger, formState } = methods
+  const { handleSubmit, reset, formState } = methods
   const tipoPersona = useWatch({ control: methods.control, name: 'tipo_persona' })
   const esEdicion = !!proveedor
 
-  const handleClose = () => {
-    setServerError(null)
-    onClose()
-  }
-
-  const pedirCierre = async () => {
-    if (formState.isDirty) {
-      const ok = await confirm({
-        title: '¿Descartar cambios?',
-        message: 'Hay cambios sin guardar. ¿Descartarlos?',
-        confirmLabel: 'Descartar',
-        destructive: true,
-      })
-      if (!ok) return
-    }
-    handleClose()
-  }
+  // Doble envío: `isPending` del transition no cambia hasta el re-render (y
+  // la validación de `handleSubmit` es async), así que dos clics rápidos
+  // verían `false` los dos. La ref se lee solo dentro del handler del evento.
+  const submittingRef = React.useRef(false)
 
   React.useEffect(() => {
-    if (!open || !proveedor) return
-    const base = toFormValues(proveedor)
+    if (!open) return
 
-    Promise.all([
-      makeRepresentanteProveedorRepository().listByProveedor(proveedor.id),
-      makeDocumentoProveedorRepository().listByProveedor(proveedor.id),
-    ])
-      .then(([reps, docs]) => {
-        reset({
-          ...base,
-          representantes: reps.map((r) => ({
-            id: r.id,
-            nombre: r.nombre,
-            cedula: r.cedula,
-            cargo: r.cargo ?? '',
-            telefono: r.telefono ?? '',
-          })),
-        })
-        setRepresentantesGuardados(reps.map((r) => ({ id: r.id, nombre: r.nombre, cedula: r.cedula })))
-        setDocsCargados({
-          tipos: new Set(docs.map((d) => d.tipo)),
-          conRep: new Set(docs.filter((d) => d.representante_id).map((d) => d.representante_id!)),
-        })
-      })
-      .catch(() => reset(base))
-  }, [open, proveedor, reset])
+    const base = proveedor ? toFormValues(proveedor) : vacio()
 
-  const aplicarErroresDeServidor = (
-    fieldErrors: Record<string, string>
-  ): number => {
+    if (!proveedor || !datosEdicion) {
+      // Alta (sin datos previos) o edición sin datos: representantes vacíos,
+      // sin consultas desde el navegador.
+      reset(base)
+      return
+    }
+
+    // Datos traídos por quien abre el form (ficha o listado: carga en
+    // servidor; `ProveedorResumen` los incluye). Sin `createClient` aquí.
+    reset({
+      ...base,
+      representantes: datosEdicion.representantes.map((r) => ({
+        id: r.id,
+        nombre: r.nombre,
+        cedula: r.cedula,
+        cargo: '',
+        telefono: '',
+      })),
+    })
+  }, [open, proveedor, datosEdicion, reset])
+
+  /** Salta al paso del primer `fieldError` del servidor y lo marca en el campo. */
+  const aplicarErroresDeServidor = (fieldErrors: Record<string, string>): number => {
     let primerPasoConError = 0
     let aplicado = false
     for (const [campo, mensaje] of Object.entries(fieldErrors)) {
@@ -166,142 +161,157 @@ export function ProveedorForm({ open, proveedor, onClose, pasoInicial = 0 }: Pro
           break
         }
       }
-      // @ts-expect-error setError con path dinámico
-      methods.setError(campo, { type: 'server', message: mensaje })
+      methods.setError(campo as keyof ProveedorFormValues, { type: 'server', message: mensaje })
     }
     return aplicado ? primerPasoConError : 0
   }
 
-  const guardar = (values: ProveedorFormValues): Promise<{ error: string | null }> => {
+  /** Cuerpo común de envío (solo dentro de un handler, nunca en el render). */
+  const enviar = async (values: ProveedorFormValues): Promise<{ error: string | null }> => {
+    if (submittingRef.current) return { error: 'guardando' }
+    submittingRef.current = true
+    setServerError(null)
+
     const payload = JSON.stringify(values)
     const formData = new FormData()
     if (proveedor) formData.set('id', proveedor.id)
     formData.set('payload', payload)
 
-    return new Promise((resolve) => {
-      startTransition(async () => {
-        const result = await upsertProveedorAction({ error: null, success: null }, formData)
-        if (result.error) {
-          setServerError(result.error)
-          if (result.fieldErrors) {
-            const pasoError = aplicarErroresDeServidor(result.fieldErrors)
-            setPaso(pasoError)
-          }
-          resolve({ error: result.error })
-          return
-        }
-        if (result.id) setIdCreado(result.id)
-        notify.success(result.success ?? 'Guardado')
-        resolve({ error: null })
-      })
-    })
-  }
-
-  const onSubmit = handleSubmit(async (values) => {
-    setServerError(null)
-    const { error } = await guardar(values)
-    if (proveedor) {
-      if (!error) onClose()
-    } else if (!error) {
-      setPaso(2)
+    try {
+      const result = await upsertProveedorAction({ error: null, success: null }, formData)
+      if (result.error) {
+        setServerError(result.error)
+        if (result.fieldErrors) setPaso(aplicarErroresDeServidor(result.fieldErrors))
+        return { error: result.error }
+      }
+      // "Guardar y continuar" crea y avanza sin cerrar: conserva el id.
+      if (result.id) setIdCreado(result.id)
+      notify.success(result.success ?? 'Proveedor guardado')
+      onGuardado?.()
+      return { error: null }
+    } catch {
+      setServerError('No se pudo guardar el proveedor. Revisa tu conexión e intenta de nuevo.')
+      return { error: 'conexion' }
+    } finally {
+      submittingRef.current = false
     }
-  })
-
-  const guardarYContinuar = handleSubmit(async (values) => {
-    setServerError(null)
-    const { error } = await guardar(values)
-    if (!error) setPaso(2)
-  })
-
-  const handleNext = async () => {
-    const valido = await trigger(CAMPOS_POR_PASO[paso] as (keyof ProveedorFormValues)[])
-    if (!valido) return
-    setPaso((p) => Math.min(p + 1, PASOS.length - 1))
   }
+
+  const guardar = async (values: ProveedorFormValues) => {
+    const { error } = await enviar(values)
+    // Edición: cierra tras guardar. Alta: "Guardar y continuar" avanza sin cerrar.
+    if (esEdicion && !error) onClose()
+  }
+
+  const guardarYContinuar = async (values: ProveedorFormValues) => {
+    const { error } = await enviar(values)
+    if (!error) setPaso(2)
+  }
+
+  // `handleSubmit` se arma en el evento (no en el render), como ClienteForm.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => handleSubmit(guardar)(e)
+  const onGuardarYContinuar = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    void handleSubmit(guardarYContinuar)()
+  }
+
+  // Representantes y documentos del paso 3: llegan por props (servidor).
+  const representantes = datosEdicion?.representantes ?? []
+  const tiposPresentes = datosEdicion?.tiposDocumento ?? new Set()
+  const conCedula = datosEdicion?.representanteConCedula ?? new Set<string>()
+
+  // Pie del Stepper (Anterior / Siguiente / "Guardar y continuar" /
+  // Finalizar): entra por la prop de pie custom de AppDialog. "Cancelar"
+  // pide confirmación si hay cambios (lo gestiona `AppDialog dirty`).
+  const pieStepper = (
+    <>
+      <Button onClick={onClose} disabled={isPending} color="inherit" sx={{ color: 'text.secondary' }}>
+        Cancelar
+      </Button>
+      <Box sx={{ flexGrow: 1 }} />
+      {paso > 0 && !esEdicion ? (
+        <Button onClick={() => setPaso((p) => p - 1)} disabled={isPending}>
+          Anterior
+        </Button>
+      ) : null}
+      {esEdicion ? (
+        <Button type="submit" variant="contained" loading={isPending}>
+          Guardar proveedor
+        </Button>
+      ) : paso === 0 ? (
+        <Button onClick={() => setPaso((p) => Math.min(p + 1, PASOS.length - 1))} variant="contained" loading={isPending}>
+          Siguiente
+        </Button>
+      ) : paso === 1 ? (
+        <Button onClick={onGuardarYContinuar} variant="contained" loading={isPending}>
+          Guardar y continuar
+        </Button>
+      ) : (
+        <Button onClick={onClose} variant="contained" loading={isPending}>
+          Finalizar
+        </Button>
+      )}
+    </>
+  )
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={isPending ? undefined : pedirCierre}
-      maxWidth="md"
-      fullWidth
-      fullScreen={fullScreen}
+      onClose={onClose}
+      size="md"
+      title={proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}
+      subtitle={proveedor ? proveedor.nombre : 'Registra contacto, métodos de pago y documentos.'}
+      onSubmit={onSubmit}
+      pending={isPending}
+      dirty={formState.isDirty}
+      error={serverError}
+      footer={pieStepper}
     >
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', height: fullScreen ? '100%' : undefined }}>
-          <DialogTitle>{proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}</DialogTitle>
+        <Stepper
+          activeStep={paso}
+          alternativeLabel={!fullScreen}
+          nonLinear={esEdicion}
+          sx={{ mb: 3 }}
+        >
+          {PASOS.map((label, i) => (
+            <Step key={label}>
+              {esEdicion ? (
+                <StepButton onClick={() => setPaso(i)} disabled={isPending}>
+                  {label}
+                </StepButton>
+              ) : (
+                <StepLabel>{label}</StepLabel>
+              )}
+            </Step>
+          ))}
+        </Stepper>
 
-          <Stepper activeStep={paso} alternativeLabel={!fullScreen} nonLinear={esEdicion}>
-            {PASOS.map((label, i) => (
-              <Step key={label}>
-                {esEdicion ? (
-                  <StepButton onClick={() => setPaso(i)}>{label}</StepButton>
-                ) : (
-                  <StepLabel>{label}</StepLabel>
-                )}
-              </Step>
-            ))}
-          </Stepper>
-
-          <DialogContent dividers sx={{ flexGrow: 1 }}>
-            <Fade in key={paso} timeout={{ enter: 200, exit: 100 }}>
-              <Box sx={{ display: 'grid', gap: 3 }}>
-                {paso === 0 ? (
-                  <ProveedorIdentificacionFields />
-                ) : paso === 1 ? (
-                  <MetodosPagoFieldArray />
-                ) : (
-                  <DocumentosRequeridos
-                    tipoPersona={tipoPersona}
-                    representantes={representantesGuardados}
-                    makeStore={(representanteId) =>
-                      makeProveedorDocumentoStore(idCreado ?? proveedor?.id ?? '', representanteId)
-                    }
-                    tiposPresentes={docsCargados.tipos}
-                    representanteConCedula={docsCargados.conRep}
-                  />
-                )}
-
-                {serverError ? <Alert severity="error">{serverError}</Alert> : null}
-              </Box>
-            </Fade>
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={pedirCierre} disabled={isPending}>
-              Cancelar
-            </Button>
-            {paso > 0 && !esEdicion ? (
-              <Button onClick={() => setPaso((p) => p - 1)} disabled={isPending}>
-                Anterior
-              </Button>
-            ) : null}
-
-            {esEdicion ? (
-              <Button type="submit" variant="contained" disabled={isPending}>
-                Guardar
-              </Button>
+        <Fade
+          in
+          key={paso}
+          timeout={{ enter: theme.transitions.duration.short, exit: theme.transitions.duration.shortest }}
+        >
+          <Box sx={{ display: 'grid', gap: 3 }}>
+            {paso === 0 ? (
+              <ProveedorIdentificacionFields />
             ) : paso === 1 ? (
-              <Button
-                onClick={guardarYContinuar}
-                variant="contained"
-                disabled={isPending}
-                startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-              >
-                Guardar y continuar
-              </Button>
-            ) : paso === 0 ? (
-              <Button onClick={handleNext} variant="contained" disabled={isPending}>
-                Siguiente
-              </Button>
+              <MetodosPagoFieldArray />
             ) : (
-              <Button onClick={pedirCierre} variant="contained" disabled={isPending}>
-                Finalizar
-              </Button>
+              <DocumentosRequeridos
+                tipoPersona={tipoPersona}
+                representantes={representantes}
+                makeStore={(representanteId) =>
+                  makeProveedorDocumentoStore(idCreado ?? proveedor?.id ?? '', representanteId)
+                }
+                tiposPresentes={tiposPresentes}
+                representanteConCedula={conCedula}
+                disabled={isPending}
+              />
             )}
-          </DialogActions>
-        </Box>
+          </Box>
+        </Fade>
       </FormProvider>
-    </Dialog>
+    </AppDialog>
   )
 }

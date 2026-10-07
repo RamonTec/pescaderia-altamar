@@ -8,7 +8,8 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Collapse from '@mui/material/Collapse'
-import AddIcon from '@mui/icons-material/Add'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import { useTheme } from '@mui/material/styles'
 import { MetodoPagoCard } from './MetodoPagoCard'
 import type { ProveedorFormValues, MetodoPagoFormValues } from '@/lib/proveedorValidation'
 
@@ -33,6 +34,7 @@ function vacio(tipo: MetodoPagoFormValues['tipo']): MetodoPagoFormValues {
  */
 export function MetodosPagoFieldArray() {
   const { control } = useFormContext<ProveedorFormValues>()
+  const theme = useTheme()
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'metodosPago',
@@ -51,7 +53,7 @@ export function MetodosPagoFieldArray() {
         <Typography variant="h6">Métodos de pago</Typography>
         <Button
           size="small"
-          startIcon={<AddIcon />}
+          startIcon={<AddOutlinedIcon />}
           onClick={(e) => setAnchor(e.currentTarget)}
         >
           Agregar método
@@ -69,7 +71,7 @@ export function MetodosPagoFieldArray() {
         </Typography>
       ) : (
         fields.map((field, index) => (
-          <Collapse key={field.id} in timeout={300}>
+          <Collapse key={field.id} in timeout={theme.transitions.duration.standard}>
             <MetodoPagoCard
               index={index}
               metodo={field as unknown as MetodoPagoFormValues}

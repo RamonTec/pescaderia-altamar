@@ -1,131 +1,69 @@
 'use client'
 
 import * as React from 'react'
-import { useTransition } from 'react'
-import Button from '@mui/material/Button'
-import AddIcon from '@mui/icons-material/Add'
+import Box from '@mui/material/Box'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { ProveedoresTable } from '@/components/organisms/ProveedoresTable'
-import { ProveedorForm } from '@/components/organisms/ProveedorForm'
-import { BloqueoDialog } from '@/components/organisms/BloqueoDialog'
 import type { ProveedorResumen } from '@/lib/repositories/interfaces'
-import {
-  desactivarProveedorAction,
-  activarProveedorAction,
-  desbloquearProveedorAction,
-  bloquearProveedorAction,
-} from './actions'
-import { useNotify } from '@/lib/useNotify'
-import { useConfirm } from '@/lib/useConfirm'
+import type { DatosEdicionProveedor } from './useProveedorAcciones'
+import { useProveedorAcciones } from './useProveedorAcciones'
+
+/** Representantes y documentos que el listado ya trajo del servidor. */
+function datosEdicionDe(p: ProveedorResumen): DatosEdicionProveedor {
+  return {
+    representantes: p.representantes_proveedor.map((r) => ({
+      id: r.id,
+      nombre: r.nombre,
+      cedula: r.cedula,
+    })),
+    tiposDocumento: new Set(p.documentos_proveedor.map((d) => d.tipo)),
+    representanteConCedula: new Set(
+      p.documentos_proveedor.filter((d) => d.representante_id).map((d) => d.representante_id!)
+    ),
+  }
+}
 
 export function ProveedoresScreen({
   proveedores,
   esAdmin,
+  saldos,
 }: {
   proveedores: ProveedorResumen[]
   esAdmin: boolean
+  /** Saldo pendiente real por id de proveedor (04-inventario); sin entrada = $0. */
+  saldos: Record<string, number>
 }) {
-  const notify = useNotify()
-  const confirm = useConfirm()
-  const [open, setOpen] = React.useState(false)
-  const [editing, setEditing] = React.useState<ProveedorResumen | null>(null)
-  const [bloquearTarget, setBloquearTarget] = React.useState<ProveedorResumen | null>(null)
-  const [, startTransition] = useTransition()
-
-  const handleEdit = (p: ProveedorResumen) => {
-    setEditing(p)
-    setOpen(true)
-  }
-
-  const handleNew = () => {
-    setEditing(null)
-    setOpen(true)
-  }
-
-  const run = (
-    fn: (prev: never, formData: FormData) => Promise<{ error: string | null; success: string | null }>,
-    id: string,
-    mensajeOk?: string
-  ) => {
-    startTransition(async () => {
-      const formData = new FormData()
-      formData.set('id', id)
-      const result = await fn(undefined as never, formData)
-      if (result.error) notify.error(result.error)
-      else notify.success(mensajeOk ?? result.success ?? 'Listo')
-    })
-  }
-
-  const handleDesactivar = async (p: ProveedorResumen) => {
-    const ok = await confirm({
-      title: 'Desactivar proveedor',
-      message: `¿Desactivar a "${p.nombre}"? No se podrá usar en nuevas compras.`,
-      confirmLabel: 'Desactivar',
-      destructive: true,
-    })
-    if (!ok) return
-    run(desactivarProveedorAction as never, p.id)
-  }
-
-  const handleActivar = (p: ProveedorResumen) => {
-    run(activarProveedorAction as never, p.id)
-  }
-
-  const handleDesbloquear = (p: ProveedorResumen) => {
-    run(desbloquearProveedorAction as never, p.id)
-  }
-
-  const handleBloquear = (p: ProveedorResumen) => {
-    setBloquearTarget(p)
-  }
-
-  const confirmBloquear = async (motivo: string) => {
-    const formData = new FormData()
-    formData.set('id', bloquearTarget!.id)
-    formData.set('motivo', motivo)
-    const result = await bloquearProveedorAction({ error: null, success: null }, formData)
-    if (result.error) {
-      return { error: result.error, fieldErrors: result.fieldErrors }
-    }
-    notify.success('Proveedor bloqueado')
-    setBloquearTarget(null)
-    return { error: null }
-  }
+  const { acciones, dialogos, estaPendiente } = useProveedorAcciones()
 
   return (
     <>
-      <PageHeader title="Proveedores">
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleNew}>
-          Nuevo proveedor
-        </Button>
-      </PageHeader>
-
-      <ProveedoresTable
-        proveedores={proveedores}
-        esAdmin={esAdmin}
-        onEdit={handleEdit}
-        onBloquear={handleBloquear}
-        onDesactivar={handleDesactivar}
-        onActivar={handleActivar}
-        onDesbloquear={handleDesbloquear}
-      />
-
-      <ProveedorForm
-        key={open ? (editing?.id ?? 'nuevo') : 'cerrado'}
-        open={open}
-        proveedor={editing}
-        onClose={() => {
-          setOpen(false)
-          setEditing(null)
+      <PageHeader
+        title="Proveedores"
+        primaryAction={{
+          label: 'Nuevo proveedor',
+          icon: <AddOutlinedIcon />,
+          onClick: acciones.nuevo,
         }}
       />
 
-      <BloqueoDialog
-        open={!!bloquearTarget}
-        titulo={bloquearTarget ? `Bloquear proveedor: ${bloquearTarget.nombre}` : 'Bloquear'}
-        onConfirm={confirmBloquear}
-        onClose={() => setBloquearTarget(null)}
-      />
+      {/* xs: espacio para que el Fab "Nuevo proveedor" no tape la última tarjeta. */}
+      <Box sx={{ pb: { xs: 10, sm: 0 } }}>
+        <ProveedoresTable
+          proveedores={proveedores}
+          saldos={saldos}
+          esAdmin={esAdmin}
+          estaPendiente={estaPendiente}
+          onNuevo={acciones.nuevo}
+          onEdit={(p) => acciones.editar(p, 0, datosEdicionDe(p))}
+          onBloquear={acciones.bloquear}
+          onDesbloquear={acciones.desbloquear}
+          onDesactivar={acciones.desactivar}
+          onActivar={acciones.activar}
+        />
+      </Box>
+
+      {dialogos}
     </>
   )
 }

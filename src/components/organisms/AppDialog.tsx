@@ -58,6 +58,15 @@ export interface AppDialogProps {
   dirty?: boolean
   /** Error del servidor, arriba del pie. */
   error?: string | null
+  /**
+   * Pie custom (tarea 12, 11-refactor-visual-proveedores): reemplaza el pie
+   * estándar completo (Cancelar + secundarias + primaria) cuando un diálogo
+   * necesita su propia barra de navegación (ej. el Stepper de ProveedorForm:
+   * Anterior / Siguiente / "Guardar y continuar" / Finalizar). Recibe la
+   * misma barra con área segura de `xs`; el `pending` que bloquea el cierre
+   * lo sigue gestionando el diálogo. Sin `footer`, el pie estándar.
+   */
+  footer?: React.ReactNode
   /** Si se pasa, el diálogo es un `<form noValidate>`. */
   onSubmit?: React.FormEventHandler<HTMLFormElement>
   /** `false` desactiva el foco automático al primer campo. */
@@ -87,6 +96,7 @@ export function AppDialog({
   pending = false,
   dirty = false,
   error,
+  footer,
   onSubmit,
   autoFocusFirstField = true,
   children,
@@ -237,7 +247,24 @@ export function AppDialog({
         </Collapse>
 
         {/* Pie fijo */}
-        {primaryAction || showCancel || secondaryActions ? (
+        {footer ? (
+          <Box
+            sx={{
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: { xs: 2, sm: 3 },
+              pt: 2,
+              pb: fullScreen ? 'calc(16px + env(safe-area-inset-bottom))' : 2,
+              borderTop: fullScreen ? 1 : 0,
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
+          >
+            {footer}
+          </Box>
+        ) : primaryAction || showCancel || secondaryActions ? (
           <Box
             sx={{
               flexShrink: 0,

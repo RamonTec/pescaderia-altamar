@@ -13,9 +13,11 @@ import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Fade from '@mui/material/Fade'
 import MenuItem from '@mui/material/MenuItem'
+import { useTheme } from '@mui/material/styles'
+import type { FieldPathByValue } from 'react-hook-form'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import { BANCOS_VE, bancoDesdeCuenta } from '@/lib/bancosVe'
-import type { MetodoPagoFormValues } from '@/lib/proveedorValidation'
+import type { MetodoPagoFormValues, ProveedorFormValues } from '@/lib/proveedorValidation'
 import { useConfirm } from '@/lib/useConfirm'
 
 export interface MetodoPagoCardProps {
@@ -29,30 +31,56 @@ const BANCO_OPCIONES = Object.entries(BANCOS_VE).map(([codigo, nombre]) => ({
   nombre,
 }))
 
+/** Ruta de un campo de este método: `metodosPago.<index>.<campo>` (tipada). */
+type CampoMetodoPago = Extract<
+  FieldPathByValue<ProveedorFormValues, string | number | boolean | null>,
+  `metodosPago.${number}.${string}`
+>
+
 export function MetodoPagoCard({ index, metodo, onRemove }: MetodoPagoCardProps) {
   const confirm = useConfirm()
-  const { register, control, setValue, watch, formState } = useFormContext()
+  const theme = useTheme()
+  const { register, control, setValue, watch, formState } =
+    useFormContext<ProveedorFormValues>()
 
-  const campo = (name: string) => `metodosPago.${index}.${name}`
-  const errorDe = (name: string): string | undefined =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (formState.errors as any)?.metodosPago?.[index]?.[name]?.message
+  // Todos los métodos comparten estos campos (string/boolean/enum|null).
+  const campo = React.useCallback(
+    (
+      name:
+        | 'banco_codigo'
+        | 'numero_cuenta'
+        | 'telefono'
+        | 'email'
+        | 'titular'
+        | 'titular_rif_ci'
+        | 'preferido'
+        | 'tipo_cuenta'
+    ): CampoMetodoPago => `metodosPago.${index}.${name}`,
+    [index]
+  )
+  // Errores del método en esta posición, tipados con los types del schema.
+  const errorDe = (name: string): string | undefined => {
+    const errores = formState.errors.metodosPago?.[index]
+    const error = errores ? (errores as Record<string, { message?: string }>)[name] : undefined
+    return error?.message
+  }
 
-  const numeroCuenta = watch(campo('numero_cuenta')) as string
+  const numeroCuenta = watch(campo('numero_cuenta'))
+  const numeroCuentaStr = typeof numeroCuenta === 'string' ? numeroCuenta : ''
   const bancoDetectado =
-    metodo.tipo === 'transferencia' && numeroCuenta
-      ? bancoDesdeCuenta(numeroCuenta)
+    metodo.tipo === 'transferencia' && numeroCuentaStr
+      ? bancoDesdeCuenta(numeroCuentaStr)
       : null
 
   React.useEffect(() => {
     if (
       metodo.tipo === 'transferencia' &&
       bancoDetectado &&
-      metodo.banco_codigo !== numeroCuenta?.slice(0, 4)
+      metodo.banco_codigo !== numeroCuentaStr.slice(0, 4)
     ) {
-      setValue(`metodosPago.${index}.banco_codigo`, numeroCuenta.slice(0, 4))
+      setValue(campo('banco_codigo'), numeroCuentaStr.slice(0, 4))
     }
-  }, [bancoDetectado, numeroCuenta, metodo.tipo, metodo.banco_codigo, index, setValue])
+  }, [bancoDetectado, numeroCuentaStr, metodo.tipo, metodo.banco_codigo, index, setValue, campo])
 
   const handleRemove = async () => {
     const tieneDatos =
@@ -131,7 +159,7 @@ export function MetodoPagoCard({ index, metodo, onRemove }: MetodoPagoCardProps)
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Fade in={!!bancoDetectado} timeout={200}>
+            <Fade in={!!bancoDetectado} timeout={theme.transitions.duration.short}>
               <Box>
                 {bancoDetectado ? (
                   <Chip label={bancoDetectado} color="secondary" size="small" />
