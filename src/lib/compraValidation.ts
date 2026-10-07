@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { camposTasa, validarTasa } from './tasaValidation'
 
 /**
  * Validación de compras y pagos a proveedores (04-inventario).
@@ -6,6 +7,10 @@ import { z } from 'zod'
  * Los campos numéricos aceptan `null` como entrada (es lo que emite
  * `NumberField` con el campo vacío) y salen como `number`: el formulario usa
  * `z.input` y la Server Action recibe `z.output`.
+ *
+ * 08-tasas: la tasa de cada operación viaja en `camposTasa` (`tasa_origen`,
+ * `tasa_fuente`, `tasa` = valor final); el servicio la resuelve en el
+ * servidor con `resolverTasaOperacion`.
  */
 
 function numero(mensajeRequerido: string, base: z.ZodNumber = z.number()) {
@@ -24,15 +29,17 @@ export const compraItemFormSchema = z.object({
   costo_kg: numero('Costo requerido', z.number().min(0, 'El costo no puede ser negativo')),
 })
 
-export const compraFormSchema = z.object({
-  proveedor_id: z.string().uuid('Selecciona un proveedor'),
-  fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
-  condicion: z.enum(['contado', 'credito']),
-  moneda: z.enum(['usd', 'bs']),
-  tasa: numero('Tasa requerida', z.number().positive('La tasa debe ser mayor a 0')),
-  notas: z.string(),
-  items: z.array(compraItemFormSchema).min(1, 'Agrega al menos un producto'),
-})
+export const compraFormSchema = z
+  .object({
+    proveedor_id: z.string().uuid('Selecciona un proveedor'),
+    fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
+    condicion: z.enum(['contado', 'credito']),
+    moneda: z.enum(['usd', 'bs']),
+    ...camposTasa,
+    notas: z.string(),
+    items: z.array(compraItemFormSchema).min(1, 'Agrega al menos un producto'),
+  })
+  .superRefine(validarTasa)
 
 export type CompraFormInput = z.input<typeof compraFormSchema>
 export type CompraFormValues = z.output<typeof compraFormSchema>
@@ -52,9 +59,10 @@ export const pagoProveedorFormSchema = z
     metodo: z.enum(['efectivo_usd', 'efectivo_bs', 'pago_movil', 'zelle', 'transferencia', 'punto']),
     /** Monto en la moneda del pago. */
     monto: numero('Monto requerido', z.number().positive('El monto debe ser mayor a 0')),
-    tasa_pago: numero('Tasa requerida', z.number().positive('La tasa debe ser mayor a 0')),
+    ...camposTasa,
   })
   .superRefine((v, ctx) => {
+    validarTasa(v, ctx)
     const permitidos: readonly string[] = METODOS_POR_MONEDA[v.moneda_pago]
     if (!permitidos.includes(v.metodo)) {
       ctx.addIssue({

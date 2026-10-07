@@ -1,10 +1,17 @@
 import { z } from 'zod'
+import { camposTasaOpcionales, validarTasa } from './tasaValidation'
 
 /**
  * Validación de pedidos y venta directa (05-ventas).
  * Un solo formulario con toggle `entrega_inmediata`: si es `false` es un
  * pedido agendado (fecha de entrega + peso estimado); si es `true` es venta
  * directa/POS (peso real → factura al guardar).
+ *
+ * 08-tasas: solo la venta directa congela tasa al guardar (un pedido
+ * agendado la congela al entregar, en `entregaPedidoSchema`). Los campos
+ * son opcionales (`camposTasaOpcionales`) y `validarTasa` corre solo con
+ * `entrega_inmediata`; el servidor resuelve la referencial con
+ * `resolverTasaOperacion` para la fecha de la operación.
  */
 
 function numero(mensajeRequerido: string, base: z.ZodNumber = z.number()) {
@@ -33,6 +40,7 @@ export const pedidoFormSchema = z
       .transform((v) => (v ? v : null)),
     condicion: z.enum(['contado', 'credito']),
     notas: z.string(),
+    ...camposTasaOpcionales,
     items: z.array(pedidoItemFormSchema).min(1, 'Agrega al menos un producto'),
   })
   .superRefine((v, ctx) => {
@@ -43,25 +51,31 @@ export const pedidoFormSchema = z
         message: 'Un pedido agendado requiere fecha de entrega',
       })
     }
+    // La tasa solo se exige en la venta directa: el pedido agendado congela
+    // la vigente al momento de la entrega.
+    if (v.entrega_inmediata) validarTasa(v, ctx)
   })
 
 export type PedidoFormInput = z.input<typeof pedidoFormSchema>
 export type PedidoFormValues = z.output<typeof pedidoFormSchema>
 export type PedidoItemFormInput = z.input<typeof pedidoItemFormSchema>
 
-export const entregaPedidoSchema = z.object({
-  pedido_id: z.string().uuid(),
-  fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
-  condicion: z.enum(['contado', 'credito']),
-  pesos_reales: z
-    .array(
-      z.object({
-        pedido_item_id: z.string().uuid(),
-        peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
-      })
-    )
-    .min(1, 'Captura el peso real de al menos un item'),
-})
+export const entregaPedidoSchema = z
+  .object({
+    pedido_id: z.string().uuid(),
+    fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
+    condicion: z.enum(['contado', 'credito']),
+    ...camposTasaOpcionales,
+    pesos_reales: z
+      .array(
+        z.object({
+          pedido_item_id: z.string().uuid(),
+          peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
+        })
+      )
+      .min(1, 'Captura el peso real de al menos un item'),
+  })
+  .superRefine(validarTasa)
 
 export type EntregaPedidoInput = z.input<typeof entregaPedidoSchema>
 export type EntregaPedidoValues = z.output<typeof entregaPedidoSchema>

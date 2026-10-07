@@ -1,14 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Compra, FuenteTasa, Producto } from '@/types/domain'
+import type { Compra, Producto } from '@/types/domain'
 import type { CompraItemNuevo } from '@/lib/repositories/interfaces'
 import type { CompraFormValues, PagoProveedorFormValues } from '@/lib/compraValidation'
 import { makeCompraRepository } from '@/lib/repositories/compraRepository'
 import { makeProveedorRepository } from '@/lib/repositories/proveedorRepository'
-import { makeConfigNegocioRepository } from '@/lib/repositories/configRepository'
 import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
+import { entradaTasaDe } from '@/lib/tasaValidation'
+import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { crearMovimiento } from './movimientoService'
-import { fetchTasaRemota, getTasaViva } from './rateService'
+import { resolverTasaOperacion, type ResultadoTasaOperacion } from './tasaService'
 import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditService'
 
 /**
@@ -21,6 +22,11 @@ import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditSe
  *   3. Costo por kg convertido a USD con la tasa congelada (`tasa_snapshot`).
  *   4. Compra + items + un movimiento `compra` por item, en una transacción.
  *   5. Contado → `pagado_usd = subtotal_usd`, estado `pagada`.
+ *
+ * 08-tasas: la referencial se resuelve en el servidor con
+ * `resolverTasaOperacion` para la fecha de la operación (no la de hoy); la
+ * operación nunca falla por falta de referencial si el usuario mandó una
+ * tasa manual.
  */
 
 /** Error de regla de negocio; `campo` permite marcarlo en el formulario. */
@@ -40,7 +46,7 @@ const TOLERANCIA_PAGO_USD = 0.01
 const redondea6 = (n: number) => Math.round(n * 1e6) / 1e6
 
 /** Costo/kg en USD a partir del costo en la moneda de la compra. */
-export function costoUsdKg(costoKg: number, moneda: Compra['moneda'], tasa: number): number {
+export function costoUsdKg(costoKg: number, moneda: 'usd' | 'bs', tasa: number): number {
   return redondea6(usdEquivalentes(costoKg, moneda, tasa))
 }
 
@@ -48,29 +54,33 @@ export function subtotalUsd(items: Pick<CompraItemNuevo, 'peso_kg' | 'costo_usd_
   return redondea6(items.reduce((s, i) => s + i.peso_kg * i.costo_usd_kg, 0))
 }
 
-export interface TasaSugerida {
-  bs_por_usd: number
-  fuente: FuenteTasa
+/** Resuelve la tasa de la operación en el servidor (sin `sin_referencial`). */
+type TasaResuelta = {
+  tasa_operacion: NonNullable<ResultadoTasaOperacion['tasa_operacion']>
+  aviso?: 'referencial_cambio'
 }
 
 /**
- * Tasa del día según la fuente preferida de `config_negocio`: primero la
- * registrada en `tasas` (incluida una manual de hoy), si no la de la API.
- * `null` si no hay ninguna: la UI pide cargarla a mano.
+ * Resuelve la tasa de la operación en el servidor (08-tasas) y devuelve el
+ * `TasaOperacion` completo. Los servicios que guardan tasa usan este helper
+ * (SRP): mapea `sin_referencial` al error de dominio del spec.
  */
-export async function getTasaSugerida(db?: SupabaseClient): Promise<TasaSugerida | null> {
-  const client = db ?? (await createClient())
-  const config = await makeConfigNegocioRepository(client).get()
-  const fuente = config?.fuente_tasa_default ?? 'bcv'
-
-  const registrada = await getTasaViva(fuente, client)
-  if (registrada) return { bs_por_usd: Number(registrada.bs_por_usd), fuente: registrada.fuente }
-
-  const remota = await fetchTasaRemota(fuente)
-  return remota ? { bs_por_usd: remota, fuente } : null
+async function tasaDeOperacion(
+  input: CompraFormValues | PagoProveedorFormValues,
+  fecha: string,
+  db: SupabaseClient
+): Promise<TasaResuelta> {
+  const resultado = await resolverTasaOperacion(entradaTasaDe(input), fecha, db)
+  if (resultado.error === 'sin_referencial' || !resultado.tasa_operacion) {
+    throw new CompraError(MSG_TASA_SIN_REFERENCIAL, 'tasa')
+  }
+  return { tasa_operacion: resultado.tasa_operacion, aviso: resultado.aviso }
 }
 
-export async function crearCompra(input: CompraFormValues): Promise<string> {
+export async function crearCompra(input: CompraFormValues): Promise<{
+  compra_id: string
+  aviso?: 'referencial_cambio'
+}> {
   const db = await createClient()
 
   const proveedor = await makeProveedorRepository(db).getById(input.proveedor_id)
@@ -97,25 +107,31 @@ export async function crearCompra(input: CompraFormValues): Promise<string> {
     }
   })
 
+  // La referencial corresponde a la fecha de la compra (08-tasas).
+  const { tasa_operacion: tasa, aviso } = await tasaDeOperacion(input, input.fecha, db)
+
   const items: CompraItemNuevo[] = input.items.map((i) => ({
     producto_id: i.producto_id,
     peso_kg: Math.round(i.peso_kg * 1000) / 1000,
-    costo_usd_kg: costoUsdKg(i.costo_kg, input.moneda, input.tasa),
+    costo_usd_kg: costoUsdKg(i.costo_kg, input.moneda, tasa.tasa_snapshot),
   }))
   const subtotal = subtotalUsd(items)
   const contado = input.condicion === 'contado'
 
-  const compra: Compra = {
+  const compra = {
     id: crypto.randomUUID(),
     proveedor_id: proveedor.id,
     fecha: input.fecha,
     condicion: input.condicion,
     moneda: input.moneda,
-    tasa_snapshot: redondea6(input.tasa),
+    tasa_snapshot: redondea6(tasa.tasa_snapshot),
+    tasa_origen: tasa.tasa_origen,
+    tasa_fuente: tasa.tasa_fuente,
+    tasa_referencial: tasa.tasa_referencial,
     subtotal_usd: subtotal,
     pagado_usd: contado ? subtotal : 0,
     // Una compra a crédito sin monto (costo 0) no deja nada por pagar.
-    estado: contado || subtotal === 0 ? 'pagada' : 'abierta',
+    estado: (contado || subtotal === 0 ? 'pagada' : 'abierta') as Compra['estado'],
     notas: input.notas.trim() || null,
   }
 
@@ -123,15 +139,20 @@ export async function crearCompra(input: CompraFormValues): Promise<string> {
     crearMovimiento('compra', i.producto_id, i.peso_kg, i.costo_usd_kg, compra.id)
   )
 
-  return makeCompraRepository(db).create(compra, items, movimientos)
+  const compraId = await makeCompraRepository(db).create(compra, items, movimientos)
+  return { compra_id: compraId, aviso }
 }
 
 /**
  * Abono a una compra a crédito. La deuda está en USD; si se paga en Bs, el
- * monto se convierte con la tasa del día del pago y se registra la ganancia
- * cambiaria respecto de la tasa congelada en la compra.
+ * monto se convierte con la tasa de la fecha del abono y se registra la
+ * ganancia cambiaria respecto de la tasa congelada en la compra (§4.5), con
+ * la tasa final elegida (referencial o manual).
  */
-export async function registrarPagoProveedor(input: PagoProveedorFormValues): Promise<string> {
+export async function registrarPagoProveedor(input: PagoProveedorFormValues): Promise<{
+  pago_id: string
+  aviso?: 'referencial_cambio'
+}> {
   const db = await createClient()
   const repo = makeCompraRepository(db)
 
@@ -141,22 +162,31 @@ export async function registrarPagoProveedor(input: PagoProveedorFormValues): Pr
     throw new CompraError('La compra no tiene saldo pendiente')
   }
 
+  // La referencial corresponde a la fecha del abono (08-tasas).
+  const { tasa_operacion: tasa, aviso } = await tasaDeOperacion(input, input.fecha, db)
+  const tasaPago = tasa.tasa_snapshot
+
   const saldo = saldoPendiente(Number(compra.subtotal_usd), Number(compra.pagado_usd))
-  let montoUsd = redondea6(usdEquivalentes(input.monto, input.moneda_pago, input.tasa_pago))
+  let montoUsd = redondea6(usdEquivalentes(input.monto, input.moneda_pago, tasaPago))
   if (montoUsd > saldo + TOLERANCIA_PAGO_USD) {
     throw new CompraError('El monto supera el saldo pendiente', 'monto')
   }
   montoUsd = Math.min(montoUsd, saldo)
 
-  return repo.registrarPago({
-    compra_id: compra.id,
-    fecha: input.fecha,
-    monto_usd: montoUsd,
-    moneda_pago: input.moneda_pago,
-    tasa_pago: redondea6(input.tasa_pago),
-    metodo: input.metodo,
-    ganancia_cambiaria_bs: redondea6(
-      gananciaCambiariaBs(Number(compra.tasa_snapshot), input.tasa_pago, montoUsd, input.moneda_pago)
-    ),
-  })
+  return repo
+    .registrarPago({
+      compra_id: compra.id,
+      fecha: input.fecha,
+      monto_usd: montoUsd,
+      moneda_pago: input.moneda_pago,
+      tasa_pago: redondea6(tasaPago),
+      metodo: input.metodo,
+      ganancia_cambiaria_bs: redondea6(
+        gananciaCambiariaBs(Number(compra.tasa_snapshot), tasaPago, montoUsd, input.moneda_pago)
+      ),
+      tasa_origen: tasa.tasa_origen,
+      tasa_fuente: tasa.tasa_fuente,
+      tasa_referencial: tasa.tasa_referencial,
+    })
+    .then((pago_id) => ({ pago_id, aviso }))
 }

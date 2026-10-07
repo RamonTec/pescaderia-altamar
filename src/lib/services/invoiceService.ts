@@ -1,14 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Cliente, CondicionPago, Factura } from '@/types/domain'
 import type { FacturaItemNuevo, FacturaNueva } from '@/lib/repositories/interfaces'
+import type { EntradaTasaOperacion } from './tasaService'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
 import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
 import { makeConfigNegocioRepository } from '@/lib/repositories/configRepository'
 import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
+import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { crearMovimiento } from './movimientoService'
 import { getStockProducto } from './costingService'
-import { getTasaViva } from './rateService'
+import { resolverTasaOperacion } from './tasaService'
 import { getSaldoPendiente } from './clienteBalanceService'
 
 /**
@@ -17,12 +19,17 @@ import { getSaldoPendiente } from './clienteBalanceService'
  *
  * Responsabilidades:
  *   - Validar cliente activo y, para crédito, no bloqueado (bloqueo duro).
- *   - Obtener `iva_pct` de `config_negocio` y la tasa vigente del día.
+ *   - Obtener `iva_pct` de `config_negocio`.
  *   - Snapshot de costo promedio por producto (`getStockProducto`).
  *   - Calcular subtotal/IVA/total.
  *   - Verificar el límite de crédito del cliente contra su saldo pendiente.
  *   - Delegar la escritura atómica (factura + items + movimientos `venta`)
  *     al repositorio/RPC.
+ *
+ * 08-tasas: la tasa la elige el usuario (referencial o manual) y se resuelve
+ * en el servidor con `resolverTasaOperacion` para la fecha de la factura.
+ * Sin referencial disponible y sin tasa manual, falla con el mensaje claro
+ * del spec (corrige "No hay tasa registrada hoy").
  */
 
 export class InvoiceError extends Error {
@@ -69,12 +76,19 @@ export interface CrearFacturaInput {
   /** Confirmación explícita de la UI cuando excede el límite de crédito. */
   forzar_limite?: boolean
   pesos_reales?: { pedido_item_id: string; peso_kg: number }[]
+  /**
+   * Tasa elegida para esta factura (08-tasas): referencial (el servidor
+   * recalculará el valor vigente) o manual (> 0).
+   */
+  tasa: EntradaTasaOperacion
 }
 
 export interface CrearFacturaResultado {
   factura_id: string
   numero?: number
   advertencia: AdvertenciaLimiteCredito | null
+  /** La referencial vigente del servidor es otra que la que vio el cliente. */
+  aviso?: 'referencial_cambio'
 }
 
 export function subtotalItems(items: ItemFacturaInput[]): number {
@@ -155,28 +169,32 @@ export async function crearFactura(
   const total = redondea6(subtotal + iva)
   const contado = input.condicion === 'contado'
 
-  // Tasa del día congelada (snapshot). Preferir la fuente configurada.
-  const fuente = config?.fuente_tasa_default ?? 'bcv'
-  const tasa = await getTasaViva(fuente, client)
-  if (!tasa) {
-    throw new InvoiceError('No hay tasa registrada hoy: regístrala antes de facturar', 'tasa')
-  }
-  const tasaSnapshot = Number(tasa.bs_por_usd)
-
   const fecha = input.fecha ?? new Date().toISOString().slice(0, 10)
+
+  // Tasa elegida, resuelta en el servidor para la fecha de la factura
+  // (08-tasas): la operación nunca falla por falta de referencial si el
+  // usuario mandó una tasa manual.
+  const resultado = await resolverTasaOperacion(input.tasa, fecha, client)
+  if (resultado.error === 'sin_referencial' || !resultado.tasa_operacion) {
+    throw new InvoiceError(MSG_TASA_SIN_REFERENCIAL, 'tasa')
+  }
+  const tasaOperacion = resultado.tasa_operacion
 
   const factura: FacturaNueva = {
     id: crypto.randomUUID(),
     cliente_id: cliente.id,
     fecha,
     condicion: input.condicion,
-    tasa_snapshot: redondea6(tasaSnapshot),
+    tasa_snapshot: redondea6(tasaOperacion.tasa_snapshot),
     iva_pct: ivaPct,
     subtotal_usd: subtotal,
     iva_usd: iva,
     total_usd: total,
     pagado_usd: contado ? total : 0,
     estado: contado ? 'pagada' : 'abierta',
+    tasa_origen: tasaOperacion.tasa_origen,
+    tasa_fuente: tasaOperacion.tasa_fuente,
+    tasa_referencial: tasaOperacion.tasa_referencial,
   }
 
   const movimientos = items.map((i) =>
@@ -199,7 +217,7 @@ export async function crearFactura(
     input.pesos_reales
   )
 
-  return { factura_id: facturaId, advertencia: null }
+  return { factura_id: facturaId, advertencia: null, aviso: resultado.aviso }
 }
 
 export type { Factura }

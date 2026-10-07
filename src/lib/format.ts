@@ -20,6 +20,12 @@ const tasaFormatter = new Intl.NumberFormat('es-VE', {
   maximumFractionDigits: 6,
 })
 
+/** Tasa con 2 decimales, para el indicador de la barra y tarjetas compactas (08-tasas). */
+const tasaCortaFormatter = new Intl.NumberFormat('es-VE', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
 export function formatUsd(n: number): string {
   return usdFormatter.format(n)
 }
@@ -34,6 +40,24 @@ export function formatKg(n: number): string {
 
 export function formatTasa(n: number): string {
   return tasaFormatter.format(n)
+}
+
+export function formatTasaCorta(n: number): string {
+  return tasaCortaFormatter.format(n)
+}
+
+/** "hace 5 min", "hace 2 h", "hace 3 días" (08-tasas, tarjetas de /tasas). */
+export function formatHace(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return '—'
+  const minutos = Math.round((Date.now() - fecha.getTime()) / 60000)
+  if (minutos < 1) return 'ahora'
+  if (minutos < 60) return `hace ${minutos} min`
+  const horas = Math.round(minutos / 60)
+  if (horas < 24) return `hace ${horas} h`
+  const dias = Math.round(horas / 24)
+  return `hace ${dias} ${dias === 1 ? 'día' : 'días'}`
 }
 
 const fechaFormatter = new Intl.DateTimeFormat('es-VE', {

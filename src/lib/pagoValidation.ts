@@ -1,8 +1,13 @@
 import { z } from 'zod'
+import { camposTasa, validarTasa } from './tasaValidation'
 
 /**
  * Validación de cobros/abonos a facturas (05-ventas).
  * Misma estructura que `pagoProveedorFormSchema` (04-inventario).
+ *
+ * 08-tasas: la tasa del abono viaja en `camposTasa` (`tasa_origen`,
+ * `tasa_fuente`, `tasa` = valor final); `pagoService` la resuelve en el
+ * servidor con `resolverTasaOperacion` para la fecha del abono.
  */
 
 function numero(mensajeRequerido: string, base: z.ZodNumber = z.number()) {
@@ -26,9 +31,10 @@ export const pagoFormSchema = z
     moneda_pago: z.enum(['usd', 'bs']),
     metodo: z.enum(['efectivo_usd', 'efectivo_bs', 'pago_movil', 'zelle', 'transferencia', 'punto']),
     monto: numero('Monto requerido', z.number().positive('El monto debe ser mayor a 0')),
-    tasa_pago: numero('Tasa requerida', z.number().positive('La tasa debe ser mayor a 0')),
+    ...camposTasa,
   })
   .superRefine((v, ctx) => {
+    validarTasa(v, ctx)
     const permitidos: readonly string[] = METODOS_POR_MONEDA[v.moneda_pago]
     if (!permitidos.includes(v.metodo)) {
       ctx.addIssue({

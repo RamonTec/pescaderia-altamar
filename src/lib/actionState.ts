@@ -4,11 +4,15 @@
  *
  * `fieldErrors` permite mapear un error a un campo concreto del formulario
  * (ej. RIF duplicado → campo `rif_ci`) para que react-hook-form lo muestre
- * con `setError` en su lugar.
+ * con `setError` en su lugar. `info` lleva avisos no bloqueantes: la acción
+ * terminó bien pero algo cambió en el servidor (08-tasas: "la referencial
+ * cambió mientras el formulario estaba abierto").
  */
 export interface ActionState {
   error: string | null
   success: string | null
+  /** Aviso no bloqueante junto al success (ej. la tasa referencial cambió). */
+  info?: string | null
   fieldErrors?: Record<string, string>
 }
 

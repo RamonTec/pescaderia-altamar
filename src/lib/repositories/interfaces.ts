@@ -184,6 +184,10 @@ export interface FacturaNueva {
   total_usd: number
   pagado_usd: number
   estado: Factura['estado']
+  /** Procedencia de la tasa (08-tasas): origen, fuente y referencial vigente. */
+  tasa_origen: Factura['tasa_origen']
+  tasa_fuente: Factura['tasa_fuente']
+  tasa_referencial: Factura['tasa_referencial']
 }
 
 export interface PesosRealesItem {

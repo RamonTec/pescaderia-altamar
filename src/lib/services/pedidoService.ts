@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Pedido } from '@/types/domain'
 import type { PedidoItemNuevo } from '@/lib/repositories/interfaces'
+import type { EntradaTasaOperacion } from './tasaService'
 import { makePedidoRepository } from '@/lib/repositories/pedidoRepository'
 import { createClient } from '@/lib/supabase/server'
 import { crearFactura, InvoiceError } from './invoiceService'
@@ -10,7 +11,8 @@ import { crearFactura, InvoiceError } from './invoiceService'
  *
  * - `crearPedido`: guarda cliente + items con peso estimado, sin tocar stock.
  * - `entregarPedido`: captura el peso real por item y genera la factura con
- *   esos kg (no el estimado), marcando el pedido como `facturado`.
+ *   esos kg (no el estimado), marcando el pedido como `facturado`. La tasa
+ *   se resuelve para la **fecha de entrega** (08-tasas).
  */
 
 export interface CrearPedidoInput {
@@ -23,9 +25,11 @@ export interface CrearPedidoInput {
 export interface EntregarPedidoInput {
   pedido_id: string
   condicion: 'contado' | 'credito'
+  fecha: string
   pesos_reales: { pedido_item_id: string; peso_kg: number }[]
-  fecha?: string
   forzar_limite?: boolean
+  /** Tasa elegida en la entrega; resuelta en el servidor para la fecha de entrega. */
+  tasa?: EntradaTasaOperacion
 }
 
 export async function crearPedido(
@@ -47,7 +51,7 @@ export async function crearPedido(
 export async function entregarPedido(
   input: EntregarPedidoInput,
   db?: SupabaseClient
-): Promise<string> {
+): Promise<{ factura_id: string; aviso?: 'referencial_cambio' }> {
   const client = db ?? (await createClient())
   const repo = makePedidoRepository(client)
   const pedido = await repo.getById(input.pedido_id)
@@ -70,6 +74,13 @@ export async function entregarPedido(
     }
   })
 
+  // Sin tasa en el input (flujo viejo), se pide la referencial del servidor;
+  // si no hay ninguna, `crearFactura` falla con el mensaje claro del spec.
+  const tasa: EntradaTasaOperacion = input.tasa ?? {
+    tasa_origen: 'referencial',
+    tasa_fuente: null,
+  }
+
   const resultado = await crearFactura(
     {
       cliente_id: pedido.cliente_id,
@@ -79,8 +90,9 @@ export async function entregarPedido(
       fecha: input.fecha,
       forzar_limite: input.forzar_limite,
       pesos_reales: input.pesos_reales,
+      tasa,
     },
     client
   )
-  return resultado.factura_id
+  return { factura_id: resultado.factura_id, aviso: resultado.aviso }
 }
