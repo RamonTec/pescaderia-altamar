@@ -12,27 +12,62 @@ import { themeStorageManager } from '@/lib/themeStorage'
 const options = { key: 'mui', prepend: true }
 
 export function ThemeRegistry({ children }: { children: React.ReactNode }) {
+  // Patrón de MUI para App Router: `compat` evita que emotion renderice
+  // <style> inline durante SSR (rompía la hidratación); los estilos
+  // insertados se registran y se emiten en el <head> vía useServerInsertedHTML.
   const [{ cache, flush }] = React.useState(() => {
     const cache = createCache(options)
-    return { cache, flush: () => cache.sheet.tags }
+    cache.compat = true
+    const prevInsert = cache.insert
+    let inserted: { name: string; isGlobal: boolean }[] = []
+    cache.insert = (...args) => {
+      const [selector, serialized] = args
+      if (cache.inserted[serialized.name] === undefined) {
+        inserted.push({ name: serialized.name, isGlobal: !selector })
+      }
+      return prevInsert(...args)
+    }
+    const flush = () => {
+      const prev = inserted
+      inserted = []
+      return prev
+    }
+    return { cache, flush }
   })
 
   useServerInsertedHTML(() => {
-    const tags = flush()
-    if (!tags.length) {
+    const names = flush()
+    if (names.length === 0) {
       return null
     }
-    const styles = tags
-      .map((tag) => {
-        const key = tag.getAttribute('data-emotion')
-        return `<style data-emotion="${key}">${tag.textContent}</style>`
-      })
-      .join('')
+    let styles = ''
+    let dataEmotionAttribute = cache.key
+    const globals: { name: string; style: string }[] = []
+
+    names.forEach(({ name, isGlobal }) => {
+      const style = cache.inserted[name]
+      if (typeof style !== 'string') return
+      if (isGlobal) {
+        globals.push({ name, style })
+      } else {
+        styles += style
+        dataEmotionAttribute += ` ${name}`
+      }
+    })
+
     return (
-      <style
-        data-emotion={`${options.key} global`}
-        dangerouslySetInnerHTML={{ __html: styles }}
-      />
+      <>
+        {globals.map(({ name, style }) => (
+          <style
+            key={name}
+            data-emotion={`${cache.key}-global ${name}`}
+            dangerouslySetInnerHTML={{ __html: style }}
+          />
+        ))}
+        {styles && (
+          <style data-emotion={dataEmotionAttribute} dangerouslySetInnerHTML={{ __html: styles }} />
+        )}
+      </>
     )
   })
 

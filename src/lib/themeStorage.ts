@@ -32,20 +32,21 @@ function setCookie(name: string, value: string): void {
 }
 
 export const themeStorageManager: StorageManager = ({ key, storageWindow }) => {
-  const store = storageWindow && typeof storageWindow !== 'undefined' ? storageWindow : window
+  // En SSR no hay `window`: `store` queda undefined y get/set no hacen nada.
+  const store = storageWindow ?? (typeof window !== 'undefined' ? window : undefined)
 
   return {
     get(defaultValue) {
-      if (typeof window === 'undefined') return undefined
+      if (!store) return undefined
       try {
         if (key === STORAGE_KEY) {
           return (
             getCookie(COOKIE_NAME) ??
-            store.localStorage.getItem(key) ??
+            store?.localStorage.getItem(key) ??
             defaultValue
           )
         }
-        return store.localStorage.getItem(key) ?? defaultValue
+        return store?.localStorage.getItem(key) ?? defaultValue
       } catch {
         return key === STORAGE_KEY ? getCookie(COOKIE_NAME) ?? defaultValue : defaultValue
       }
@@ -55,7 +56,7 @@ export const themeStorageManager: StorageManager = ({ key, storageWindow }) => {
         setCookie(COOKIE_NAME, value)
       }
       try {
-        store.localStorage.setItem(key, value)
+        store?.localStorage.setItem(key, value)
       } catch {
         // localStorage no disponible; la cookie ya conserva el modo
       }

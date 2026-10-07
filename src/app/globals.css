@@ -1,9 +1,15 @@
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
+/* Color lo maneja MUI (theme.ts); Tailwind solo layout/spacing. */
 @theme inline {
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Franjas de peñero (PeneroStripes). Aquí y no con `keyframes` de emotion:
+   emotion emite keyframes como <style> global en SSR y rompe la hidratación. */
+@keyframes penero-paint {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
