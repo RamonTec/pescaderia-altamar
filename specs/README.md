@@ -41,6 +41,31 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
 
 06-contratos   → depende de 02-clientes, 03-proveedores y 05-ventas
    (genera documento a partir de una factura/compra a crédito ya existente)
+
+07-lotes       → depende de 04-inventario y 05-ventas (ya implementados)
+   (lotes físicos por recepción, costo por lote, PEPS en ventas, pérdidas,
+    trazabilidad y resultado por lote; absorbe la pantalla /inventario de 04.
+    No depende de 06-contratos: se recomienda ejecutarlo ANTES de 06 porque
+    corrige dos fallas de 05-ventas — costo de venta y venta sin stock)
+
+08-tasas       → depende de 01-auth, 04-inventario y 05-ventas (ya implementados)
+   (scraping BCV USD/EUR + dolarapi, tasa vigente por fecha valor, tasa
+    referencial o manual en compras/ventas/abonos, pantalla /tasas.
+    Se ejecuta ANTES de 07-lotes: desbloquea el POS, que hoy falla si no hay
+    tasa del día cargada por SQL)
+
+09-cuentas-por-cobrar → depende de 02-clientes y 05-ventas (conviene después de 08-tasas)
+   (vencimiento de facturas, estado pagada/pendiente/por vencer/vencida,
+    columna "Facturas" en clientes, sección en la ficha, recordatorios por
+    WhatsApp y correo; núcleo `lib/cartera` reutilizable en /cobros y, más
+    adelante, en cuentas por pagar a proveedores)
+
+00-estandares-ui · Fase 2 (acabado visual, 2026-10-07)
+   (logo y loader global, shell persistente, AppDataGrid, AppDialog, botones
+    en carga, tipografía, responsive; migración de las pantallas existentes)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 09-cuentas-por-cobrar → 07-lotes → 00 Fase 2b (migrar pantallas viejas) → 06-contratos.
+(`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
 
 `02-clientes` y `03-proveedores` no dependen entre sí — se pueden ejecutar en paralelo (agentes distintos), ambos después de `01-auth` Fase 2. Pueden compartir componentes genéricos (ej. `DocumentoUpload`, `RifCiField`): el que se construya primero los deja en `components/atoms`/`molecules` y el otro los reusa — ver la nota de "tarea agregada por otro módulo" en cada `tasks.md`.
@@ -54,6 +79,10 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Estándares de UI/UX**: se agregó `00-estandares-ui` como módulo transversal para fijar de una vez decisiones de modo oscuro, responsive, loaders, formularios, etc. — evita que cada módulo (y cada agente que lo ejecute) las reinvente, ahorrando tokens y manteniendo consistencia visual entre pantallas.
 - **Módulo de proveedores**: se separó `03-proveedores` de `04-inventario` (antes el CRUD de proveedores vivía dentro de `/catalogos`). Mismo principio que `02-clientes`: control de datos de contacto/pago, documento de RIF y bloqueo por proveedor no confiable, con su propio saldo pendiente (`proveedorBalanceService` en `04-inventario`).
 - **Proveedores: KYC completo y métodos de pago (2026-10-06)**: igual que en clientes, los proveedores jurídicos llevan representantes legales con su cédula, y se suma el acta constitutiva a los documentos. En lugar de una sola cuenta bancaria, cada proveedor puede tener varios métodos de pago (transferencia, Pago Móvil, Zelle). La documentación incompleta es solo un indicador visual y no bloquea compras. Detalle en `03-proveedores/spec.md`.
+- **Lotes y trazabilidad (2026-10-07, pedido del cliente)**: el negocio separa físicamente cada recepción en lotes, elige de qué lote procesa y quiere ver, por lote, lo comprado, perdido y vendido con sus tasas. **Se reabre la decisión cerrada de costeo de `/SPEC.md` §2**: el promedio ponderado se reemplaza por costo por lote, con PEPS sugerido en ventas. Un lote crudo da un lote procesado, y cualquier usuario registra pérdidas con motivo. Nuevo módulo `07-lotes`; se anotó como tarea agregada en `04-inventario` y `05-ventas`. La base solo tiene datos de prueba: se vacían y se empieza limpio (sin lote "inicial").
+- **Tasas BCV/EUR y tasa por operación (2026-10-07, pedido del usuario)**: scraping de bcv.gob.ve (USD y EUR; el EUR solo como referencia), dolarapi como respaldo y para la paralela, fecha valor y tasa arrastrada en fines de semana. En compras, ventas y abonos se usa la referencial o una manual (cualquier usuario, con registro). Amplía la decisión de tasas de `/SPEC.md` §2 sin reemplazarla. Nuevo módulo `08-tasas`; se anotó como tarea agregada en `04-inventario`, `05-ventas` y `07-lotes`.
+- **Cuentas por cobrar y recordatorios (2026-10-07, pedido del cliente)**: columna con el estado de las facturas en el listado de clientes, sección de facturas en la ficha y recordatorios por **WhatsApp y correo** (canal confirmado por el usuario). Agrega el vencimiento de facturas, que no existía. Confirmado el 2026-10-07: los días de crédito varían por cliente y se indican en cada factura al emitirla; los recordatorios los envía solo el admin por ahora (no hay operadores). Nuevo módulo `09-cuentas-por-cobrar`. Siguiente paso previsto para "Cobros y pagos": cuentas por pagar a proveedores reutilizando `lib/cartera` (ver la spec de 09).
+- **Acabado visual (2026-10-07, pedido del usuario)**: estándares de calidad para loaders (global con el logo de Altamar), botones en carga, paginación, tablas, modales, responsive y tipografía. Se documenta en `00-estandares-ui/spec.md` la identidad "Peñero" (aprobada el 2026-10-06), que reemplaza la regla vieja de "Geist, no cambiar". Fase 2 en `00-estandares-ui/tasks.md`.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

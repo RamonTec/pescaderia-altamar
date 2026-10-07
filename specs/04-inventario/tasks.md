@@ -58,3 +58,9 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
 20. Prueba manual: registrar una compra de 10kg a $2/kg de un producto crudo con stock 0 → stock debe quedar en 10kg a $2/kg exacto.
 21. Prueba manual: procesar esos 10kg crudos → 7kg procesados → el procesado debe quedar a `(10×2)/7 = $2.857142.../kg` y el crudo debe bajar a 0kg.
 22. Prueba manual: segunda compra de 5kg a $3/kg del mismo crudo cuando ya había 10kg a $2/kg (antes de procesar) → costo ponderado esperado `(10×2 + 5×3)/15 = $2.333.../kg`.
+
+## Tarea agregada por otro módulo
+- **07-lotes (2026-10-07)**: el costeo pasa de promedio ponderado a **costo por lote** (decisión reabierta por el usuario; ver `07-lotes/spec.md`). Cambia el esquema de este módulo: `lotes`, `movimientos.lote_id`, tipo `perdida`, `proceso_items.lote_origen_id`, `config_negocio.dias_alerta_lote`, y se reemplazan las RPC `registrar_compra` y `registrar_procesamiento` (migraciones `0018`–`0022`). Esto anula la nota del 2026-10-06 que descartaba procesar por lote.
+- **Tareas 16–19 (pantalla `/inventario`) absorbidas por `07-lotes`** (tareas 18–20 de ese módulo): se construyen directamente con lotes, no sobre el promedio ponderado.
+- **Tarea 22 (costo ponderado tras una segunda compra) queda obsoleta**: la reemplaza la tarea 23 de `07-lotes` (dos lotes con su propio costo).
+- **08-tasas (2026-10-07)**: `tasas` cambia (`bs_por_usd` → `valor_bs`, + `moneda`/`origen`; RLS de escritura solo admin). `compras` y `pagos_proveedores` suman `tasa_origen`, `tasa_fuente`, `tasa_referencial` y `tasa_registrada_por`, y se actualizan `registrar_compra`/`registrar_pago_proveedor`. `config_negocio` suma `umbral_desviacion_tasa_pct`. `getTasaSugerida` se reemplaza por `getTasaVigente`, y `CompraForm`/`PagoProveedorDialog` usan `TasaSelector`.

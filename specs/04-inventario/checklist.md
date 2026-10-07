@@ -12,7 +12,7 @@
 - [ ] Compra `credito` queda abierta y permite registrar pagos parciales con su propia tasa y ganancia cambiaria calculada. *(implementado: `PagoProveedorDialog` + RPC `registrar_pago_proveedor`, solo admin; falta verificación manual)*
 - [ ] Intentar una compra a crédito con un proveedor `bloqueado` (de `03-proveedores`) se rechaza siempre. *(servicio + trigger `compras_guard_proveedor_bloqueado`; la UI deshabilita "Crédito")*
 - [ ] El saldo pendiente por proveedor (`proveedorBalanceService`, consumido por `03-proveedores`) refleja la suma correcta de todas sus compras abiertas. *(implementado; la ficha ya lo consume)*
-- [ ] El costo ponderado tras una segunda compra del mismo producto coincide con la fórmula de `/SPEC.md` §4.1 (verificado a mano, ver tarea 22 de `tasks.md`).
+- [ ] El costo ponderado tras una segunda compra del mismo producto coincide con la fórmula de `/SPEC.md` §4.1 (verificado a mano, ver tarea 22 de `tasks.md`). *(2026-10-07: obsoleto, el costeo pasa a ser por lote; se verifica en `07-lotes`, tarea 23)*
 
 ## Procesamiento
 - [ ] Procesar un lote baja el stock del producto origen y sube el del producto destino con el costo correcto (fórmula de transferencia total de costo). *(implementado: RPC `registrar_procesamiento` en `0013`; falta aplicar `0013` y verificar con la tarea 21)*
@@ -20,6 +20,7 @@
 - [ ] No se puede registrar `peso_salida_kg > peso_entrada_kg` (constraint de BD + validación en UI con mensaje claro). *(implementado: aviso en vivo + zod `superRefine` + servicio + constraint `salida_menor_entrada` mapeado al campo; falta verificación manual)*
 
 ## Inventario
+*(2026-10-07: la pantalla `/inventario` se construye en `07-lotes`; estos ítems se marcan al cerrar ese módulo.)*
 - [ ] La tabla de stock muestra kg, costo promedio y valor (USD y Bs) por producto, usando la tasa vigente.
 - [ ] Un usuario `operador` ve kg en stock pero no ve costo ni valor (verificado con sesión real de operador, no solo asumido).
 - [ ] Productos bajo el umbral de stock configurado se distinguen visualmente.
