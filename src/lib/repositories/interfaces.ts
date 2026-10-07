@@ -6,9 +6,16 @@ import type {
   ConfigNegocio,
   DocumentoCliente,
   DocumentoProveedor,
+  Factura,
+  FacturaItem,
   MetodoPagoProveedor,
   Movimiento,
+  NotaCredito,
+  NotaCreditoItem,
+  Pago,
   PagoProveedor,
+  Pedido,
+  PedidoItem,
   Procesamiento,
   ProcesoItem,
   Producto,
@@ -132,6 +139,117 @@ export interface ICompraRepository {
   ): Promise<Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]>
   /** Inserta el pago y actualiza `pagado_usd`/`estado` (RPC `registrar_pago_proveedor`). */
   registrarPago(pago: PagoProveedorNuevo): Promise<string>
+}
+
+/* ============================ VENTAS (05-ventas) ============================ */
+
+export type PedidoItemNuevo = Pick<PedidoItem, 'producto_id' | 'peso_estimado_kg' | 'precio_usd_kg'>
+
+export interface PedidoResumen extends Pedido {
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'bloqueado'>
+}
+
+export interface PedidoDetalle extends PedidoResumen {
+  items: (PedidoItem & { producto: Pick<Producto, 'id' | 'nombre' | 'codigo'> })[]
+}
+
+export interface IPedidoRepository {
+  /** Inserta pedido + items en una transacción (RPC `registrar_pedido`). */
+  create(pedido: Pedido, items: PedidoItemNuevo[]): Promise<string>
+  list(filtroEstado?: Pedido['estado']): Promise<PedidoResumen[]>
+  getById(id: string): Promise<PedidoDetalle | null>
+}
+
+export type FacturaItemNuevo = Pick<FacturaItem, 'producto_id' | 'peso_kg' | 'precio_usd_kg' | 'costo_usd_kg'>
+
+export interface FacturaResumen extends Factura {
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci'>
+}
+
+export interface FacturaDetalle extends FacturaResumen {
+  items: (FacturaItem & { producto: Pick<Producto, 'id' | 'nombre' | 'codigo'> })[]
+  pagos: Pago[]
+  notas_credito: NotaCredito[]
+}
+
+export interface FacturaNueva {
+  id: string
+  cliente_id: string
+  fecha: string
+  condicion: Factura['condicion']
+  tasa_snapshot: number
+  iva_pct: number
+  subtotal_usd: number
+  iva_usd: number
+  total_usd: number
+  pagado_usd: number
+  estado: Factura['estado']
+}
+
+export interface PesosRealesItem {
+  pedido_item_id: string
+  peso_kg: number
+}
+
+export interface IFacturaRepository {
+  /** Inserta factura + items + movimientos (y cierra el pedido) en una transacción (RPC `registrar_factura`). */
+  create(
+    factura: FacturaNueva,
+    items: FacturaItemNuevo[],
+    movimientos: MovimientoNuevo[],
+    pedidoId?: string,
+    pesosReales?: PesosRealesItem[]
+  ): Promise<string>
+  list(filtroEstado?: Factura['estado']): Promise<FacturaResumen[]>
+  getById(id: string): Promise<FacturaDetalle | null>
+  getByCliente(clienteId: string): Promise<FacturaResumen[]>
+  /** Facturas abiertas de un cliente (para saldo pendiente). */
+  listAbiertasByCliente(
+    clienteId: string
+  ): Promise<Pick<Factura, 'id' | 'total_usd' | 'pagado_usd'>[]>
+}
+
+export type PagoNuevo = Omit<Pago, 'id'>
+
+export interface IPagoRepository {
+  /** Inserta el pago y actualiza `pagado_usd`/`estado` (RPC `registrar_pago`). */
+  create(pago: PagoNuevo): Promise<string>
+  listByFactura(facturaId: string): Promise<Pago[]>
+}
+
+export type NotaCreditoItemNuevo = Pick<
+  NotaCreditoItem,
+  'factura_item_id' | 'peso_kg' | 'precio_usd_kg' | 'afecta_inventario'
+>
+
+export interface NotaCreditoNueva {
+  id: string
+  factura_id: string
+  fecha: string
+  motivo: string
+  subtotal_usd: number
+  iva_usd: number
+  total_usd: number
+}
+
+export interface NotaCreditoResumen extends NotaCredito {
+  factura: { numero: number; cliente: Pick<Cliente, 'id' | 'nombre'> }
+}
+
+export interface NotaCreditoDetalle extends NotaCreditoResumen {
+  items: (NotaCreditoItem & { producto: Pick<Producto, 'id' | 'nombre'> })[]
+}
+
+export interface INotaCreditoRepository {
+  /** Inserta nota + items + movimientos de ajuste en una transacción (RPC `registrar_nota_credito`). */
+  create(nota: NotaCreditoNueva, items: NotaCreditoItemNuevo[]): Promise<string>
+  /** Pasa la nota a `anulada` y revierte su efecto en inventario (RPC `anular_nota_credito`). */
+  anular(id: string): Promise<void>
+  list(filtroEstado?: NotaCredito['estado']): Promise<NotaCreditoResumen[]>
+  getById(id: string): Promise<NotaCreditoDetalle | null>
+  listByFactura(facturaId: string): Promise<NotaCreditoResumen[]>
+  /** Total de notas `emitida` asociadas a las facturas de un cliente. */
+  totalEmitidoByCliente(clienteId: string): Promise<number>
 }
 
 type ProductoRef = Pick<Producto, 'id' | 'nombre' | 'codigo'>

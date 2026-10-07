@@ -11,6 +11,7 @@ export type MetodoPago =
 export type TipoProducto = 'crudo' | 'procesado'
 export type EstadoPedido = 'pendiente' | 'entregado' | 'facturado' | 'anulado'
 export type EstadoDoc = 'abierta' | 'pagada' | 'anulada'
+export type EstadoNotaCredito = 'emitida' | 'anulada'
 export type TipoMovimiento =
   | 'compra'
   | 'proceso_in'
@@ -190,6 +191,24 @@ export interface ProcesoItem {
   costo_total_usd: number
 }
 
+export interface Pedido {
+  id: string
+  cliente_id: string
+  fecha: string
+  fecha_entrega: string | null
+  estado: EstadoPedido
+  notas: string | null
+}
+
+export interface PedidoItem {
+  id: string
+  pedido_id: string
+  producto_id: string
+  peso_estimado_kg: number
+  peso_entregado_kg: number | null
+  precio_usd_kg: number
+}
+
 export interface Factura {
   id: string
   numero: number
@@ -204,6 +223,27 @@ export interface Factura {
   total_usd: number
   pagado_usd: number
   estado: EstadoDoc
+}
+
+export interface NotaCredito {
+  id: string
+  numero: number
+  factura_id: string
+  fecha: string
+  motivo: string
+  subtotal_usd: number
+  iva_usd: number
+  total_usd: number
+  estado: EstadoNotaCredito
+}
+
+export interface NotaCreditoItem {
+  id: string
+  nota_credito_id: string
+  factura_item_id: string
+  peso_kg: number
+  precio_usd_kg: number
+  afecta_inventario: boolean
 }
 
 export interface FacturaItem {
