@@ -15,30 +15,31 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Grid from '@mui/material/Grid'
-import Link from '@mui/material/Link'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
-import { NumberField } from '@/components/atoms/NumberField'
 import { CompraItemsFieldArray, itemVacio } from '@/components/molecules/CompraItemsFieldArray'
+import {
+  pedirConfirmacionTasaManual,
+  TasaSelector,
+  type ReferencialTasa,
+  type TasaSelectorConfig,
+} from '@/components/organisms/TasaSelector'
 import {
   compraFormSchema,
   type CompraFormInput,
   type CompraFormValues,
 } from '@/lib/compraValidation'
-import { fechaHoy, formatBs, formatTasa, formatUsd } from '@/lib/format'
-import type { TasaSugerida } from '@/lib/services/compraService'
+import { fechaHoy, formatBs, formatUsd } from '@/lib/format'
 import type { Producto, Proveedor } from '@/types/domain'
 import { crearCompraAction } from '@/app/(protected)/compras/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
 
 const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
-
-const FUENTE_LABEL = { bcv: 'BCV', paralela: 'paralela', manual: 'manual' } as const
 
 export interface CompraFormProps {
   open: boolean
@@ -47,27 +48,33 @@ export interface CompraFormProps {
   proveedores: Proveedor[]
   /** Productos crudos activos. */
   productos: Producto[]
-  tasaSugerida: TasaSugerida | null
+  /** Config de tasas de `config_negocio` (08-tasas Fase D). */
+  configTasas: TasaSelectorConfig
 }
 
-function vacio(tasa: TasaSugerida | null): CompraFormInput {
+function vacio(): CompraFormInput {
   return {
     proveedor_id: '',
     fecha: fechaHoy(),
     condicion: 'contado',
     moneda: 'usd',
-    tasa: tasa?.bs_por_usd ?? null,
+    // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
+    // completa origen/fuente/valor (o exige la manual).
+    tasa_origen: 'referencial',
+    tasa_fuente: null,
+    tasa: null,
     notas: '',
     items: [itemVacio()],
   }
 }
 
 /**
- * Registro de una compra (recepción): proveedor, condición, moneda, tasa del
- * día congelada e items pesados. El total se recalcula en vivo en USD y Bs.
- * Montar con un `key` que cambie al abrir: así cada apertura empieza en blanco.
+ * Registro de una compra (recepción): proveedor, condición, moneda, tasa
+ * (referencial o manual, vía `TasaSelector`) e items pesados. El total se
+ * recalcula en vivo en USD y Bs. Montar con un `key` que cambie al abrir:
+ * así cada apertura empieza en blanco.
  */
-export function CompraForm({ open, onClose, proveedores, productos, tasaSugerida }: CompraFormProps) {
+export function CompraForm({ open, onClose, proveedores, productos, configTasas }: CompraFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -78,15 +85,19 @@ export function CompraForm({ open, onClose, proveedores, productos, tasaSugerida
   const methods = useForm<CompraFormInput, unknown, CompraFormValues>({
     resolver: zodResolver(compraFormSchema),
     mode: 'onSubmit',
-    defaultValues: vacio(tasaSugerida),
+    defaultValues: vacio(),
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
-  const [proveedorId, condicion, moneda, tasa, items] = useWatch({
+  const [proveedorId, condicion, moneda, fecha, tasa, items] = useWatch({
     control,
-    name: ['proveedor_id', 'condicion', 'moneda', 'tasa', 'items'],
+    name: ['proveedor_id', 'condicion', 'moneda', 'fecha', 'tasa', 'items'],
   })
   const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null
+
+  // Referencial vigente que el `TasaSelector` reporta: se usa para la
+  // confirmación del umbral al enviar (patrón de 08-tasas).
+  const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
 
   const totalMoneda = (items ?? []).reduce(
     (s, i) => s + (i.peso_kg != null && i.costo_kg != null ? i.peso_kg * i.costo_kg : 0),
@@ -110,7 +121,11 @@ export function CompraForm({ open, onClose, proveedores, productos, tasaSugerida
     onClose()
   }
 
-  const onSubmit = handleSubmit((values) => {
+  const confirmarTasaSiExcede = (values: CompraFormValues): Promise<boolean> =>
+    pedirConfirmacionTasaManual(confirm, values, referencial, configTasas.umbral_desviacion_tasa_pct)
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (!(await confirmarTasaSiExcede(values))) return
     setServerError(null)
     const formData = new FormData()
     formData.set('payload', JSON.stringify(values))
@@ -126,6 +141,7 @@ export function CompraForm({ open, onClose, proveedores, productos, tasaSugerida
         return
       }
       notify.success(result.success ?? 'Compra registrada')
+      if (result.info) notify.info(result.info)
       onClose()
     })
   })
@@ -262,39 +278,11 @@ export function CompraForm({ open, onClose, proveedores, productos, tasaSugerida
 
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Controller
-                    control={control}
-                    name="tasa"
-                    render={({ field }) => (
-                      <NumberField
-                        label="Tasa del día (Bs/USD) *"
-                        fullWidth
-                        decimals={4}
-                        value={field.value}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        error={!!formState.errors.tasa}
-                        helperText={
-                          formState.errors.tasa?.message ??
-                          (tasaSugerida
-                            ? `Sugerida (${FUENTE_LABEL[tasaSugerida.fuente]}): ${formatTasa(tasaSugerida.bs_por_usd)}`
-                            : 'No hay tasa registrada hoy: ingrésala a mano')
-                        }
-                      />
-                    )}
+                  <TasaSelector
+                    fecha={fecha ?? fechaHoy()}
+                    config={configTasas}
+                    onReferencial={setReferencial}
                   />
-                  {tasaSugerida && tasa !== tasaSugerida.bs_por_usd ? (
-                    <Link
-                      component="button"
-                      type="button"
-                      variant="caption"
-                      onClick={() =>
-                        setValue('tasa', tasaSugerida.bs_por_usd, { shouldDirty: true })
-                      }
-                    >
-                      Usar la sugerida
-                    </Link>
-                  ) : null}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField

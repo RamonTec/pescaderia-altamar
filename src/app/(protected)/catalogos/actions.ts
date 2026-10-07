@@ -181,6 +181,7 @@ export async function updateConfigAction(
       iva_pct: safe.data.iva_pct,
       fuente_tasa_default: safe.data.fuente_tasa_default,
       umbral_stock_bajo_kg: safe.data.umbral_stock_bajo_kg,
+      umbral_desviacion_tasa_pct: safe.data.umbral_desviacion_tasa_pct,
     })
   } catch (e) {
     return { error: toActionError(e).error, success: null }

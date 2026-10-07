@@ -8,6 +8,7 @@ import { PedidosTable } from '@/components/organisms/PedidosTable'
 import { PedidoForm } from '@/components/organisms/PedidoForm'
 import { EntregaPedidoDialog } from '@/components/organisms/EntregaPedidoDialog'
 import type { PedidoDetalle, PedidoResumen } from '@/lib/repositories/interfaces'
+import type { TasaSelectorConfig } from '@/components/organisms/TasaSelector'
 import { pedidoRepository } from '@/lib/repositories/pedidoRepository'
 import type { Cliente, Producto } from '@/types/domain'
 import { anularPedidoAction } from './actions'
@@ -19,10 +20,12 @@ export function PedidosScreen({
   pedidos,
   clientes,
   productos,
+  configTasas,
 }: {
   pedidos: PedidoResumen[]
   clientes: Cliente[]
   productos: Producto[]
+  configTasas: TasaSelectorConfig
 }) {
   const notify = useNotify()
   const confirm = useConfirm()
@@ -78,11 +81,13 @@ export function PedidosScreen({
         onClose={() => setNuevoAbierto(false)}
         clientes={clientes}
         productos={productos}
+        configTasas={configTasas}
       />
 
       <EntregaPedidoDialog
         key={entregando?.id ?? 'cerrado'}
         pedido={entregando}
+        configTasas={configTasas}
         onClose={() => setEntregando(null)}
       />
     </>

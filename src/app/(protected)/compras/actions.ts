@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getSession, getRol } from '@/lib/services/authService'
 import { CompraError, crearCompra, registrarPagoProveedor } from '@/lib/services/compraService'
 import { compraFormSchema, pagoProveedorFormSchema } from '@/lib/compraValidation'
+import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError, type ActionState } from '@/lib/actionState'
 
 function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
@@ -52,14 +53,17 @@ export async function crearCompraAction(
   }
 
   try {
-    await crearCompra(safe.data)
+    const { aviso } = await crearCompra(safe.data)
+    revalidatePath('/compras')
+    revalidatePath(`/proveedores/${safe.data.proveedor_id}`)
+    return {
+      error: null,
+      success: 'Compra registrada',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
   } catch (e) {
     return errorDeDominio(e)
   }
-
-  revalidatePath('/compras')
-  revalidatePath(`/proveedores/${safe.data.proveedor_id}`)
-  return { error: null, success: 'Compra registrada' }
 }
 
 export async function registrarPagoProveedorAction(
@@ -81,12 +85,15 @@ export async function registrarPagoProveedorAction(
   }
 
   try {
-    await registrarPagoProveedor(safe.data)
+    const { aviso } = await registrarPagoProveedor(safe.data)
+    revalidatePath('/compras')
+    revalidatePath('/proveedores', 'layout')
+    return {
+      error: null,
+      success: 'Pago registrado',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
   } catch (e) {
     return errorDeDominio(e)
   }
-
-  revalidatePath('/compras')
-  revalidatePath('/proveedores', 'layout')
-  return { error: null, success: 'Pago registrado' }
 }

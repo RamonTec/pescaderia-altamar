@@ -4,16 +4,17 @@ import * as React from 'react'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { FacturasAbiertasTable } from '@/components/organisms/FacturasAbiertasTable'
 import { RegistrarPagoDialog } from '@/components/organisms/RegistrarPagoDialog'
+import type { TasaSelectorConfig } from '@/components/organisms/TasaSelector'
 import type { FacturaResumen } from '@/lib/repositories/interfaces'
 
 export function CobrosScreen({
   facturas,
   esAdmin,
-  tasaDelDia,
+  configTasas,
 }: {
   facturas: FacturaResumen[]
   esAdmin: boolean
-  tasaDelDia: number | null
+  configTasas: TasaSelectorConfig
 }) {
   const [cobrando, setCobrando] = React.useState<FacturaResumen | null>(null)
 
@@ -31,7 +32,7 @@ export function CobrosScreen({
         <RegistrarPagoDialog
           key={cobrando?.id ?? 'cerrado'}
           factura={cobrando}
-          tasaDelDia={tasaDelDia}
+          configTasas={configTasas}
           onClose={() => setCobrando(null)}
         />
       ) : null}

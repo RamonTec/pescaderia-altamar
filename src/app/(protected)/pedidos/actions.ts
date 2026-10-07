@@ -11,6 +11,8 @@ import {
   type AdvertenciaLimiteCredito,
 } from '@/lib/services/invoiceService'
 import { pedidoFormSchema, entregaPedidoSchema } from '@/lib/pedidoValidation'
+import { entradaTasaDe } from '@/lib/tasaValidation'
+import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError } from '@/lib/actionState'
 
 export interface PedidoActionState {
@@ -19,6 +21,8 @@ export interface PedidoActionState {
   fieldErrors?: Record<string, string>
   /** Presente cuando una venta a crédito excede el límite del cliente. */
   advertenciaLimite?: AdvertenciaLimiteCredito
+  /** Aviso no bloqueante (08-tasas): la referencial cambió en el servidor. */
+  info?: string | null
 }
 
 function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
@@ -72,18 +76,21 @@ export async function crearPedidoAction(
   const forzarLimite = formData.get('forzar_limite') === 'true'
 
   try {
+    let aviso: 'referencial_cambio' | undefined
     if (v.entrega_inmediata) {
-      await crearFactura({
+      const resultado = await crearFactura({
         cliente_id: v.cliente_id,
         condicion: v.condicion,
         fecha: v.fecha,
         forzar_limite: forzarLimite,
+        tasa: entradaTasaDe(v),
         items: v.items.map((i) => ({
           producto_id: i.producto_id,
           peso_kg: i.peso_kg,
           precio_usd_kg: i.precio_usd_kg,
         })),
       })
+      aviso = resultado.aviso
     } else {
       await crearPedido({
         cliente_id: v.cliente_id,
@@ -96,13 +103,16 @@ export async function crearPedidoAction(
         })),
       })
     }
+    revalidatePath('/pedidos')
+    revalidatePath('/cobros')
+    return {
+      error: null,
+      success: v.entrega_inmediata ? 'Venta registrada' : 'Pedido creado',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
   } catch (e) {
     return errorDeDominio(e)
   }
-
-  revalidatePath('/pedidos')
-  revalidatePath('/cobros')
-  return { error: null, success: v.entrega_inmediata ? 'Venta registrada' : 'Pedido creado' }
 }
 
 export async function entregarPedidoAction(
@@ -124,20 +134,24 @@ export async function entregarPedidoAction(
   const forzarLimite = formData.get('forzar_limite') === 'true'
 
   try {
-    await entregarPedido({
+    const { aviso } = await entregarPedido({
       pedido_id: v.pedido_id,
       condicion: v.condicion,
       fecha: v.fecha,
       forzar_limite: forzarLimite,
       pesos_reales: v.pesos_reales,
+      tasa: entradaTasaDe(v),
     })
+    revalidatePath('/pedidos')
+    revalidatePath('/cobros')
+    return {
+      error: null,
+      success: 'Pedido entregado y facturado',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
   } catch (e) {
     return errorDeDominio(e)
   }
-
-  revalidatePath('/pedidos')
-  revalidatePath('/cobros')
-  return { error: null, success: 'Pedido entregado y facturado' }
 }
 
 export async function anularPedidoAction(

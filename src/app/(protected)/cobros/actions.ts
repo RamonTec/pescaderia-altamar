@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getSession, getRol } from '@/lib/services/authService'
 import { registrarPago, PagoError } from '@/lib/services/pagoService'
 import { pagoFormSchema } from '@/lib/pagoValidation'
+import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError, type ActionState } from '@/lib/actionState'
 
 function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
@@ -55,12 +56,15 @@ export async function registrarPagoAction(
   }
 
   try {
-    await registrarPago(safe.data)
+    const { aviso } = await registrarPago(safe.data)
+    revalidatePath('/cobros')
+    revalidatePath('/clientes', 'layout')
+    return {
+      error: null,
+      success: 'Pago registrado',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
   } catch (e) {
     return errorDeDominio(e)
   }
-
-  revalidatePath('/cobros')
-  revalidatePath('/clientes', 'layout')
-  return { error: null, success: 'Pago registrado' }
 }

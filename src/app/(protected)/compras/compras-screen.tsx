@@ -7,20 +7,20 @@ import { PageHeader } from '@/components/molecules/PageHeader'
 import { ComprasTable, type CompraFila } from '@/components/organisms/ComprasTable'
 import { CompraForm } from '@/components/organisms/CompraForm'
 import { PagoProveedorDialog } from '@/components/organisms/PagoProveedorDialog'
-import type { TasaSugerida } from '@/lib/services/compraService'
+import type { TasaSelectorConfig } from '@/components/organisms/TasaSelector'
 import type { Producto, Proveedor } from '@/types/domain'
 
 export function ComprasScreen({
   compras,
   proveedores,
   productos,
-  tasaSugerida,
+  configTasas,
   esAdmin,
 }: {
   compras: CompraFila[]
   proveedores: Proveedor[]
   productos: Producto[]
-  tasaSugerida: TasaSugerida | null
+  configTasas: TasaSelectorConfig
   esAdmin: boolean
 }) {
   const [nuevaAbierta, setNuevaAbierta] = React.useState(false)
@@ -47,14 +47,14 @@ export function ComprasScreen({
         onClose={() => setNuevaAbierta(false)}
         proveedores={proveedores}
         productos={productos}
-        tasaSugerida={tasaSugerida}
+        configTasas={configTasas}
       />
 
       {esAdmin ? (
         <PagoProveedorDialog
           key={pagando?.id ?? 'cerrado'}
           compra={pagando}
-          tasaDelDia={tasaSugerida?.bs_por_usd ?? null}
+          configTasas={configTasas}
           onClose={() => setPagando(null)}
         />
       ) : null}

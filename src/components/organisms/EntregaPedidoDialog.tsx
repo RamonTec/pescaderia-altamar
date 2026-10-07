@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useTransition } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -20,6 +20,12 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
+import {
+  pedirConfirmacionTasaManual,
+  TasaSelector,
+  type ReferencialTasa,
+  type TasaSelectorConfig,
+} from '@/components/organisms/TasaSelector'
 import { entregaPedidoSchema, type EntregaPedidoInput, type EntregaPedidoValues } from '@/lib/pedidoValidation'
 import { fechaHoy, formatFecha, formatKg, formatUsd } from '@/lib/format'
 import type { AdvertenciaLimiteCredito } from '@/lib/services/invoiceService'
@@ -30,6 +36,8 @@ import { useConfirm } from '@/lib/useConfirm'
 
 export interface EntregaPedidoDialogProps {
   pedido: PedidoDetalle | null
+  /** Config de tasas de `config_negocio` (08-tasas Fase D). */
+  configTasas: TasaSelectorConfig
   onClose: () => void
 }
 
@@ -38,15 +46,21 @@ function vacio(pedidoId: string): EntregaPedidoInput {
     pedido_id: pedidoId,
     fecha: fechaHoy(),
     condicion: 'credito',
+    // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
+    // completa origen/fuente/valor (o exige la manual).
+    tasa_origen: 'referencial',
+    tasa_fuente: null,
+    tasa: null,
     pesos_reales: [],
   }
 }
 
 /**
  * Entrega de un pedido pendiente: captura el peso real por item y genera la
- * factura con esos kg. Montar con `key={pedido.id}` para reiniciar el form.
+ * factura con esos kg. La tasa se elige con `TasaSelector` (referencial por
+ * fecha o manual). Montar con `key={pedido.id}` para reiniciar el form.
  */
-export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProps) {
+export function EntregaPedidoDialog({ pedido, configTasas, onClose }: EntregaPedidoDialogProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -54,7 +68,7 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
-  const { control, register, handleSubmit, setError, formState } = useForm<
+  const methods = useForm<
     EntregaPedidoInput,
     unknown,
     EntregaPedidoValues
@@ -67,6 +81,9 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
           pedido_id: pedido.id,
           fecha: fechaHoy(),
           condicion: 'credito',
+          tasa_origen: 'referencial',
+          tasa_fuente: null,
+          tasa: null,
           pesos_reales: pedido.items.map((i) => ({
             pedido_item_id: i.id,
             peso_kg: null,
@@ -74,6 +91,11 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
         }
       : undefined,
   })
+  const { control, register, handleSubmit, setError, formState } = methods
+  const fecha = useWatch({ control, name: 'fecha' })
+
+  // Referencial vigente que el `TasaSelector` reporta (08-tasas).
+  const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
 
   if (!pedido) return null
 
@@ -82,6 +104,8 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
   const enviar = (values: EntregaPedidoValues, forzarLimite: boolean) => {
     setServerError(null)
     const formData = new FormData()
+    // `TasaSelector` fija `tasa_origen`/`tasa_fuente`/`tasa`; el servidor
+    // recalcula la referencial y avisa si cambió (canal `info`).
     formData.set('payload', JSON.stringify(values))
     formData.set('forzar_limite', String(forzarLimite))
 
@@ -100,6 +124,7 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
         return
       }
       notify.success(result.success ?? 'Pedido entregado')
+      if (result.info) notify.info(result.info)
       onClose()
     })
   }
@@ -117,12 +142,23 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
     if (ok) enviar(values, true)
   }
 
-  const onSubmit = handleSubmit((values) => enviar(values, false))
+  const onSubmit = handleSubmit(async (values) => {
+    // Confirmación del umbral de desviación de la tasa manual (08-tasas).
+    const ok = await pedirConfirmacionTasaManual(
+      confirm,
+      values,
+      referencial,
+      configTasas.umbral_desviacion_tasa_pct
+    )
+    if (!ok) return
+    enviar(values, false)
+  })
 
   return (
     <Dialog open={!!pedido} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
-      <Box component="form" onSubmit={onSubmit} noValidate>
-        <DialogTitle>Entregar pedido</DialogTitle>
+      <FormProvider {...methods}>
+        <Box component="form" onSubmit={onSubmit} noValidate>
+          <DialogTitle>Entregar pedido</DialogTitle>
 
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gap: 2.5 }}>
@@ -198,6 +234,13 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
               ))}
             </Box>
 
+            <TasaSelector
+              fecha={fecha || fechaHoy()}
+              config={configTasas}
+              onReferencial={setReferencial}
+              titulo="Tasa de la factura"
+            />
+
             {serverError ? <Alert severity="error">{serverError}</Alert> : null}
           </Box>
         </DialogContent>
@@ -215,7 +258,8 @@ export function EntregaPedidoDialog({ pedido, onClose }: EntregaPedidoDialogProp
             Entregar y facturar
           </Button>
         </DialogActions>
-      </Box>
+        </Box>
+      </FormProvider>
     </Dialog>
   )
 }

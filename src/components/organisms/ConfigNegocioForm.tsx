@@ -28,6 +28,8 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     iva_pct: c?.iva_pct ?? 16,
     fuente_tasa_default: c?.fuente_tasa_default ?? 'bcv',
     umbral_stock_bajo_kg: c?.umbral_stock_bajo_kg ?? null,
+    // 08-tasas: default de la migración (10 %) si la fila no lo trae.
+    umbral_desviacion_tasa_pct: c?.umbral_desviacion_tasa_pct ?? 10,
   }
 }
 
@@ -46,6 +48,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
 
   const ivaPct = useWatch({ control, name: 'iva_pct' })
   const umbralKg = useWatch({ control, name: 'umbral_stock_bajo_kg' })
+  const umbralTasa = useWatch({ control, name: 'umbral_desviacion_tasa_pct' })
 
   React.useEffect(() => {
     reset(toFormValues(config))
@@ -81,7 +84,8 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <Box>
             <Typography variant="h6">Configuración del negocio</Typography>
             <Typography variant="caption" color="text.secondary">
-              IVA por defecto, fuente de tasa preferida y umbral de stock bajo.
+              IVA por defecto, fuente de tasa preferida, umbral de stock bajo y umbral de
+              desviación de la tasa manual.
             </Typography>
           </Box>
           <Divider />
@@ -116,6 +120,20 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             onChange={(v) => methods.setValue('umbral_stock_bajo_kg', v, { shouldDirty: true })}
             error={!!formState.errors.umbral_stock_bajo_kg}
             helperText={formState.errors.umbral_stock_bajo_kg?.message}
+          />
+
+          <NumberField
+            label="Umbral de desviación de tasa (%) *"
+            fullWidth
+            decimals={2}
+            suffix="%"
+            value={umbralTasa}
+            onChange={(v) => methods.setValue('umbral_desviacion_tasa_pct', v ?? 0, { shouldDirty: true })}
+            error={!!formState.errors.umbral_desviacion_tasa_pct}
+            helperText={
+              formState.errors.umbral_desviacion_tasa_pct?.message ??
+              'Si una tasa manual difiere más que esto de la referencial, se pide confirmación antes de guardar.'
+            }
           />
 
           {serverError ? <Alert severity="error">{serverError}</Alert> : null}

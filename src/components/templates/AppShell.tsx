@@ -29,6 +29,7 @@ import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
+import CurrencyExchangeOutlinedIcon from '@mui/icons-material/CurrencyExchangeOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
@@ -94,6 +95,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: <PointOfSaleOutlinedIcon />,
   },
   { href: '/cobros', label: 'Cobros y pagos', icon: <PaymentsOutlinedIcon /> },
+  {
+    href: '/tasas',
+    label: 'Tasas de cambio',
+    icon: <CurrencyExchangeOutlinedIcon />,
+  },
   {
     href: '/notas-credito',
     label: 'Notas de crédito',

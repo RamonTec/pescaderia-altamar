@@ -22,8 +22,14 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { PedidoItemsFieldArray, pedidoItemVacio } from '@/components/molecules/PedidoItemsFieldArray'
+import {
+  pedirConfirmacionTasaManual,
+  TasaSelector,
+  type ReferencialTasa,
+  type TasaSelectorConfig,
+} from '@/components/organisms/TasaSelector'
 import { pedidoFormSchema, type PedidoFormInput, type PedidoFormValues } from '@/lib/pedidoValidation'
-import { fechaHoy, formatUsd } from '@/lib/format'
+import { fechaHoy, formatBs, formatUsd } from '@/lib/format'
 import type { AdvertenciaLimiteCredito } from '@/lib/services/invoiceService'
 import type { Cliente, Producto } from '@/types/domain'
 import { crearPedidoAction } from '@/app/(protected)/pedidos/actions'
@@ -37,6 +43,8 @@ export interface PedidoFormProps {
   onClose: () => void
   clientes: Cliente[]
   productos: Producto[]
+  /** Config de tasas de `config_negocio` (08-tasas Fase D). */
+  configTasas: TasaSelectorConfig
 }
 
 function vacio(): PedidoFormInput {
@@ -47,6 +55,11 @@ function vacio(): PedidoFormInput {
     fecha_entrega: null,
     condicion: 'contado',
     notas: '',
+    // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
+    // completa origen/fuente/valor; solo la venta directa la exige.
+    tasa_origen: 'referencial',
+    tasa_fuente: null,
+    tasa: null,
     items: [pedidoItemVacio()],
   }
 }
@@ -54,13 +67,14 @@ function vacio(): PedidoFormInput {
 /**
  * Un solo formulario para pedido agendado y venta directa (POS):
  * - `entrega_inmediata = false`: pedido agendado (fecha de entrega + peso estimado).
- * - `entrega_inmediata = true`: venta directa (peso real → factura al guardar).
+ * - `entrega_inmediata = true`: venta directa (peso real → factura al guardar);
+ *   la tasa se elige con `TasaSelector` (referencial por fecha o manual).
  *
  * Si una venta a crédito excede el límite del cliente, el servidor devuelve la
  * advertencia estructurada y aquí se pide confirmación; al confirmar se reintenta
  * con `forzar_limite = true`.
  */
-export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormProps) {
+export function PedidoForm({ open, onClose, clientes, productos, configTasas }: PedidoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -75,11 +89,15 @@ export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormPro
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
-  const [clienteId, entregaInmediata, condicion, items] = useWatch({
+  const [clienteId, entregaInmediata, condicion, fecha, items] = useWatch({
     control,
-    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'items'],
+    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'fecha', 'items'],
   })
   const cliente = clientes.find((c) => c.id === clienteId) ?? null
+
+  // Referencial vigente que el `TasaSelector` reporta (08-tasas): se usa
+  // para la confirmación del umbral al enviar.
+  const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
 
   const totalUsd = (items ?? []).reduce(
     (s, i) => s + (i.peso_kg != null && i.precio_usd_kg != null ? i.peso_kg * i.precio_usd_kg : 0),
@@ -102,6 +120,9 @@ export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormPro
   const enviar = (values: PedidoFormValues, forzarLimite: boolean) => {
     setServerError(null)
     const formData = new FormData()
+    // `TasaSelector` fija `tasa_origen`/`tasa_fuente`/`tasa`; el servidor
+    // recalcula la referencial y avisa si cambió mientras el form estaba
+    // abierto (canal `info`).
     formData.set('payload', JSON.stringify(values))
     formData.set('forzar_limite', String(forzarLimite))
 
@@ -120,6 +141,7 @@ export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormPro
         return
       }
       notify.success(result.success ?? 'Listo')
+      if (result.info) notify.info(result.info)
       onClose()
     })
   }
@@ -141,7 +163,20 @@ export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormPro
     if (ok) enviar(values, true)
   }
 
-  const onSubmit = handleSubmit((values) => enviar(values, false))
+  const onSubmit = handleSubmit(async (values) => {
+    // La tasa solo se exige en la venta directa: el pedido agendado la
+    // congela al entregar (spec 08-tasas).
+    if (entregaInmediata) {
+      const ok = await pedirConfirmacionTasaManual(
+        confirm,
+        values,
+        referencial,
+        configTasas.umbral_desviacion_tasa_pct
+      )
+      if (!ok) return
+    }
+    enviar(values, false)
+  })
 
   return (
     <Dialog
@@ -301,6 +336,21 @@ export function PedidoForm({ open, onClose, clientes, productos }: PedidoFormPro
                 productos={productos}
                 etiquetaPeso={entregaInmediata ? 'Peso real' : 'Peso estimado'}
               />
+
+              {entregaInmediata ? (
+                <TasaSelector
+                  fecha={fecha || fechaHoy()}
+                  config={configTasas}
+                  onReferencial={setReferencial}
+                  renderEquivalencia={(tasaFinal) =>
+                    totalUsd && tasaFinal ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Equivale a {formatBs(totalUsd * tasaFinal)} con esta tasa.
+                      </Typography>
+                    ) : null
+                  }
+                />
+              ) : null}
 
               <Box
                 sx={{

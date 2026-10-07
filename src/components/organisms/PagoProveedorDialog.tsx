@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useTransition } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -22,6 +22,12 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
+import {
+  pedirConfirmacionTasaManual,
+  TasaSelector,
+  type ReferencialTasa,
+  type TasaSelectorConfig,
+} from '@/components/organisms/TasaSelector'
 import type { CompraFila } from '@/components/organisms/ComprasTable'
 import {
   METODOS_POR_MONEDA,
@@ -34,6 +40,7 @@ import { fechaHoy, formatBs, formatFecha, formatTasa, formatUsd } from '@/lib/fo
 import type { MetodoPago } from '@/types/domain'
 import { registrarPagoProveedorAction } from '@/app/(protected)/compras/actions'
 import { useNotify } from '@/lib/useNotify'
+import { useConfirm } from '@/lib/useConfirm'
 
 const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
 
@@ -48,18 +55,22 @@ const METODO_LABEL: Record<MetodoPago, string> = {
 
 export interface PagoProveedorDialogProps {
   compra: CompraFila | null
-  tasaDelDia: number | null
+  configTasas: TasaSelectorConfig
   onClose: () => void
 }
 
-function vacio(compraId: string, tasa: number | null): PagoProveedorFormInput {
+function vacio(compraId: string): PagoProveedorFormInput {
   return {
     compra_id: compraId,
     fecha: fechaHoy(),
     moneda_pago: 'usd',
     metodo: 'transferencia',
     monto: null,
-    tasa_pago: tasa,
+    // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
+    // completa origen/fuente/valor (o exige la manual).
+    tasa_origen: 'referencial',
+    tasa_fuente: null,
+    tasa: null,
   }
 }
 
@@ -67,50 +78,63 @@ function vacio(compraId: string, tasa: number | null): PagoProveedorFormInput {
  * Montar con `key={compra.id}`: el formulario toma sus valores iniciales al montarse.
  *
  * Abono a una compra a crédito. La deuda está en USD; un pago en Bs se
- * convierte con la tasa del día y muestra la ganancia cambiaria frente a la
- * tasa congelada en la compra (/SPEC.md §4.5).
+ * convierte con la tasa elegida (`TasaSelector`) y muestra la ganancia
+ * cambiaria frente a la tasa congelada en la compra (/SPEC.md §4.5).
  */
-export function PagoProveedorDialog({ compra, tasaDelDia, onClose }: PagoProveedorDialogProps) {
+export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProveedorDialogProps) {
   const notify = useNotify()
+  const confirm = useConfirm()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
-  const { control, register, handleSubmit, setError, setValue, formState } = useForm<
+  const methods = useForm<
     PagoProveedorFormInput,
     unknown,
     PagoProveedorFormValues
   >({
     resolver: zodResolver(pagoProveedorFormSchema),
     mode: 'onSubmit',
-    defaultValues: vacio(compra?.id ?? '', tasaDelDia),
+    defaultValues: vacio(compra?.id ?? ''),
+  })
+  const { control, register, handleSubmit, setError, setValue, formState } = methods
+
+  const [moneda, monto, tasa, fecha] = useWatch({
+    control,
+    name: ['moneda_pago', 'monto', 'tasa', 'fecha'],
   })
 
-  const [moneda, monto, tasaPago] = useWatch({
-    control,
-    name: ['moneda_pago', 'monto', 'tasa_pago'],
-  })
+  // Referencial vigente que el `TasaSelector` reporta (08-tasas).
+  const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
 
   if (!compra) return null
 
   const saldo = saldoPendiente(Number(compra.subtotal_usd), Number(compra.pagado_usd))
   const tasaCompra = Number(compra.tasa_snapshot)
-  const tasaValida = tasaPago != null && tasaPago > 0
-  const montoUsd = monto != null && tasaValida ? usdEquivalentes(monto, moneda, tasaPago) : null
+  const tasaValida = tasa != null && tasa > 0
+  const montoUsd = monto != null && tasaValida ? usdEquivalentes(monto, moneda, tasa) : null
   const restante = montoUsd != null ? Math.max(saldo - montoUsd, 0) : null
   const excede = montoUsd != null && montoUsd > saldo + 0.01
   const ganancia =
     montoUsd != null && tasaValida
-      ? gananciaCambiariaBs(tasaCompra, tasaPago, Math.min(montoUsd, saldo), moneda)
+      ? gananciaCambiariaBs(tasaCompra, tasa, Math.min(montoUsd, saldo), moneda)
       : null
 
   const pagarSaldo = () => {
     if (moneda === 'usd') setValue('monto', saldo, { shouldDirty: true })
-    else if (tasaValida) setValue('monto', Math.round(saldo * tasaPago * 100) / 100, { shouldDirty: true })
+    else if (tasaValida) setValue('monto', Math.round(saldo * tasa * 100) / 100, { shouldDirty: true })
   }
 
-  const onSubmit = handleSubmit((values) => {
+  const onSubmit = handleSubmit(async (values) => {
+    // Confirmación del umbral de desviación de la tasa manual (08-tasas).
+    const ok = await pedirConfirmacionTasaManual(
+      confirm,
+      values,
+      referencial,
+      configTasas.umbral_desviacion_tasa_pct
+    )
+    if (!ok) return
     setServerError(null)
     const formData = new FormData()
     formData.set('payload', JSON.stringify(values))
@@ -126,6 +150,7 @@ export function PagoProveedorDialog({ compra, tasaDelDia, onClose }: PagoProveed
         return
       }
       notify.success(result.success ?? 'Pago registrado')
+      if (result.info) notify.info(result.info)
       onClose()
     })
   })
@@ -139,6 +164,7 @@ export function PagoProveedorDialog({ compra, tasaDelDia, onClose }: PagoProveed
       fullScreen={fullScreen}
     >
       <Box component="form" onSubmit={onSubmit} noValidate>
+        <FormProvider {...methods}>
         <DialogTitle>Registrar pago</DialogTitle>
 
         <DialogContent dividers>
@@ -224,21 +250,11 @@ export function PagoProveedorDialog({ compra, tasaDelDia, onClose }: PagoProveed
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Controller
-                  control={control}
-                  name="tasa_pago"
-                  render={({ field }) => (
-                    <NumberField
-                      label="Tasa del pago (Bs/USD) *"
-                      fullWidth
-                      decimals={4}
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      error={!!formState.errors.tasa_pago}
-                      helperText={formState.errors.tasa_pago?.message}
-                    />
-                  )}
+                <TasaSelector
+                  fecha={fecha || fechaHoy()}
+                  config={configTasas}
+                  onReferencial={setReferencial}
+                  titulo="Tasa del pago"
                 />
               </Grid>
               <Grid size={12}>
@@ -298,6 +314,7 @@ export function PagoProveedorDialog({ compra, tasaDelDia, onClose }: PagoProveed
             Registrar pago
           </Button>
         </DialogActions>
+        </FormProvider>
       </Box>
     </Dialog>
   )
