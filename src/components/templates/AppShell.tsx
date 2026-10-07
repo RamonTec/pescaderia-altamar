@@ -7,17 +7,20 @@ import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonIcon from '@mui/icons-material/Person'
 import GroupIcon from '@mui/icons-material/Group'
-import { createClient } from '@/lib/supabase/client'
-import { signOutAction } from '@/app/login/actions'
+import PeopleIcon from '@mui/icons-material/People'
+import MenuIcon from '@mui/icons-material/Menu'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
@@ -27,6 +30,9 @@ import ShoppingBagIcon from '@mui/icons-material/ShoppingBag'
 import CategoryIcon from '@mui/icons-material/Category'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices'
 import PaymentsIcon from '@mui/icons-material/Payments'
+import { createClient } from '@/lib/supabase/client'
+import { signOutAction } from '@/app/login/actions'
+import { ColorModeToggle } from '@/components/atoms/ColorModeToggle'
 
 const NAV_WIDTH = 240
 
@@ -37,6 +43,7 @@ const NAV_ITEMS: {
   adminOnly?: boolean
 }[] = [
   { href: '/', label: 'Dashboard', icon: <DashboardIcon /> },
+  { href: '/clientes', label: 'Clientes', icon: <PeopleIcon /> },
   { href: '/catalogos', label: 'Catálogos', icon: <CategoryIcon /> },
   { href: '/compras', label: 'Compras', icon: <ShoppingBagIcon /> },
   { href: '/procesamiento', label: 'Procesamiento', icon: <CleaningServicesIcon /> },
@@ -48,8 +55,17 @@ const NAV_ITEMS: {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const theme = useTheme()
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
+  const [mobileOpen, setMobileOpen] = React.useState(false)
   const [email, setEmail] = React.useState<string | null>(null)
   const [rol, setRol] = React.useState<'admin' | 'operador' | null>(null)
+
+  const [prevDesktop, setPrevDesktop] = React.useState(isDesktop)
+  if (prevDesktop !== isDesktop) {
+    setPrevDesktop(isDesktop)
+    setMobileOpen(false)
+  }
 
   React.useEffect(() => {
     let active = true
@@ -77,6 +93,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const closeDrawer = React.useCallback(() => setMobileOpen(false), [])
+
   const drawer = (
     <Box>
       <Toolbar>
@@ -98,6 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 component={Link}
                 href={item.href}
                 selected={active}
+                onClick={closeDrawer}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} />
@@ -118,16 +137,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         sx={{ zIndex: (t) => t.zIndex.drawer + 1, bgcolor: 'background.paper' }}
       >
         <Toolbar>
+          {!isDesktop ? (
+            <IconButton
+              color="inherit"
+              aria-label="Abrir menú"
+              edge="start"
+              onClick={() => setMobileOpen(true)}
+              sx={{ mr: 1, color: 'text.secondary' }}
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : null}
           <Typography variant="subtitle2" color="text.secondary" sx={{ flexGrow: 1 }}>
             <ReceiptLongIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
             Gestión interna · Venezuela
           </Typography>
           {email ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}
+            >
               {email}
               {rol ? ` · ${rol}` : ''}
             </Typography>
           ) : null}
+          <ColorModeToggle />
           <Button
             size="small"
             color="inherit"
@@ -151,17 +186,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </form>
         </Toolbar>
       </AppBar>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: NAV_WIDTH,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': { width: NAV_WIDTH, boxSizing: 'border-box' },
-        }}
+
+      <Box
+        component="nav"
+        sx={{ width: { md: NAV_WIDTH }, flexShrink: { md: 0 } }}
       >
-        {drawer}
-      </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: `${NAV_WIDTH}px` }}>
+        <Drawer
+          variant={isDesktop ? 'permanent' : 'temporary'}
+          open={isDesktop ? true : mobileOpen}
+          onClose={closeDrawer}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: NAV_WIDTH,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: 3, width: { md: `calc(100% - ${NAV_WIDTH}px)` } }}
+      >
         <Toolbar />
         {children}
       </Box>

@@ -7,6 +7,7 @@ import createCache from '@emotion/cache'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { theme } from './theme'
+import { themeStorageManager } from '@/lib/themeStorage'
 
 const options = { key: 'mui', prepend: true }
 
@@ -37,7 +38,12 @@ export function ThemeRegistry({ children }: { children: React.ReactNode }) {
 
   return (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider
+        theme={theme}
+        defaultMode="system"
+        storageManager={themeStorageManager}
+        disableTransitionOnChange
+      >
         <CssBaseline />
         {children}
       </ThemeProvider>
