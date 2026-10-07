@@ -1,7 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { useActionState } from 'react'
+import { useTransition } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import Link from 'next/link'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -10,15 +13,38 @@ import Typography from '@mui/material/Typography'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
 import ScaleIcon from '@mui/icons-material/Scale'
-import { loginAction, type LoginState } from '@/app/login/actions'
+import { loginAction } from '@/app/login/actions'
 
-const initialState: LoginState = { error: null }
+const schema = z.object({
+  email: z.string().min(1, 'Ingresa tu email').email('Email inválido'),
+  password: z.string().min(1, 'Ingresa tu contraseña'),
+})
+
+type FormValues = z.infer<typeof schema>
 
 export function LoginForm() {
-  const [state, formAction, isPending] = useActionState(
-    loginAction,
-    initialState
-  )
+  const [isPending, startTransition] = useTransition()
+  const [serverError, setServerError] = React.useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitted, isValid },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: 'onSubmit',
+  })
+
+  const onSubmit = handleSubmit((values) => {
+    setServerError(null)
+    startTransition(async () => {
+      const formData = new FormData()
+      formData.set('email', values.email)
+      formData.set('password', values.password)
+      const result = await loginAction({ error: null }, formData)
+      setServerError(result.error)
+    })
+  })
 
   return (
     <Box sx={{ width: '100%', maxWidth: 400 }}>
@@ -32,29 +58,31 @@ export function LoginForm() {
         Gestión interna · Ingresa con tu cuenta
       </Typography>
 
-      <Box component="form" action={formAction} sx={{ display: 'grid', gap: 2 }}>
+      <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: 'grid', gap: 2 }}>
         <TextField
-          name="email"
           label="Email"
           type="email"
-          required
           fullWidth
           autoComplete="email"
+          error={!!errors.email}
+          helperText={errors.email?.message}
+          {...register('email')}
         />
         <TextField
-          name="password"
           label="Contraseña"
           type="password"
-          required
           fullWidth
           autoComplete="current-password"
+          error={!!errors.password}
+          helperText={errors.password?.message}
+          {...register('password')}
         />
-        {state.error ? <Alert severity="error">{state.error}</Alert> : null}
+        {serverError ? <Alert severity="error">{serverError}</Alert> : null}
         <Button
           type="submit"
           variant="contained"
           size="large"
-          disabled={isPending}
+          disabled={isPending || (isSubmitted && !isValid)}
           startIcon={isPending ? <CircularProgress size={18} color="inherit" /> : null}
         >
           Entrar
