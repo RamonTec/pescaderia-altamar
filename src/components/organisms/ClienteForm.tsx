@@ -16,6 +16,7 @@ import { ClienteFormFields } from '@/components/molecules/ClienteFormFields'
 import { RepresentantesLegalesFieldArray } from '@/components/molecules/RepresentantesLegalesFieldArray'
 import { DocumentoUpload } from '@/components/molecules/DocumentoUpload'
 import { representanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
+import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
 import {
   clienteFormSchema,
   type ClienteFormValues,
@@ -134,12 +135,12 @@ export function ClienteForm({ open, cliente, onClose }: ClienteFormProps) {
                 <Box sx={{ display: 'grid', gap: 1 }}>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                     <DocumentoUpload
-                      clienteId={cliente.id}
+                      store={makeClienteDocumentoStore(cliente.id)}
                       tipo={'cedula' as TipoDocumentoCliente}
                       label="Documento de cédula"
                     />
                     <DocumentoUpload
-                      clienteId={cliente.id}
+                      store={makeClienteDocumentoStore(cliente.id)}
                       tipo={'rif' as TipoDocumentoCliente}
                       label="Documento de RIF"
                     />

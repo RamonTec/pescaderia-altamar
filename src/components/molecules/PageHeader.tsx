@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 
 export interface PageHeaderProps {
-  title: string
+  title: React.ReactNode
   children?: React.ReactNode
 }
 

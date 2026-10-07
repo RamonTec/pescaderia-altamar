@@ -75,10 +75,60 @@ export interface DocumentoCliente {
 export interface Proveedor {
   id: string
   nombre: string
+  tipo_persona: TipoPersona
   rif_ci: string | null
   telefono: string | null
+  email: string | null
+  direccion: string | null
+  contacto_nombre: string | null
+  contacto_telefono: string | null
   notas: string | null
+  bloqueado: boolean
+  motivo_bloqueo: string | null
   activo: boolean
+}
+
+export type TipoMetodoPago = 'transferencia' | 'pago_movil' | 'zelle'
+
+export interface MetodoPagoProveedor {
+  id: string
+  proveedor_id: string
+  tipo: TipoMetodoPago
+  banco_codigo: string | null
+  numero_cuenta: string | null
+  tipo_cuenta: 'corriente' | 'ahorro' | null
+  telefono: string | null
+  email: string | null
+  titular: string | null
+  titular_rif_ci: string | null
+  preferido: boolean
+}
+
+export interface RepresentanteProveedor {
+  id: string
+  proveedor_id: string
+  nombre: string
+  cedula: string
+  cargo: string | null
+  telefono: string | null
+}
+
+export type TipoDocumentoProveedor = 'cedula' | 'rif' | 'acta_constitutiva' | 'otro'
+
+export interface DocumentoProveedor {
+  id: string
+  proveedor_id: string
+  tipo: TipoDocumentoProveedor
+  representante_id: string | null
+  url_storage: string
+  nombre_original: string | null
+  mime_type: string | null
+  tamano_bytes: number | null
+}
+
+export interface EstadoDocumental {
+  completa: boolean
+  faltantes: string[]
 }
 
 export interface Compra {

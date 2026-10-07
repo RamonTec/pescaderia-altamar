@@ -9,10 +9,9 @@ import {
   crearCliente,
   desactivar,
   desbloquear,
-  AccionNoAutorizadaError,
-  ClienteValidationError,
   type ClienteCreateInput,
 } from '@/lib/services/clienteService'
+import { toActionError } from '@/lib/actionState'
 
 export interface ClienteActionState {
   error: string | null
@@ -24,22 +23,7 @@ async function requireAuth(): Promise<boolean> {
 }
 
 function toError(e: unknown): string {
-  if (e instanceof ClienteValidationError) return e.message
-  if (e instanceof AccionNoAutorizadaError) return e.message
-  if (e instanceof Error) {
-    // Los errores de PostgREST traen code/details/hint que `message` esconde.
-    const pg = e as Error & { code?: string; details?: string; hint?: string }
-    console.error('[clientes] error:', {
-      message: pg.message,
-      code: pg.code,
-      details: pg.details,
-      hint: pg.hint,
-    })
-    if (pg.hint) return `${pg.message} (${pg.hint})`
-    if (pg.code) return `${pg.message} [${pg.code}]`
-    return pg.message
-  }
-  return 'Ocurrió un error inesperado'
+  return toActionError(e).error
 }
 
 export async function upsertClienteAction(

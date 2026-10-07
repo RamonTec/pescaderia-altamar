@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { IDocumentoClienteRepository } from './interfaces'
 import type { DocumentoCliente, TipoDocumentoCliente } from '@/types/domain'
+import type { DocumentoStore } from '@/lib/documentoStore'
 import { createClient } from '@/lib/supabase/client'
 
 const BUCKET = 'documentos-clientes'
@@ -9,6 +10,48 @@ const SIGNED_URL_TTL = 3600
 function buildPath(clienteId: string, tipo: TipoDocumentoCliente, file: File): string {
   const ext = file.name.split('.').pop() ?? 'bin'
   return `clientes/${clienteId}/${tipo}-${Date.now()}.${ext}`
+}
+
+/**
+ * Adaptador `DocumentoStore` para el módulo de clientes. Permite que el
+ * componente genérico `DocumentoUpload` trabaje con documentos de cliente
+ * sin conocer el repositorio concreto.
+ */
+export function makeClienteDocumentoStore(
+  clienteId: string,
+  db: SupabaseClient = createClient()
+): DocumentoStore<TipoDocumentoCliente> {
+  const repo = makeDocumentoClienteRepository(db)
+  return {
+    async list() {
+      const docs = await repo.listByCliente(clienteId)
+      return docs.map((d) => ({
+        id: d.id,
+        tipo: d.tipo,
+        url_storage: d.url_storage,
+        nombre_original: null,
+        mime_type: null,
+        tamano_bytes: null,
+      }))
+    },
+    async upload(file, meta) {
+      const doc = await repo.create(clienteId, meta.tipo, file)
+      return {
+        id: doc.id,
+        tipo: doc.tipo,
+        url_storage: doc.url_storage,
+        nombre_original: file.name,
+        mime_type: file.type,
+        tamano_bytes: file.size,
+      }
+    },
+    async getUrl(id) {
+      return repo.getUrlDescarga(id)
+    },
+    async remove(id) {
+      await repo.delete(id)
+    },
+  }
 }
 
 export function makeDocumentoClienteRepository(

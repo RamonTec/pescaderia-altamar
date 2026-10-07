@@ -17,6 +17,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { DocumentoUpload } from '@/components/molecules/DocumentoUpload'
 import { representanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
+import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
 import { createClient } from '@/lib/supabase/client'
 import type { Cliente, RepresentanteLegal } from '@/types/domain'
 import { formatUsd } from '@/lib/format'
@@ -146,8 +147,8 @@ export function ClienteFicha({
 
       <Seccion titulo="Documentos">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-          <DocumentoUpload clienteId={cliente.id} tipo="cedula" label="Documento de cédula" />
-          <DocumentoUpload clienteId={cliente.id} tipo="rif" label="Documento de RIF" />
+          <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="cedula" label="Documento de cédula" />
+          <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="rif" label="Documento de RIF" />
         </Box>
       </Seccion>
 

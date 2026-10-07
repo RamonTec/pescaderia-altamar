@@ -1,12 +1,24 @@
 import { z } from 'zod'
+import {
+  MSG_NOMBRE_REQUERIDO,
+  MSG_RIF_CI_INVALIDO,
+  MSG_CEDULA_INVALIDA,
+  MSG_EMAIL_INVALIDO,
+} from './validationMessages'
 
 export const RIF_CI_REGEX = /^[VEJG]-\d{6,10}(-\d)?$/
 export const CEDULA_REGEX = /^[VE]-\d{6,10}$/
 
+/**
+ * Teléfono venezolano: `0` + código de área de 3 dígitos + 7 dígitos.
+ * Admite guion opcional entre el código de área y el número.
+ */
+export const TELEFONO_VE_REGEX = /^0(2\d{2}|4(12|14|16|24|26|22))-?\d{7}$/
+
 export const representanteSchema = z.object({
   id: z.string().optional(),
-  nombre: z.string().min(1, 'Nombre requerido'),
-  cedula: z.string().regex(CEDULA_REGEX, 'Cédula inválida (V-/E- + números)'),
+  nombre: z.string().min(1, MSG_NOMBRE_REQUERIDO),
+  cedula: z.string().regex(CEDULA_REGEX, MSG_CEDULA_INVALIDA),
   cargo: z.string(),
   telefono: z.string(),
 })
@@ -15,11 +27,11 @@ export type RepresentanteFormValues = z.infer<typeof representanteSchema>
 
 export const clienteFormSchema = z
   .object({
-    nombre: z.string().min(1, 'Nombre requerido'),
+    nombre: z.string().min(1, MSG_NOMBRE_REQUERIDO),
     tipo_persona: z.enum(['natural', 'juridica']),
-    rif_ci: z.string().regex(RIF_CI_REGEX, 'Formato inválido (V-/E-/J- + números)'),
+    rif_ci: z.string().regex(RIF_CI_REGEX, MSG_RIF_CI_INVALIDO),
     telefono: z.string(),
-    email: z.string().email('Email inválido').or(z.literal('')),
+    email: z.string().email(MSG_EMAIL_INVALIDO).or(z.literal('')),
     direccion: z.string(),
     notas: z.string(),
     limite_credito_usd: z.number().nullable(),
