@@ -30,6 +30,7 @@ import ShoppingBagIcon from '@mui/icons-material/ShoppingBag'
 import CategoryIcon from '@mui/icons-material/Category'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices'
 import PaymentsIcon from '@mui/icons-material/Payments'
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import { createClient } from '@/lib/supabase/client'
 import { signOutAction } from '@/app/login/actions'
 import { ColorModeToggle } from '@/components/atoms/ColorModeToggle'
@@ -44,6 +45,7 @@ const NAV_ITEMS: {
 }[] = [
   { href: '/', label: 'Dashboard', icon: <DashboardIcon /> },
   { href: '/clientes', label: 'Clientes', icon: <PeopleIcon /> },
+  { href: '/proveedores', label: 'Proveedores', icon: <LocalShippingIcon /> },
   { href: '/catalogos', label: 'Catálogos', icon: <CategoryIcon /> },
   { href: '/compras', label: 'Compras', icon: <ShoppingBagIcon /> },
   { href: '/procesamiento', label: 'Procesamiento', icon: <CleaningServicesIcon /> },
