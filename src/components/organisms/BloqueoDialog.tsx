@@ -100,6 +100,7 @@ export function BloqueoDialog({
       <TextField
         label={`${labelMotivo} *`}
         fullWidth
+        size="small"
         multiline
         minRows={3}
         value={motivo}

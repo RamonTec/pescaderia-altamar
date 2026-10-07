@@ -454,6 +454,7 @@ export function RecordatorioDialog({
                       minRows={8}
                       maxRows={18}
                       fullWidth
+                      size="small"
                       value={textoWhatsapp}
                       disabled={pending}
                       onChange={(e) => {
@@ -467,6 +468,7 @@ export function RecordatorioDialog({
                       <TextField
                         label="Asunto *"
                         fullWidth
+                        size="small"
                         value={asunto}
                         disabled={pending}
                         onChange={(e) => {
@@ -494,6 +496,7 @@ export function RecordatorioDialog({
                         minRows={6}
                         maxRows={14}
                         fullWidth
+                        size="small"
                         value={textoCorreo}
                         disabled={pending}
                         onChange={(e) => {

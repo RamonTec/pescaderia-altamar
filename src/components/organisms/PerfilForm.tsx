@@ -71,10 +71,11 @@ export function PerfilForm({
 
   return (
     <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: 'grid', gap: 2 }}>
-      <TextField label="Email" value={email} disabled fullWidth />
+      <TextField label="Email" value={email} disabled fullWidth size="small" />
       <TextField
         label="Nombre"
         fullWidth
+        size="small"
         error={!!errors.nombre}
         helperText={errors.nombre?.message}
         {...register('nombre')}
@@ -87,6 +88,7 @@ export function PerfilForm({
         type="password"
         autoComplete="new-password"
         fullWidth
+        size="small"
         error={!!errors.password}
         helperText={errors.password?.message}
         {...register('password')}
@@ -96,6 +98,7 @@ export function PerfilForm({
         type="password"
         autoComplete="new-password"
         fullWidth
+        size="small"
         error={!!errors.confirm}
         helperText={errors.confirm?.message}
         {...register('confirm')}

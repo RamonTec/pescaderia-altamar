@@ -210,6 +210,7 @@ export function CompraForm({
                       <TextField
                         {...params}
                         label="Proveedor *"
+                        size="small"
                         error={!!formState.errors.proveedor_id}
                         helperText={formState.errors.proveedor_id?.message}
                       />

@@ -131,6 +131,7 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
             error={!!formState.errors.nombre}
             helperText={formState.errors.nombre?.message}
             fullWidth
+            size="small"
           />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <TextField
@@ -138,13 +139,14 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
               label="Tipo *"
               {...register('tipo')}
               fullWidth
+              size="small"
               error={!!formState.errors.tipo}
               helperText={formState.errors.tipo?.message}
             >
               <MenuItem value="crudo">Crudo</MenuItem>
               <MenuItem value="procesado">Procesado</MenuItem>
             </TextField>
-            <TextField select label="Categoría" {...register('categoria')} fullWidth>
+            <TextField select size="small" label="Categoría" {...register('categoria')} fullWidth>
               <MenuItem value="">Sin categoría</MenuItem>
               {CATEGORIAS.map((c) => (
                 <MenuItem key={c} value={c}>
@@ -162,6 +164,7 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
                   select
                   label="Se obtiene de *"
                   fullWidth
+                  size="small"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
@@ -192,6 +195,7 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
             error={!!formState.errors.codigo}
             helperText={formState.errors.codigo?.message}
             fullWidth
+            size="small"
             placeholder="Ej. CUR-001"
           />
           <FormControlLabel

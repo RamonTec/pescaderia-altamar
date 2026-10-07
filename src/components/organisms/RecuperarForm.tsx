@@ -108,6 +108,7 @@ export function RecuperarForm() {
           label="Email de tu cuenta"
           type="email"
           fullWidth
+          size="small"
           autoFocus
           autoComplete="email"
           error={!!errors.email}

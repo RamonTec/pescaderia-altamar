@@ -220,6 +220,7 @@ export function ProcesamientoForm({
                         select
                         label="Producto crudo *"
                         fullWidth
+                        size="small"
                         value={field.value}
                         onChange={(e) => {
                           field.onChange(e)
@@ -285,6 +286,7 @@ export function ProcesamientoForm({
                       <NumberField
                         label="Peso de entrada *"
                         fullWidth
+                        size="small"
                         decimals={3}
                         suffix="kg"
                         value={field.value}
@@ -326,6 +328,7 @@ export function ProcesamientoForm({
                         select
                         label="Producto procesado *"
                         fullWidth
+                        size="small"
                         disabled={!origen}
                         value={field.value}
                         onChange={field.onChange}
@@ -357,6 +360,7 @@ export function ProcesamientoForm({
                       <NumberField
                         label="Peso de salida *"
                         fullWidth
+                        size="small"
                         decimals={3}
                         suffix="kg"
                         value={field.value}
@@ -377,6 +381,7 @@ export function ProcesamientoForm({
             <TextField
               label="Notas"
               fullWidth
+              size="small"
               multiline
               maxRows={3}
               {...register('notas')}

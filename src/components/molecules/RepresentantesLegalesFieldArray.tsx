@@ -12,6 +12,7 @@ import Collapse from '@mui/material/Collapse'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import { RifCiField } from '@/components/atoms/RifCiField'
+import { PhoneField } from '@/components/atoms/PhoneField'
 import type { RepresentanteFormValues } from '@/lib/clienteValidation'
 
 interface FormValuesConRepresentantes {
@@ -107,13 +108,21 @@ export function RepresentantesLegalesFieldArray() {
                   />
                 </Grid>
                 <Grid size={{ xs: 10, sm: 3 }}>
-                  <TextField
-                    label="Teléfono"
-                    fullWidth
-                    size="small"
-                    error={!!errors.representantes?.[index]?.telefono}
-                    helperText={errors.representantes?.[index]?.telefono?.message}
-                    {...register(`representantes.${index}.telefono`)}
+                  <Controller
+                    control={control}
+                    name={`representantes.${index}.telefono`}
+                    render={({ field: telField }) => (
+                      <PhoneField
+                        label="Teléfono"
+                        fullWidth
+                        size="small"
+                        value={telField.value}
+                        onChange={telField.onChange}
+                        disabled={telField.disabled}
+                        error={!!errors.representantes?.[index]?.telefono}
+                        helperText={errors.representantes?.[index]?.telefono?.message}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid size={{ xs: 2, sm: 2 }}>

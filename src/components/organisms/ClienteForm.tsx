@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography'
 import { ClienteFormFields } from '@/components/molecules/ClienteFormFields'
 import { RepresentantesLegalesFieldArray } from '@/components/molecules/RepresentantesLegalesFieldArray'
 import { DocumentoUpload } from '@/components/molecules/DocumentoUpload'
+import { FormSection } from '@/components/molecules/FormSection'
 import { AppDialog } from '@/components/organisms/AppDialog'
 import { representanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
 import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
@@ -175,10 +176,7 @@ export function ClienteForm({
         <Box sx={{ display: 'grid', gap: 4 }}>
           <ClienteFormFields diasCreditoDefault={diasCreditoDefault} />
           {tipoPersona === 'juridica' ? <RepresentantesLegalesFieldArray /> : null}
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <Typography variant="h6" component="h3">
-              Documentos
-            </Typography>
+          <FormSection titulo="Documentos">
             {cliente ? (
               <Box
                 sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}
@@ -201,7 +199,7 @@ export function ClienteForm({
                 Podrás adjuntar la cédula y el RIF después de crear el cliente.
               </Typography>
             )}
-          </Box>
+          </FormSection>
         </Box>
       </FormProvider>
     </AppDialog>

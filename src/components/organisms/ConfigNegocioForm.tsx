@@ -9,11 +9,11 @@ import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import { configFormSchema, type ConfigFormValues } from '@/lib/configValidation'
 import { NumberField } from '@/components/atoms/NumberField'
+import { FormSection } from '@/components/molecules/FormSection'
 import type { ConfigNegocio } from '@/types/domain'
 import { updateConfigAction } from '@/app/(protected)/catalogos/actions'
 import { useNotify } from '@/lib/useNotify'
@@ -92,18 +92,15 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
     <Paper variant="outlined" sx={{ p: 3, maxWidth: 560 }}>
       <FormProvider {...methods}>
         <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: 'grid', gap: 2.5 }}>
-          <Box>
-            <Typography variant="h6">Configuración del negocio</Typography>
-            <Typography variant="caption" color="text.secondary">
-              IVA por defecto, fuente de tasa preferida, umbrales, vencimiento de las ventas a
-              crédito y datos de los recordatorios de cobro.
-            </Typography>
-          </Box>
-          <Divider />
-
+          <FormSection
+            titulo="Configuración del negocio"
+            ayuda="IVA por defecto, fuente de tasa preferida, umbrales, vencimiento de las ventas a crédito y datos de los recordatorios de cobro."
+            primera
+          >
           <NumberField
             label="IVA por defecto (%) *"
             fullWidth
+            size="small"
             decimals={2}
             suffix="%"
             value={ivaPct}
@@ -117,6 +114,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             label="Fuente de tasa preferida"
             {...register('fuente_tasa_default')}
             fullWidth
+            size="small"
           >
             <MenuItem value="bcv">BCV (oficial)</MenuItem>
             <MenuItem value="paralela">Paralela</MenuItem>
@@ -125,6 +123,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <NumberField
             label="Umbral de stock bajo (kg)"
             fullWidth
+            size="small"
             decimals={3}
             suffix="kg"
             value={umbralKg}
@@ -136,6 +135,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <NumberField
             label="Días para marcar un lote como antiguo"
             fullWidth
+            size="small"
             decimals={0}
             suffix="días"
             value={diasAlertaLote}
@@ -152,6 +152,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <NumberField
             label="Umbral de desviación de tasa (%) *"
             fullWidth
+            size="small"
             decimals={2}
             suffix="%"
             value={umbralTasa}
@@ -162,21 +163,18 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
               'Si una tasa manual difiere más que esto de la referencial, se pide confirmación antes de guardar.'
             }
           />
+          </FormSection>
 
-          <Divider />
-          <Box>
-            <Typography variant="h6" component="h3">
-              Cuentas por cobrar
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Vencimiento de las ventas a crédito y datos que salen en los recordatorios de cobro.
-            </Typography>
-          </Box>
+          <FormSection
+            titulo="Cuentas por cobrar"
+            ayuda="Vencimiento de las ventas a crédito y datos que salen en los recordatorios de cobro."
+          >
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <NumberField
               label="Días de crédito por defecto *"
               fullWidth
+              size="small"
               decimals={0}
               suffix="días"
               value={diasCredito}
@@ -190,6 +188,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             <NumberField
               label="Aviso «por vencer» (días) *"
               fullWidth
+              size="small"
               decimals={0}
               suffix="días"
               value={diasAviso}
@@ -205,6 +204,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <TextField
             label="Nombre comercial *"
             fullWidth
+            size="small"
             {...register('nombre_comercial')}
             error={!!formState.errors.nombre_comercial}
             helperText={formState.errors.nombre_comercial?.message ?? 'Encabezado de los recordatorios.'}
@@ -214,6 +214,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             label="Correo de respuesta"
             type="email"
             fullWidth
+            size="small"
             {...register('email_respuesta')}
             error={!!formState.errors.email_respuesta}
             helperText={
@@ -225,6 +226,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           <TextField
             label="Instrucciones de pago"
             fullWidth
+            size="small"
             multiline
             minRows={4}
             placeholder={'Pago Móvil: 0412-0000000 · V-12345678 · Banco …\nZelle: pagos@…'}
@@ -249,6 +251,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
               </Typography>
             </Box>
           ) : null}
+          </FormSection>
 
           {serverError ? <Alert severity="error">{serverError}</Alert> : null}
 

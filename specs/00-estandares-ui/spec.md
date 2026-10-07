@@ -163,6 +163,20 @@ Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confi
 
 ## Formularios y validación
 
+### Estructura visual (aprobado el 2026-10-07)
+
+**Divisiones de sección** — todo formulario con más de un tema (identificación, contacto, crédito, documentos…) agrupa sus campos en **`molecules/FormSection`**: título `h6` + `ayuda` opcional (`body2`, `text.secondary`) + divisor de 1 px (`divider`) encima de la sección salvo la primera + 24 px entre secciones y 16 px entre campos (`gap: { xs: 3, campos: 2 }` en unidades del theme). Prop `dense` (16 px de aire) para formularios cortos en `AppDialog xs`. No se escriben encabezados de sección a mano con `Typography` suelto: siempre `FormSection` (reemplaza al helper local `Seccion` que traía `ClienteFormFields`). El pie del formulario (botones) no es una sección: lo pone `AppDialog`.
+
+**Tamaño de inputs** — dentro de formularios (`AppDialog` o página de formulario) todos los `TextField`, `Select`, `Autocomplete` y `ToggleButtonGroup` usan **`size="small"`** (~40 px). Las áreas táctiles de `xs` (≥ 44 px, ver "Responsive") quedan cubiertas por el `label` + margen externo del campo, no por engordar el input. Fuera de formularios (filtros de tabla, barra de búsqueda) se mantiene `small` por densidad; `medium` queda para inputs aislados en páginas de contenido.
+
+**Máscaras de entrada** — librería **`react-number-format`** (`NumericFormat`/`PatternFormat` con `customInput={TextField}`), la única del sistema para dar formato mientras se escribe:
+
+- **`atoms/NumberField`** está construido sobre `NumericFormat`: los caracteres no numéricos **se bloquean en vivo** (no aparecen, no se guardan, no se descartan en silencio al hacer blur). Interfaz pública `value: number | null`, `onChange(number | null)`, `decimals`, `prefix`, `suffix`. Se prohibe reimplementar el parseo manual de números (`parseInput`/`display` artesanales) o usar `<input type="number">` plano.
+- **`atoms/PhoneField`**: teléfono venezolano con máscara `####-#######` (`0414-1234567`), normaliza el prefijo `+58`/`58` y espacios, `inputMode="tel"`. Todo campo de teléfono de la app lo usa.
+- **`atoms/RifCiField`**: máscara completa sobre `PatternFormat` — letra limitada a `V|E|J|G`, guion automático tras la letra, hasta 10 dígitos + dígito verificador opcional (`V-12345678`, `J-123456789`). Todo campo de RIF/cédula lo usa (cliente, representante legal, proveedor).
+
+La máscara **previene**, no valida: la fuente de verdad sigue siendo el esquema `zod` (`RIF_CI_REGEX`, `TELEFONO_VE_REGEX`, límites de rango), que corre al submit con `mode: 'onSubmit'`. Si un valor pegado desde el portapapeles no cumple la máscara completa, zod lo rechaza con su mensaje.
+
 - Librería: `react-hook-form` + `zod` (resolver `@hookform/resolvers/zod`) — **ya instaladas y en uso** (`02-clientes` las trae desde `ClienteForm.tsx`). Lo que sigue formaliza el patrón ya usado ahí para que `03-proveedores` y el resto lo repitan igual, sin inventar una convención distinta.
 - **Un archivo de validación por entidad**: `src/lib/<entidad>Validation.ts` (patrón ya establecido por `src/lib/clienteValidation.ts`) — exporta las regex compartidas que aplican (`RIF_CI_REGEX`, `CEDULA_REGEX`, reusar las de `clienteValidation.ts` en vez de redeclararlas), el esquema `zod` (`<entidad>FormSchema`) y su tipo inferido (`<Entidad>FormValues`). No se crea una carpeta `schemas/` aparte; se sigue el nombre plano ya usado.
 - **Mensajes de error**: se escriben inline en el propio esquema (como ya hace `clienteValidation.ts`: `z.string().min(1, 'Nombre requerido')`), en español, cortos y accionables. Si el mismo mensaje literal se repite en 2 o más entidades (ej. "Formato inválido (V-/E-/J- + números)", "Email inválido"), se extrae a un `src/lib/validationMessages.ts` compartido en ese momento — no antes, para no crear una capa de indirección para mensajes que nunca se repiten.
@@ -171,7 +185,7 @@ Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confi
 - **Gap detectado a corregir — validar también en la Server Action**: hoy `clientes/actions.ts` hace `JSON.parse(raw)` pero **no** vuelve a correr `clienteFormSchema` sobre esos datos antes de escribir en la base — la validación vive solo en el cliente. Esto es una tarea pendiente de `02-clientes` (agregar `clienteFormSchema.safeParse(input)` al inicio de cada action, devolver el error estructurado si falla) y la regla a seguir desde `03-proveedores` en adelante **desde el primer commit**, no como arreglo posterior: toda Server Action que reciba datos de un formulario corre `<entidad>FormSchema.safeParse(input)` antes de tocar el repositorio.
 - **Validación async** (ej. verificar que un `rif_ci` no esté duplicado): no se dispara en cada tecla; se verifica en la Server Action al enviar, y si falla, se mapea el error al campo correspondiente con `setError('rifCi', { message })` de react-hook-form — el usuario lo ve igual que un error de validación normal, aunque vino del servidor. (Todavía no implementado en `02-clientes`; queda como mejora, no bloquea el MVP.)
 - **Campo requerido**: el label lleva asterisco (`label="Nombre *"`), no se depende solo del atributo HTML `required` (poco visible y no estiliza con el error).
-- Campos numéricos de dinero con 2 decimales visibles y de peso (kg) con 3 decimales, usando el helper compartido `components/atoms/NumberField.tsx` (ya existe) en vez de `<input type="number">` plano.
+- Campos numéricos de dinero con 2 decimales visibles y de peso (kg) con 3 decimales, usando `components/atoms/NumberField.tsx` (construido sobre `NumericFormat`, ver "Estructura visual") en vez de `<input type="number">` plano. Campos de teléfono usan `PhoneField`; RIF/cédula usan `RifCiField`.
 - Botón de submit: deshabilitado si el formulario tiene errores o está enviando; muestra `CircularProgress` mientras envía (ver sección Loaders).
 
 ## Transiciones y micro-interacciones
@@ -200,7 +214,10 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | Componente | Carpeta | Para qué |
 |---|---|---|
 | `ColorModeToggle` | `atoms` | Cambiar claro/oscuro/sistema |
-| `NumberField` | `atoms` | Input numérico con formato USD/Bs/kg |
+| `NumberField` | `atoms` | Input numérico sobre `NumericFormat` (bloquea letras en vivo): `decimals`, `prefix`/`suffix` (USD/Bs/kg), `value: number \| null` |
+| `PhoneField` | `atoms` | Teléfono venezolano con máscara `0414-1234567` (`PatternFormat`), normaliza `+58` |
+| `RifCiField` | `atoms` | RIF/cédula con máscara completa `V-/E-/J-/G-` sobre `PatternFormat`, label dinámico |
+| `FormSection` | `molecules` | Sección de formulario: título `h6` + `ayuda` + divisor 1 px (excepto primera); `dense` para diálogos `xs` |
 | `PageLoader` | `atoms` | Skeleton de carga de página completa (`table`/`form`/`ficha`); mientras está montado enciende `NavigationProgress`. `children`: skeleton extra debajo (ej. `CarteraSeccionSkeleton` en la ficha de cliente, 09) |
 | `PageHeader` | `molecules` | Título `h4` + subtítulo + acciones. `primaryAction` (contained en `sm+`, `Fab` en `xs`) y `secondaryActions` (outlined en `sm+`, menú `⋮` en `xs`); `children` sigue funcionando |
 | `EmptyState` | `molecules` | Lista/tabla vacía; `compact` para secciones de ficha (menos aire, título `subtitle1`) |

@@ -69,6 +69,7 @@ export function LoginForm() {
           label="Email"
           type="email"
           fullWidth
+          size="small"
           autoFocus
           autoComplete="email"
           error={!!errors.email}

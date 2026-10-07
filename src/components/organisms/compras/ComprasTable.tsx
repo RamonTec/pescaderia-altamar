@@ -37,7 +37,7 @@ export interface ComprasTableProps {
 export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva }: ComprasTableProps) {
   const columns: GridColDef<CompraFila>[] = React.useMemo(() => [
     colFecha('fecha', 'Fecha', { width: 120 }),
-     {
+    {
       field: 'proveedor',
       headerName: 'Proveedor',
       flex: 1.6,

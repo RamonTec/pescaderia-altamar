@@ -232,6 +232,7 @@ export function RegistrarPagoDialog({ factura, configTasas, onClose }: Registrar
                       select
                       label="Método *"
                       fullWidth
+                      size="small"
                       value={field.value}
                       onChange={field.onChange}
                       error={!!formState.errors.metodo}
@@ -262,6 +263,7 @@ export function RegistrarPagoDialog({ factura, configTasas, onClose }: Registrar
                     <NumberField
                       label={`Monto (${moneda === 'usd' ? 'USD' : 'Bs'}) *`}
                       fullWidth
+                      size="small"
                       decimals={2}
                       prefix={moneda === 'usd' ? '$' : 'Bs'}
                       value={field.value}

@@ -130,6 +130,7 @@ export function TasaManualDialog({ open, onClose, referencialActual }: TasaManua
               label="Fecha valor *"
               type="date"
               fullWidth
+              size="small"
               {...field}
               error={!!formState.errors.fecha}
               helperText={formState.errors.fecha?.message}
@@ -191,6 +192,7 @@ export function TasaManualDialog({ open, onClose, referencialActual }: TasaManua
             <NumberField
               label="Valor (Bs) *"
               fullWidth
+              size="small"
               decimals={6}
               value={field.value}
               onChange={field.onChange}

@@ -33,7 +33,17 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirectedFrom', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+
+    // Cookies de auth staladas (refresh token muerto/expirado) dejarían a la
+    // app en estado "sesión que no valida": se limpian en la propia respuesta
+    // de redirección para que el siguiente login arranque limpio.
+    request.cookies
+      .getAll()
+      .filter((c) => c.name.includes('-auth-token'))
+      .forEach((c) => redirectResponse.cookies.delete(c.name))
+
+    return redirectResponse
   }
 
   return response

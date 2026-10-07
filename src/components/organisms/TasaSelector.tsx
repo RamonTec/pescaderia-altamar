@@ -283,6 +283,7 @@ export function TasaSelector({
               <NumberField
                 label="Tasa manual (Bs/USD) *"
                 fullWidth
+                size="small"
                 decimals={6}
                 value={field.value}
                 onChange={field.onChange}

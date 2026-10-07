@@ -115,6 +115,7 @@ export function PerdidaLoteDialog({ lote, onClose, onRegistrar, onRegistrada }: 
               <NumberField
                 label="Kg perdidos *"
                 fullWidth
+                size="small"
                 decimals={3}
                 suffix="kg"
                 value={field.value}
@@ -174,6 +175,7 @@ export function PerdidaLoteDialog({ lote, onClose, onRegistrar, onRegistrada }: 
         <TextField
           label="Detalle"
           fullWidth
+          size="small"
           multiline
           minRows={2}
           maxRows={4}

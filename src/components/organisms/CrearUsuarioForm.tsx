@@ -61,6 +61,7 @@ export function CrearUsuarioForm() {
         label="Email"
         type="email"
         fullWidth
+        size="small"
         autoComplete="email"
         error={!!errors.email}
         helperText={errors.email?.message}
@@ -69,6 +70,7 @@ export function CrearUsuarioForm() {
       <TextField
         label="Nombre"
         fullWidth
+        size="small"
         error={!!errors.nombre}
         helperText={errors.nombre?.message}
         {...register('nombre')}
@@ -77,6 +79,7 @@ export function CrearUsuarioForm() {
         label="Contraseña inicial"
         type="password"
         fullWidth
+        size="small"
         autoComplete="new-password"
         error={!!errors.password}
         helperText={errors.password?.message}

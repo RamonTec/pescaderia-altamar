@@ -22,8 +22,11 @@ import type { GridColDef } from '@mui/x-data-grid'
 import { BrandMark } from '@/components/atoms/BrandMark'
 import { NavigationProgress } from '@/components/atoms/NavigationProgress'
 import { NumberField } from '@/components/atoms/NumberField'
+import { PhoneField } from '@/components/atoms/PhoneField'
+import { RifCiField } from '@/components/atoms/RifCiField'
 import { PeneroStripes } from '@/components/atoms/PeneroStripes'
 import { PageHeader } from '@/components/molecules/PageHeader'
+import { FormSection } from '@/components/molecules/FormSection'
 import { RowActionsMenu } from '@/components/molecules/RowActionsMenu'
 import {
   AppDataGrid,
@@ -553,6 +556,65 @@ function DialogosSection() {
   )
 }
 
+function FormulariosSection() {
+  const [rif, setRif] = React.useState('')
+  const [telefono, setTelefono] = React.useState('')
+  const [monto, setMonto] = React.useState<number | null>(1500.5)
+  const [dias, setDias] = React.useState<number | null>(null)
+
+  return (
+    <Section
+      title="Formularios"
+      description="Secciones con FormSection (divisor de 1 px salvo la primera), inputs size=&quot;small&quot; y máscaras de entrada: NumberField bloquea letras en vivo, PhoneField formatea 0414-1234567 y RifCiField fuerza V-/E-/J-/G-. La validación de fondo sigue siendo del esquema zod al enviar."
+    >
+      <Box sx={{ display: 'grid', gap: 2, maxWidth: 640 }}>
+        <FormSection titulo="Identificación" primera>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <RifCiField
+              label="Cédula o RIF"
+              size="small"
+              fullWidth
+              value={rif}
+              onChange={setRif}
+              placeholder="V-12345678"
+            />
+            <PhoneField
+              label="Teléfono"
+              size="small"
+              fullWidth
+              value={telefono}
+              onChange={setTelefono}
+              placeholder="0414-1234567"
+            />
+          </Box>
+        </FormSection>
+        <FormSection titulo="Montos" ayuda="Prueba escribir letras: no aparecen.">
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <NumberField
+              label="Límite de crédito (USD)"
+              prefix="$"
+              size="small"
+              fullWidth
+              value={monto}
+              onChange={setMonto}
+            />
+            <NumberField
+              label="Días de crédito"
+              suffix="días"
+              decimals={0}
+              size="small"
+              fullWidth
+              value={dias}
+              onChange={setDias}
+              placeholder="Por defecto: 15"
+            />
+          </Box>
+        </FormSection>
+      </Box>
+    </Section>
+  )
+}
+
 export function EstandaresScreen() {
   const notify = useNotify()
   return (
@@ -579,6 +641,7 @@ export function EstandaresScreen() {
         <BotonesSection />
         <TablasSection />
         <DialogosSection />
+        <FormulariosSection />
       </div>
     </>
   )

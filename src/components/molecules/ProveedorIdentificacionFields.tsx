@@ -12,6 +12,7 @@ import FormLabel from '@mui/material/FormLabel'
 import Collapse from '@mui/material/Collapse'
 import { useTheme } from '@mui/material/styles'
 import { RifCiField } from '@/components/atoms/RifCiField'
+import { PhoneField } from '@/components/atoms/PhoneField'
 import { RepresentantesLegalesFieldArray } from '@/components/molecules/RepresentantesLegalesFieldArray'
 import type { ProveedorFormValues } from '@/lib/proveedorValidation'
 
@@ -59,6 +60,7 @@ export function ProveedorIdentificacionFields() {
           <TextField
             label={tipoPersona === 'juridica' ? 'Razón social *' : 'Nombre *'}
             fullWidth
+            size="small"
             error={!!errors.nombre}
             helperText={errors.nombre?.message}
             {...register('nombre')}
@@ -71,6 +73,7 @@ export function ProveedorIdentificacionFields() {
             render={({ field }) => (
               <RifCiField
                 label={`${rifLabel} *`}
+                size="small"
                 fullWidth
                 value={field.value}
                 onChange={field.onChange}
@@ -81,12 +84,21 @@ export function ProveedorIdentificacionFields() {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="Teléfono"
-            fullWidth
-            error={!!errors.telefono}
-            helperText={errors.telefono?.message}
-            {...register('telefono')}
+          <Controller
+            name="telefono"
+            control={control}
+            render={({ field }) => (
+              <PhoneField
+                label="Teléfono"
+                size="small"
+                fullWidth
+                value={field.value}
+                onChange={field.onChange}
+                disabled={field.disabled}
+                error={!!errors.telefono}
+                helperText={errors.telefono?.message}
+              />
+            )}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -94,6 +106,7 @@ export function ProveedorIdentificacionFields() {
             label="Email"
             type="email"
             fullWidth
+            size="small"
             error={!!errors.email}
             helperText={errors.email?.message}
             {...register('email')}
@@ -103,6 +116,7 @@ export function ProveedorIdentificacionFields() {
           <TextField
             label="Dirección"
             fullWidth
+            size="small"
             error={!!errors.direccion}
             helperText={errors.direccion?.message}
             {...register('direccion')}
@@ -112,24 +126,35 @@ export function ProveedorIdentificacionFields() {
           <TextField
             label="Contacto"
             fullWidth
+            size="small"
             error={!!errors.contacto_nombre}
             helperText={errors.contacto_nombre?.message}
             {...register('contacto_nombre')}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="Teléfono de contacto"
-            fullWidth
-            error={!!errors.contacto_telefono}
-            helperText={errors.contacto_telefono?.message}
-            {...register('contacto_telefono')}
+          <Controller
+            name="contacto_telefono"
+            control={control}
+            render={({ field }) => (
+              <PhoneField
+                label="Teléfono de contacto"
+                size="small"
+                fullWidth
+                value={field.value}
+                onChange={field.onChange}
+                disabled={field.disabled}
+                error={!!errors.contacto_telefono}
+                helperText={errors.contacto_telefono?.message}
+              />
+            )}
           />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <TextField
             label="Notas"
             fullWidth
+            size="small"
             multiline
             minRows={2}
             error={!!errors.notas}

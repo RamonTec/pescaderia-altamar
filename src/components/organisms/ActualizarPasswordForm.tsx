@@ -63,6 +63,7 @@ export function ActualizarPasswordForm() {
           label="Nueva contraseña"
           type="password"
           fullWidth
+          size="small"
           autoComplete="new-password"
           error={!!errors.password}
           helperText={errors.password?.message}
@@ -72,6 +73,7 @@ export function ActualizarPasswordForm() {
           label="Confirmar contraseña"
           type="password"
           fullWidth
+          size="small"
           autoComplete="new-password"
           error={!!errors.confirm}
           helperText={errors.confirm?.message}

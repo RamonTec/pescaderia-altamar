@@ -7,40 +7,16 @@ import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import Typography from '@mui/material/Typography'
+import { FormSection } from '@/components/molecules/FormSection'
 import { RifCiField } from '@/components/atoms/RifCiField'
+import { PhoneField } from '@/components/atoms/PhoneField'
 import { NumberField } from '@/components/atoms/NumberField'
 import type { ClienteFormValues } from '@/lib/clienteValidation'
 
-function Seccion({
-  titulo,
-  ayuda,
-  children,
-}: {
-  titulo: string
-  ayuda?: string
-  children: React.ReactNode
-}) {
-  return (
-    <Box component="fieldset" sx={{ border: 0, p: 0, m: 0, minWidth: 0, display: 'grid', gap: 2 }}>
-      <Box component="legend" sx={{ p: 0, mb: ayuda ? 0.25 : 0 }}>
-        <Typography variant="h6" component="span">
-          {titulo}
-        </Typography>
-      </Box>
-      {ayuda ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: -1.5 }}>
-          {ayuda}
-        </Typography>
-      ) : null}
-      {children}
-    </Box>
-  )
-}
-
 /**
  * Campos base del formulario de cliente, agrupados en Identificación,
- * Contacto y Crédito. Usa FormProvider (useFormContext), por lo que debe
+ * Contacto y Crédito con `FormSection` (spec 00 § Estructura visual) e
+ * inputs `size="small"`. Usa FormProvider (useFormContext), por lo que debe
  * estar dentro de un <FormProvider> montado por el organismo ClienteForm.
  */
 export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefault?: number } = {}) {
@@ -55,7 +31,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
 
   return (
     <Box sx={{ display: 'grid', gap: 4 }}>
-      <Seccion titulo="Identificación">
+      <FormSection titulo="Identificación" primera>
         <Controller
           name="tipo_persona"
           control={control}
@@ -77,6 +53,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
           <Grid size={{ xs: 12, sm: 7 }}>
             <TextField
               label={juridica ? 'Razón social *' : 'Nombre y apellido *'}
+              size="small"
               fullWidth
               error={!!errors.nombre}
               helperText={errors.nombre?.message}
@@ -90,7 +67,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
               render={({ field }) => (
                 <RifCiField
                   label={juridica ? 'RIF *' : 'Cédula o RIF *'}
-                  placeholder={juridica ? 'J-123456789' : 'V-12345678'}
+                  size="small"
                   fullWidth
                   value={field.value}
                   onChange={field.onChange}
@@ -104,25 +81,35 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
             />
           </Grid>
         </Grid>
-      </Seccion>
+      </FormSection>
 
-      <Seccion titulo="Contacto">
+      <FormSection titulo="Contacto">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Teléfono"
-              placeholder="0414-1234567"
-              type="tel"
-              fullWidth
-              error={!!errors.telefono}
-              helperText={errors.telefono?.message}
-              {...register('telefono')}
+            <Controller
+              name="telefono"
+              control={control}
+              render={({ field }) => (
+                <PhoneField
+                  label="Teléfono"
+                  size="small"
+                  fullWidth
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={field.disabled}
+                  error={!!errors.telefono}
+                  helperText={errors.telefono?.message}
+                />
+              )}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Email"
               type="email"
+              size="small"
               fullWidth
               error={!!errors.email}
               helperText={errors.email?.message}
@@ -132,6 +119,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
           <Grid size={{ xs: 12 }}>
             <TextField
               label="Dirección"
+              size="small"
               fullWidth
               error={!!errors.direccion}
               helperText={errors.direccion?.message}
@@ -139,9 +127,9 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
             />
           </Grid>
         </Grid>
-      </Seccion>
+      </FormSection>
 
-      <Seccion titulo="Crédito" ayuda="Déjalo vacío si el cliente solo compra de contado.">
+      <FormSection titulo="Crédito" ayuda="Déjalo vacío si el cliente solo compra de contado.">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
@@ -151,6 +139,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
                 <NumberField
                   label="Límite de crédito (USD)"
                   prefix="$"
+                  size="small"
                   fullWidth
                   value={field.value}
                   onChange={field.onChange}
@@ -171,6 +160,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
                   placeholder={`Por defecto: ${diasCreditoDefault}`}
                   suffix="días"
                   decimals={0}
+                  size="small"
                   fullWidth
                   value={field.value}
                   onChange={field.onChange}
@@ -188,6 +178,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
             <TextField
               label="Notas"
               placeholder="Horario de entrega, preferencias de corte…"
+              size="small"
               fullWidth
               multiline
               minRows={2}
@@ -197,7 +188,7 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
             />
           </Grid>
         </Grid>
-      </Seccion>
+      </FormSection>
     </Box>
   )
 }
