@@ -10,6 +10,7 @@ import { makeRepresentanteProveedorRepository } from '@/lib/repositories/represe
 import { makeMetodoPagoProveedorRepository } from '@/lib/repositories/metodoPagoProveedorRepository'
 import { createClient } from '@/lib/supabase/server'
 import { getRol } from './authService'
+import { getSaldoPendiente as getSaldoProveedor } from './proveedorBalanceService'
 import { evaluarDocumentacion as evaluarDoc } from '@/lib/evaluarDocumentacion'
 
 /**
@@ -247,11 +248,9 @@ export function evaluarDocumentacion(
 }
 
 /**
- * Saldo pendiente del proveedor. La lógica real vive en 04-inventario
- * (proveedorBalanceService); este módulo la consume. Devuelve null hasta
- * que ese servicio exista — la UI muestra "—".
+ * Saldo pendiente del proveedor. La lógica vive en 04-inventario
+ * (proveedorBalanceService); este módulo la consume.
  */
 export async function getSaldoPendiente(proveedorId: string): Promise<number | null> {
-  void proveedorId
-  return null
+  return getSaldoProveedor(proveedorId)
 }

@@ -156,7 +156,19 @@ export interface CompraItem {
   compra_id: string
   producto_id: string
   peso_kg: number
-  costo_usd_kg: number
+  /** `null` para operador: se lee de `compra_items_view` (0003). */
+  costo_usd_kg: number | null
+}
+
+export interface PagoProveedor {
+  id: string
+  compra_id: string
+  fecha: string
+  monto_usd: number
+  moneda_pago: Moneda
+  tasa_pago: number
+  metodo: MetodoPago
+  ganancia_cambiaria_bs: number
 }
 
 export interface Factura {

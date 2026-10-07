@@ -1,10 +1,14 @@
 import type {
   Cliente,
   ClienteInput,
+  Compra,
+  CompraItem,
   ConfigNegocio,
   DocumentoCliente,
   DocumentoProveedor,
   MetodoPagoProveedor,
+  Movimiento,
+  PagoProveedor,
   Producto,
   Proveedor,
   RepresentanteLegal,
@@ -93,4 +97,37 @@ export interface IDocumentoProveedorRepository {
   ): Promise<DocumentoProveedor>
   getUrlDescarga(id: string): Promise<string | null>
   delete(id: string): Promise<void>
+}
+
+/** Movimiento listo para insertar; lo construye `crearMovimiento` (movimientoService). */
+export type MovimientoNuevo = Omit<Movimiento, 'id' | 'fecha'>
+
+export interface IMovimientoRepository {
+  create(movimiento: MovimientoNuevo): Promise<void>
+}
+
+/** Compra con el nombre del proveedor, para listados. */
+export interface CompraResumen extends Compra {
+  proveedor: Pick<Proveedor, 'id' | 'nombre' | 'rif_ci' | 'bloqueado'>
+}
+
+export interface CompraDetalle extends CompraResumen {
+  items: (CompraItem & { producto: Pick<Producto, 'id' | 'nombre' | 'codigo'> })[]
+  pagos: PagoProveedor[]
+}
+
+export type CompraItemNuevo = Pick<CompraItem, 'producto_id' | 'peso_kg'> & { costo_usd_kg: number }
+export type PagoProveedorNuevo = Omit<PagoProveedor, 'id'>
+
+export interface ICompraRepository {
+  /** Inserta compra + items + movimientos en una sola transacción (RPC `registrar_compra`). */
+  create(compra: Compra, items: CompraItemNuevo[], movimientos: MovimientoNuevo[]): Promise<string>
+  list(): Promise<CompraResumen[]>
+  getById(id: string): Promise<CompraDetalle | null>
+  /** Compras con saldo (`estado = 'abierta'`) de un proveedor. */
+  listAbiertasByProveedor(
+    proveedorId: string
+  ): Promise<Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]>
+  /** Inserta el pago y actualiza `pagado_usd`/`estado` (RPC `registrar_pago_proveedor`). */
+  registrarPago(pago: PagoProveedorNuevo): Promise<string>
 }

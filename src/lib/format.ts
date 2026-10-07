@@ -52,3 +52,18 @@ export function formatFecha(iso: string | null | undefined): string {
   if (!y || !m || !d) return iso
   return fechaFormatter.format(new Date(y, m - 1, d))
 }
+
+const isoLocalFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Caracas',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/**
+ * Fecha de hoy en Venezuela como `YYYY-MM-DD`. `toISOString()` da la fecha UTC:
+ * desde las 8 p. m. hora local ya devuelve el día siguiente.
+ */
+export function fechaHoy(): string {
+  return isoLocalFormatter.format(new Date())
+}

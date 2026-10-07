@@ -1,5 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Tasa } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
+import { fechaHoy } from '@/lib/format'
 
 /**
  * RateService (SRP): solo gestión de tasas de cambio.
@@ -22,9 +24,16 @@ export async function fetchTasaRemota(fuente: 'bcv' | 'paralela'): Promise<numbe
   }
 }
 
-export async function getTasaViva(fuente: 'bcv' | 'paralela' = 'bcv'): Promise<Tasa | null> {
-  const db = createClient()
-  const hoy = new Date().toISOString().slice(0, 10)
+/**
+ * Tasa registrada hoy para la fuente (o una manual del día).
+ * `db` permite pasar el cliente de servidor: el de navegador no lleva la
+ * sesión cuando se llama desde un Server Component o una Server Action.
+ */
+export async function getTasaViva(
+  fuente: 'bcv' | 'paralela' = 'bcv',
+  db: SupabaseClient = createClient()
+): Promise<Tasa | null> {
+  const hoy = fechaHoy()
   const { data } = await db
     .from('tasas')
     .select('*')

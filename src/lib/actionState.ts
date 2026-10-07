@@ -70,6 +70,10 @@ export function toActionError(e: unknown, options: ToActionErrorOptions = {}): {
       }
     }
 
+    // `raise exception` de nuestras funciones SQL: el mensaje ya es de dominio
+    // y el hint es un código interno, no texto para el usuario.
+    if (pg.code === 'P0001') return { error: pg.message }
+
     if (pg.hint) return { error: `${pg.message} (${pg.hint})` }
     if (pg.code) return { error: `${pg.message} [${pg.code}]` }
     return { error: pg.message }
