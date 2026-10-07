@@ -4,6 +4,7 @@ import { ClienteFicha } from './cliente-ficha'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
 import { createClient } from '@/lib/supabase/server'
 import { getSaldoPendiente } from '@/lib/services/clienteService'
+import { requireAdmin } from '@/lib/services/authService'
 
 export default async function ClienteFichaPage({
   params,
@@ -15,11 +16,11 @@ export default async function ClienteFichaPage({
   const cliente = await makeClienteRepository(db).getById(id)
   if (!cliente) notFound()
 
-  const saldo = await getSaldoPendiente(id)
+  const [saldo, esAdmin] = await Promise.all([getSaldoPendiente(id), requireAdmin()])
 
   return (
     <AppShell>
-      <ClienteFicha cliente={cliente} saldo={saldo} />
+      <ClienteFicha cliente={cliente} saldo={saldo} esAdmin={esAdmin} />
     </AppShell>
   )
 }

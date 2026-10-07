@@ -2,239 +2,229 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { useTransition } from 'react'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
+import InputAdornment from '@mui/material/InputAdornment'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
+import SearchIcon from '@mui/icons-material/Search'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import BlockIcon from '@mui/icons-material/Block'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
+import PersonSearchOutlinedIcon from '@mui/icons-material/PersonSearchOutlined'
 import { EmptyState } from '@/components/molecules/EmptyState'
+import { StatusChips } from '@/components/molecules/StatusChips'
+import { formatUsd } from '@/lib/format'
 import type { Cliente } from '@/types/domain'
-import {
-  desactivarClienteAction,
-  activarClienteAction,
-  bloquearClienteAction,
-  desbloquearClienteAction,
-} from '@/app/(protected)/clientes/actions'
-import { useNotify } from '@/lib/useNotify'
-import { useConfirm } from '@/lib/useConfirm'
+
+type Filtro = 'activos' | 'bloqueados' | 'todos'
 
 export interface ClientesTableProps {
   clientes: Cliente[]
   esAdmin: boolean
   onEdit: (cliente: Cliente) => void
+  onBloquear: (cliente: Cliente) => void
+  onDesbloquear: (cliente: Cliente) => void
+  onDesactivar: (cliente: Cliente) => void
+  onActivar: (cliente: Cliente) => void
 }
 
-export function ClientesTable({ clientes, esAdmin, onEdit }: ClientesTableProps) {
-  const router = useRouter()
-  const notify = useNotify()
-  const confirm = useConfirm()
-  const [isPending, startTransition] = useTransition()
+const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
 
-  const [soloActivos, setSoloActivos] = React.useState(true)
-  const [bloquearTarget, setBloquearTarget] = React.useState<Cliente | null>(null)
-  const [motivo, setMotivo] = React.useState('')
+/** Minúsculas, sin acentos ni separadores: "V-12.345" y "v12345" coinciden. */
+function normalizar(s: string | null | undefined): string {
+  return (s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[\s.\-]/g, '')
+}
+
+export function ClientesTable({
+  clientes,
+  esAdmin,
+  onEdit,
+  onBloquear,
+  onDesbloquear,
+  onDesactivar,
+  onActivar,
+}: ClientesTableProps) {
+  const router = useRouter()
+  const theme = useTheme()
+  const compacto = useMediaQuery(theme.breakpoints.down('sm'))
+
+  const [filtro, setFiltro] = React.useState<Filtro>('activos')
+  const [busqueda, setBusqueda] = React.useState('')
+  const [menu, setMenu] = React.useState<{ el: HTMLElement; cliente: Cliente } | null>(null)
+
+  const conteo = React.useMemo(
+    () => ({
+      activos: clientes.filter((c) => c.activo).length,
+      bloqueados: clientes.filter((c) => c.bloqueado).length,
+      todos: clientes.length,
+    }),
+    [clientes]
+  )
 
   const filas = React.useMemo(() => {
-    const base = soloActivos ? clientes.filter((c) => c.activo) : clientes
-    return base.map((c) => ({ ...c, id: c.id }))
-  }, [clientes, soloActivos])
-
-  const runAction = (
-    fn: (
-      prev: { error: string | null; success: string | null },
-      formData: FormData
-    ) => Promise<{ error: string | null; success: string | null }>,
-    id: string
-  ) => {
-    startTransition(async () => {
-      const formData = new FormData()
-      formData.set('id', id)
-      const result = await fn({ error: null, success: null }, formData)
-      if (result.error) notify.error(result.error)
-      else notify.success(result.success ?? 'Listo')
+    const q = normalizar(busqueda)
+    return clientes.filter((c) => {
+      if (filtro === 'activos' && !c.activo) return false
+      if (filtro === 'bloqueados' && !c.bloqueado) return false
+      if (!q) return true
+      return [c.nombre, c.rif_ci, c.telefono].some((v) => normalizar(v).includes(q))
     })
+  }, [clientes, filtro, busqueda])
+
+  const cerrarMenu = () => setMenu(null)
+  const desdeMenu = (fn: (c: Cliente) => void) => () => {
+    if (!menu) return
+    const { cliente } = menu
+    cerrarMenu()
+    fn(cliente)
   }
 
-  const handleDesactivar = async (cliente: Cliente) => {
-    const ok = await confirm({
-      title: 'Desactivar cliente',
-      message: `¿Desactivar a "${cliente.nombre}"? No se podrá usar en nuevas ventas.`,
-      confirmLabel: 'Desactivar',
-      destructive: true,
-    })
-    if (!ok) return
-    runAction(desactivarClienteAction, cliente.id)
-  }
-
-  const handleActivar = (cliente: Cliente) => {
-    runAction(activarClienteAction, cliente.id)
-  }
-
-  const handleBloquear = (cliente: Cliente) => {
-    setBloquearTarget(cliente)
-    setMotivo('')
-  }
-
-  const confirmBloquear = () => {
-    if (!bloquearTarget) return
-    if (!motivo.trim()) {
-      notify.error('El motivo de bloqueo es obligatorio')
-      return
-    }
-    startTransition(async () => {
-      const formData = new FormData()
-      formData.set('id', bloquearTarget.id)
-      formData.set('motivo', motivo)
-      const result = await bloquearClienteAction({ error: null, success: null }, formData)
-      if (result.error) notify.error(result.error)
-      else notify.success(result.success ?? 'Cliente bloqueado')
-      setBloquearTarget(null)
-    })
-  }
-
-  const handleDesbloquear = (cliente: Cliente) => {
-    runAction(desbloquearClienteAction, cliente.id)
-  }
-
-  const columns: GridColDef[] = [
-    { field: 'nombre', headerName: 'Nombre', flex: 1.5, minWidth: 180 },
-    { field: 'rif_ci', headerName: 'RIF / Cédula', flex: 1, minWidth: 130 },
-    { field: 'telefono', headerName: 'Teléfono', flex: 1, minWidth: 120 },
+  const columns: GridColDef<Cliente>[] = [
     {
-      field: 'saldo',
-      headerName: 'Saldo pendiente',
-      flex: 1,
-      minWidth: 130,
-      valueGetter: () => '—',
+      field: 'nombre',
+      headerName: 'Cliente',
+      flex: 1.6,
+      minWidth: 200,
+      renderCell: ({ row }) => (
+        <Box sx={{ display: 'grid', alignContent: 'center', height: '100%', minWidth: 0 }}>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+            {row.nombre}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap sx={MONO}>
+            {row.rif_ci ?? 'Sin RIF / cédula'}
+          </Typography>
+        </Box>
+      ),
+    },
+    { field: 'telefono', headerName: 'Teléfono', flex: 1, minWidth: 130, valueGetter: (v) => v ?? '—' },
+    {
+      field: 'limite_credito_usd',
+      headerName: 'Crédito',
+      type: 'number',
+      flex: 0.8,
+      minWidth: 120,
+      renderCell: ({ value }) =>
+        value ? (
+          <Box component="span" sx={MONO}>
+            {formatUsd(value)}
+          </Box>
+        ) : (
+          <Typography variant="body2" component="span" color="text.secondary">
+            Contado
+          </Typography>
+        ),
     },
     {
-      field: 'bloqueado',
+      field: 'estado',
       headerName: 'Estado',
+      sortable: false,
       flex: 0.8,
       minWidth: 110,
-      renderCell: (params) =>
-        params.row.bloqueado ? (
-          <Chip label="Bloqueado" size="small" color="error" />
-        ) : params.row.activo ? (
-          <Chip label="Activo" size="small" color="success" variant="outlined" />
-        ) : (
-          <Chip label="Inactivo" size="small" color="default" variant="outlined" />
-        ),
+      renderCell: ({ row }) => (
+        <StatusChips bloqueado={row.bloqueado} motivoBloqueo={row.motivo_bloqueo} activo={row.activo} />
+      ),
     },
     {
       field: 'acciones',
       headerName: '',
       sortable: false,
       filterable: false,
-      width: 140,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Ver ficha">
-            <IconButton
-              aria-label="Ver ficha"
-              size="small"
-              onClick={() => router.push(`/clientes/${params.row.id}`)}
-            >
-              <VisibilityOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <IconButton
-              aria-label="Editar"
-              size="small"
-              onClick={() => onEdit(params.row as Cliente)}
-            >
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {esAdmin ? (
-            params.row.bloqueado ? (
-              <Tooltip title="Desbloquear">
-                <IconButton
-                  aria-label="Desbloquear"
-                  size="small"
-                  color="success"
-                  onClick={() => handleDesbloquear(params.row as Cliente)}
-                >
-                  <LockOpenOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Bloquear">
-                <IconButton
-                  aria-label="Bloquear"
-                  size="small"
-                  color="warning"
-                  onClick={() => handleBloquear(params.row as Cliente)}
-                >
-                  <LockOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )
-          ) : null}
-          {params.row.activo ? (
-            <Tooltip title="Desactivar">
-              <IconButton
-                aria-label="Desactivar"
-                size="small"
-                color="error"
-                onClick={() => handleDesactivar(params.row as Cliente)}
-              >
-                <BlockIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Activar">
-              <IconButton
-                aria-label="Activar"
-                size="small"
-                color="success"
-                onClick={() => handleActivar(params.row as Cliente)}
-              >
-                <LockOpenOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
+      disableColumnMenu: true,
+      width: 56,
+      align: 'center',
+      renderCell: ({ row }) => (
+        <IconButton
+          aria-label={`Acciones para ${row.nombre}`}
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation()
+            setMenu({ el: e.currentTarget, cliente: row })
+          }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
       ),
     },
   ]
 
+  const sinClientes = clientes.length === 0
+
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={soloActivos ? 'activos' : 'todos'}
-          onChange={(_, next) => next && setSoloActivos(next === 'activos')}
+      {sinClientes ? null : (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: 1.5,
+          }}
         >
-          <ToggleButton value="activos">Activos</ToggleButton>
-          <ToggleButton value="todos">Todos</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <TextField
+            size="small"
+            placeholder="Buscar por nombre, RIF o teléfono"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            sx={{ width: { xs: '100%', sm: 340 } }}
+            slotProps={{
+              htmlInput: { 'aria-label': 'Buscar clientes' },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={filtro}
+            onChange={(_, next: Filtro | null) => next && setFiltro(next)}
+            aria-label="Filtrar clientes"
+            sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}
+          >
+            <ToggleButton value="activos">Activos ({conteo.activos})</ToggleButton>
+            <ToggleButton value="bloqueados">Bloqueados ({conteo.bloqueados})</ToggleButton>
+            <ToggleButton value="todos">Todos ({conteo.todos})</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+      )}
 
-      {filas.length === 0 ? (
+      {sinClientes ? (
         <EmptyState
-          title="Aún no hay clientes"
+          title="Registra tu primer cliente"
+          description="Con los clientes registrados podrás venderles a crédito, agendar pedidos y ver su historial."
+        />
+      ) : filas.length === 0 ? (
+        <EmptyState
+          icon={<PersonSearchOutlinedIcon fontSize="large" />}
+          title="Ningún cliente coincide"
           description={
-            soloActivos
-              ? 'No hay clientes activos. Crea uno nuevo o cambia a "Todos".'
-              : 'No hay clientes registrados todavía.'
+            busqueda
+              ? `No hay clientes ${filtro === 'todos' ? '' : filtro + ' '}que coincidan con "${busqueda}".`
+              : filtro === 'bloqueados'
+                ? 'No hay clientes bloqueados.'
+                : 'No hay clientes activos. Revisa la pestaña "Todos".'
           }
         />
       ) : (
@@ -242,46 +232,60 @@ export function ClientesTable({ clientes, esAdmin, onEdit }: ClientesTableProps)
           rows={filas}
           columns={columns}
           autoHeight
+          rowHeight={60}
           disableRowSelectionOnClick
+          disableColumnMenu
+          onRowClick={({ row }) => router.push(`/clientes/${row.id}`)}
+          columnVisibilityModel={{ telefono: !compacto, limite_credito_usd: !compacto }}
           pageSizeOptions={[10, 25, 50]}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{ bgcolor: 'background.paper' }}
+          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+          sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
         />
       )}
 
-      <Dialog
-        open={!!bloquearTarget}
-        onClose={() => setBloquearTarget(null)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Bloquear cliente</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Motivo del bloqueo"
-            fullWidth
-            multiline
-            minRows={2}
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            autoFocus
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBloquearTarget(null)} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={confirmBloquear}
-            color="error"
-            variant="contained"
-            disabled={isPending}
-          >
-            Bloquear
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Menu anchorEl={menu?.el ?? null} open={!!menu} onClose={cerrarMenu}>
+        {menu
+          ? [
+              <MenuItem key="editar" onClick={desdeMenu(onEdit)}>
+                <ListItemIcon>
+                  <EditOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Editar</ListItemText>
+              </MenuItem>,
+              esAdmin && menu.cliente.bloqueado ? (
+                <MenuItem key="desbloquear" onClick={desdeMenu(onDesbloquear)}>
+                  <ListItemIcon>
+                    <LockOpenOutlinedIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Desbloquear</ListItemText>
+                </MenuItem>
+              ) : null,
+              esAdmin && !menu.cliente.bloqueado ? (
+                <MenuItem key="bloquear" onClick={desdeMenu(onBloquear)}>
+                  <ListItemIcon>
+                    <LockOutlinedIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Bloquear</ListItemText>
+                </MenuItem>
+              ) : null,
+              menu.cliente.activo ? (
+                <MenuItem key="desactivar" onClick={desdeMenu(onDesactivar)} sx={{ color: 'error.main' }}>
+                  <ListItemIcon sx={{ color: 'inherit' }}>
+                    <BlockIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Desactivar</ListItemText>
+                </MenuItem>
+              ) : (
+                <MenuItem key="activar" onClick={desdeMenu(onActivar)}>
+                  <ListItemIcon>
+                    <CheckCircleOutlineIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Activar</ListItemText>
+                </MenuItem>
+              ),
+            ]
+          : null}
+      </Menu>
     </Box>
   )
 }

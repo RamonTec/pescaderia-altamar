@@ -1,49 +1,88 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
+import NextLink from 'next/link'
+import { useRouter } from 'next/navigation'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Paper from '@mui/material/Paper'
-import Chip from '@mui/material/Chip'
-import Typography from '@mui/material/Typography'
+import Chip, { type ChipProps } from '@mui/material/Chip'
+import Fade from '@mui/material/Fade'
+import IconButton from '@mui/material/IconButton'
+import Link from '@mui/material/Link'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
-import Divider from '@mui/material/Divider'
+import Typography from '@mui/material/Typography'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import { PageHeader } from '@/components/molecules/PageHeader'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import BlockIcon from '@mui/icons-material/Block'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
+import { CopyableText } from '@/components/molecules/CopyableText'
+import { CreditoResumen } from '@/components/molecules/CreditoResumen'
 import { DocumentoUpload } from '@/components/molecules/DocumentoUpload'
+import { FichaDato, FichaDatos, FichaSeccion } from '@/components/molecules/FichaSeccion'
+import { StatusChips } from '@/components/molecules/StatusChips'
 import { representanteLegalRepository } from '@/lib/repositories/representanteLegalRepository'
 import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
 import { createClient } from '@/lib/supabase/client'
-import type { Cliente, RepresentanteLegal } from '@/types/domain'
-import { formatUsd } from '@/lib/format'
+import { formatFecha, formatUsd } from '@/lib/format'
+import type { Cliente, EstadoDoc, EstadoPedido, RepresentanteLegal } from '@/types/domain'
+import { useClienteAcciones } from '../useClienteAcciones'
 
 interface FacturaRow {
   id: string
   numero: number
   fecha: string
   total_usd: number
-  estado: string
+  estado: EstadoDoc
 }
 
 interface PedidoRow {
   id: string
   fecha: string
   fecha_entrega: string | null
-  estado: string
+  estado: EstadoPedido
+}
+
+const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+
+const ESTADO_FACTURA: Record<EstadoDoc, { label: string; color: ChipProps['color'] }> = {
+  abierta: { label: 'Por cobrar', color: 'warning' },
+  pagada: { label: 'Pagada', color: 'success' },
+  anulada: { label: 'Anulada', color: 'default' },
+}
+
+const ESTADO_PEDIDO: Record<EstadoPedido, { label: string; color: ChipProps['color'] }> = {
+  pendiente: { label: 'Pendiente', color: 'warning' },
+  entregado: { label: 'Entregado', color: 'primary' },
+  facturado: { label: 'Facturado', color: 'success' },
+  anulado: { label: 'Anulado', color: 'default' },
 }
 
 export function ClienteFicha({
   cliente,
   saldo,
+  esAdmin,
 }: {
   cliente: Cliente
   saldo: number | null
+  esAdmin: boolean
 }) {
+  const router = useRouter()
+  const { acciones, dialogos, isPending } = useClienteAcciones({ onCambio: () => router.refresh() })
+  const [menuEl, setMenuEl] = React.useState<HTMLElement | null>(null)
+
   const [representantes, setRepresentantes] = React.useState<RepresentanteLegal[]>([])
   const [facturas, setFacturas] = React.useState<FacturaRow[]>([])
   const [pedidos, setPedidos] = React.useState<PedidoRow[]>([])
@@ -81,159 +120,268 @@ export function ClienteFicha({
     }
   }, [cliente.id])
 
-  return (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      <PageHeader title={cliente.nombre}>
-        <Button component={Link} href="/clientes" startIcon={<ArrowBackIcon />}>
-          Volver
-        </Button>
-      </PageHeader>
+  const desdeMenu = (fn: (c: Cliente) => void) => () => {
+    setMenuEl(null)
+    fn(cliente)
+  }
 
-      <Paper variant="outlined" sx={{ p: 3, display: 'grid', gap: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip
-            label={cliente.tipo_persona === 'juridica' ? 'Persona jurídica' : 'Persona natural'}
-            size="small"
-            color={cliente.tipo_persona === 'juridica' ? 'secondary' : 'default'}
-          />
-          {cliente.bloqueado ? (
-            <Chip label={`Bloqueado: ${cliente.motivo_bloqueo ?? 'sin motivo'}`} size="small" color="error" />
-          ) : null}
-          {!cliente.activo ? <Chip label="Inactivo" size="small" variant="outlined" /> : null}
+  const juridica = cliente.tipo_persona === 'juridica'
+
+  return (
+    <Fade in timeout={200}>
+      <Box sx={{ display: 'grid', gap: 3 }}>
+        <Box component="header" sx={{ display: 'grid', gap: 1 }}>
+          <Link
+            component={NextLink}
+            href="/clientes"
+            variant="body2"
+            underline="hover"
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifySelf: 'start' }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            Clientes
+          </Link>
+
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'flex-start' },
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box sx={{ display: 'grid', gap: 0.75, minWidth: 0 }}>
+              <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
+                {cliente.nombre}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5 }}>
+                {cliente.rif_ci ? <CopyableText value={cliente.rif_ci} /> : null}
+                <Typography variant="body2" color="text.secondary">
+                  {juridica ? 'Persona jurídica' : 'Persona natural'}
+                </Typography>
+                <StatusChips bloqueado={cliente.bloqueado} motivoBloqueo={cliente.motivo_bloqueo} activo={cliente.activo} />
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+              <Button variant="outlined" startIcon={<EditOutlinedIcon />} onClick={() => acciones.editar(cliente)}>
+                Editar
+              </Button>
+              <IconButton
+                aria-label="Más acciones"
+                onClick={(e) => setMenuEl(e.currentTarget)}
+                disabled={isPending}
+                sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}
+              >
+                <MoreVertIcon />
+              </IconButton>
+            </Box>
+          </Box>
         </Box>
 
-        <Fila label="RIF / Cédula" valor={cliente.rif_ci} />
-        <Fila label="Teléfono" valor={cliente.telefono} />
-        <Fila label="Email" valor={cliente.email} />
-        <Fila label="Dirección" valor={cliente.direccion} />
-        <Fila
-          label="Límite de crédito"
-          valor={cliente.limite_credito_usd != null ? formatUsd(cliente.limite_credito_usd) : '—'}
-        />
-        <Fila label="Saldo pendiente" valor={saldo != null ? formatUsd(saldo) : '—'} />
-        {cliente.notas ? <Fila label="Notas" valor={cliente.notas} /> : null}
-      </Paper>
+        {cliente.bloqueado ? (
+          <Alert
+            severity="error"
+            action={
+              esAdmin ? (
+                <Button color="inherit" size="small" onClick={() => acciones.desbloquear(cliente)} disabled={isPending}>
+                  Desbloquear
+                </Button>
+              ) : undefined
+            }
+          >
+            No se le puede vender a crédito. Motivo: {cliente.motivo_bloqueo ?? 'sin motivo registrado'}.
+          </Alert>
+        ) : !cliente.activo ? (
+          <Alert
+            severity="info"
+            action={
+              <Button color="inherit" size="small" onClick={() => acciones.activar(cliente)} disabled={isPending}>
+                Activar
+              </Button>
+            }
+          >
+            Cliente inactivo: no aparece al registrar ventas.
+          </Alert>
+        ) : null}
 
-      <Seccion titulo="Representantes legales">
-        {representantes.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {cliente.tipo_persona === 'juridica'
-              ? 'Sin representantes registrados.'
-              : 'No aplica (persona natural).'}
-          </Typography>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Cédula</TableCell>
-                <TableCell>Cargo</TableCell>
-                <TableCell>Teléfono</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {representantes.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.nombre}</TableCell>
-                  <TableCell>{r.cedula}</TableCell>
-                  <TableCell>{r.cargo ?? '—'}</TableCell>
-                  <TableCell>{r.telefono ?? '—'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Seccion>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 2fr) minmax(280px, 1fr)' },
+            gap: 2,
+            alignItems: 'start',
+          }}
+        >
+          <Box sx={{ display: 'grid', gap: 2, minWidth: 0 }}>
+            <FichaSeccion titulo="Contacto">
+              <FichaDatos>
+                <FichaDato label="Teléfono">
+                  {cliente.telefono ? <CopyableText value={cliente.telefono} /> : null}
+                </FichaDato>
+                <FichaDato label="Email">
+                  {cliente.email ? <CopyableText value={cliente.email} mono={false} /> : null}
+                </FichaDato>
+                <FichaDato label="Dirección">{cliente.direccion}</FichaDato>
+                {cliente.notas ? <FichaDato label="Notas">{cliente.notas}</FichaDato> : null}
+              </FichaDatos>
+            </FichaSeccion>
 
-      <Seccion titulo="Documentos">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-          <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="cedula" label="Documento de cédula" />
-          <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="rif" label="Documento de RIF" />
+            {juridica ? (
+              <FichaSeccion titulo="Representantes legales" loading={loading}>
+                {representantes.length === 0 ? (
+                  <Alert
+                    severity="warning"
+                    action={
+                      <Button color="inherit" size="small" onClick={() => acciones.editar(cliente)}>
+                        Agregar
+                      </Button>
+                    }
+                  >
+                    Falta registrar al menos un representante legal.
+                  </Alert>
+                ) : (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Nombre</TableCell>
+                          <TableCell>Cédula</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Cargo</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Teléfono</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {representantes.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell>{r.nombre}</TableCell>
+                            <TableCell sx={MONO}>{r.cedula}</TableCell>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{r.cargo || '—'}</TableCell>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{r.telefono || '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </FichaSeccion>
+            ) : null}
+
+            <FichaSeccion titulo="Facturas" loading={loading}>
+              {facturas.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Todavía no hay facturas para este cliente.
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>N.º</TableCell>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell align="right">Total</TableCell>
+                        <TableCell>Estado</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {facturas.map((f) => (
+                        <TableRow key={f.id}>
+                          <TableCell sx={MONO}>{f.numero}</TableCell>
+                          <TableCell>{formatFecha(f.fecha)}</TableCell>
+                          <TableCell align="right" sx={MONO}>
+                            {formatUsd(f.total_usd)}
+                          </TableCell>
+                          <TableCell>
+                            <Chip size="small" variant="outlined" {...ESTADO_FACTURA[f.estado]} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </FichaSeccion>
+
+            <FichaSeccion titulo="Pedidos" loading={loading}>
+              {pedidos.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Todavía no hay pedidos para este cliente.
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Entrega</TableCell>
+                        <TableCell>Estado</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {pedidos.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{formatFecha(p.fecha)}</TableCell>
+                          <TableCell>{formatFecha(p.fecha_entrega)}</TableCell>
+                          <TableCell>
+                            <Chip size="small" variant="outlined" {...ESTADO_PEDIDO[p.estado]} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </FichaSeccion>
+          </Box>
+
+          <Box sx={{ display: 'grid', gap: 2, minWidth: 0 }}>
+            <CreditoResumen limiteUsd={cliente.limite_credito_usd} saldoUsd={saldo} />
+            <FichaSeccion titulo="Documentos">
+              <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="cedula" label="Cédula" />
+              <DocumentoUpload store={makeClienteDocumentoStore(cliente.id)} tipo="rif" label="RIF" />
+            </FichaSeccion>
+          </Box>
         </Box>
-      </Seccion>
 
-      <Seccion titulo="Facturas">
-        {facturas.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            Sin facturas registradas.
-          </Typography>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Número</TableCell>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Estado</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {facturas.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell>{f.numero}</TableCell>
-                  <TableCell>{f.fecha}</TableCell>
-                  <TableCell>{formatUsd(f.total_usd)}</TableCell>
-                  <TableCell>{f.estado}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Seccion>
+        <Menu anchorEl={menuEl} open={!!menuEl} onClose={() => setMenuEl(null)}>
+          {[
+            esAdmin && cliente.bloqueado ? (
+              <MenuItem key="desbloquear" onClick={desdeMenu(acciones.desbloquear)}>
+                <ListItemIcon>
+                  <LockOpenOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Desbloquear</ListItemText>
+              </MenuItem>
+            ) : null,
+            esAdmin && !cliente.bloqueado ? (
+              <MenuItem key="bloquear" onClick={desdeMenu(acciones.bloquear)}>
+                <ListItemIcon>
+                  <LockOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Bloquear</ListItemText>
+              </MenuItem>
+            ) : null,
+            cliente.activo ? (
+              <MenuItem key="desactivar" onClick={desdeMenu(acciones.desactivar)} sx={{ color: 'error.main' }}>
+                <ListItemIcon sx={{ color: 'inherit' }}>
+                  <BlockIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Desactivar</ListItemText>
+              </MenuItem>
+            ) : (
+              <MenuItem key="activar" onClick={desdeMenu(acciones.activar)}>
+                <ListItemIcon>
+                  <CheckCircleOutlineIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Activar</ListItemText>
+              </MenuItem>
+            ),
+          ]}
+        </Menu>
 
-      <Seccion titulo="Pedidos">
-        {pedidos.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            Sin pedidos registrados.
-          </Typography>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Entrega</TableCell>
-                <TableCell>Estado</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {pedidos.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.fecha}</TableCell>
-                  <TableCell>{p.fecha_entrega ?? '—'}</TableCell>
-                  <TableCell>{p.estado}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Seccion>
-
-      {loading ? (
-        <Typography variant="caption" color="text.secondary">
-          Cargando…
-        </Typography>
-      ) : null}
-    </Box>
-  )
-}
-
-function Fila({ label, valor }: { label: string; valor: string | null }) {
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '180px 1fr' }, gap: 1 }}>
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body2">{valor || '—'}</Typography>
-    </Box>
-  )
-}
-
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 3, display: 'grid', gap: 1.5 }}>
-      <Typography variant="h6">{titulo}</Typography>
-      <Divider />
-      {children}
-    </Paper>
+        {dialogos}
+      </Box>
+    </Fade>
   )
 }

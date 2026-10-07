@@ -5,8 +5,8 @@ import Button from '@mui/material/Button'
 import AddIcon from '@mui/icons-material/Add'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { ClientesTable } from '@/components/organisms/ClientesTable'
-import { ClienteForm } from '@/components/organisms/ClienteForm'
 import type { Cliente } from '@/types/domain'
+import { useClienteAcciones } from './useClienteAcciones'
 
 export function ClientesScreen({
   clientes,
@@ -15,37 +15,27 @@ export function ClientesScreen({
   clientes: Cliente[]
   esAdmin: boolean
 }) {
-  const [open, setOpen] = React.useState(false)
-  const [editing, setEditing] = React.useState<Cliente | null>(null)
-
-  const handleEdit = (cliente: Cliente) => {
-    setEditing(cliente)
-    setOpen(true)
-  }
-
-  const handleNew = () => {
-    setEditing(null)
-    setOpen(true)
-  }
+  const { acciones, dialogos } = useClienteAcciones()
 
   return (
     <>
       <PageHeader title="Clientes">
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleNew}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={acciones.nuevo}>
           Nuevo cliente
         </Button>
       </PageHeader>
 
-      <ClientesTable clientes={clientes} esAdmin={esAdmin} onEdit={handleEdit} />
-
-      <ClienteForm
-        open={open}
-        cliente={editing}
-        onClose={() => {
-          setOpen(false)
-          setEditing(null)
-        }}
+      <ClientesTable
+        clientes={clientes}
+        esAdmin={esAdmin}
+        onEdit={acciones.editar}
+        onBloquear={acciones.bloquear}
+        onDesbloquear={acciones.desbloquear}
+        onDesactivar={acciones.desactivar}
+        onActivar={acciones.activar}
       />
+
+      {dialogos}
     </>
   )
 }

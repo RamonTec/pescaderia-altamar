@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 
-export type PageLoaderVariant = 'table' | 'form'
+export type PageLoaderVariant = 'table' | 'form' | 'ficha'
 
 const ROW_COUNT = 6
 
@@ -45,13 +45,36 @@ function FormLoader() {
   )
 }
 
+function FichaLoader() {
+  return (
+    <Box sx={{ display: 'grid', gap: 3, width: '100%' }}>
+      <Box sx={{ display: 'grid', gap: 1 }}>
+        <Skeleton variant="text" width={80} />
+        <Skeleton variant="text" width={260} height={44} />
+        <Skeleton variant="text" width={180} />
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2 }}>
+        <Skeleton variant="rounded" height={220} />
+        <Skeleton variant="rounded" height={220} />
+      </Box>
+      <Skeleton variant="rounded" height={160} />
+    </Box>
+  )
+}
+
+const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
+  table: TableLoader,
+  form: FormLoader,
+  ficha: FichaLoader,
+}
+
 export function PageLoader({ variant = 'table' }: { variant?: PageLoaderVariant }) {
   return (
     <Box sx={{ width: '100%', p: { xs: 1, sm: 0 } }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
         Cargando…
       </Typography>
-      {variant === 'table' ? <TableLoader /> : <FormLoader />}
+      {React.createElement(LOADERS[variant])}
     </Box>
   )
 }

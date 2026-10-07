@@ -35,3 +35,20 @@ export function formatKg(n: number): string {
 export function formatTasa(n: number): string {
   return tasaFormatter.format(n)
 }
+
+const fechaFormatter = new Intl.DateTimeFormat('es-VE', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+})
+
+/**
+ * `2026-10-06` → `06 oct 2026`. Parsea la fecha como local: `new Date('2026-10-06')`
+ * la toma como UTC y en Venezuela (UTC-4) mostraría el día anterior.
+ */
+export function formatFecha(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return fechaFormatter.format(new Date(y, m - 1, d))
+}
