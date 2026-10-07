@@ -6,7 +6,7 @@ export default function CatalogosPage() {
     <AppShell>
       <PagePlaceholder
         title="Catálogos"
-        description="Pantalla 1 (siguiente en definir): CRUD de productos, clientes, proveedores y configuración (IVA, fuentes de tasa)."
+        description="CRUD de productos y proveedores, y configuración (IVA, fuentes de tasa). Los clientes se gestionan en su propio módulo (/clientes)."
       />
     </AppShell>
   )
