@@ -19,6 +19,14 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
 10. **Pagos a proveedores**: `lib/services/compraService.registrarPagoProveedor(...)` + UI mínima (puede ser un modal desde `ComprasTable`, no requiere pantalla propia en el MVP) usando `gananciaCambiariaBs` de `creditService.ts` (ya existe, reutilizar).
 11. **`src/lib/services/proveedorBalanceService.ts`**: `getSaldoPendiente(proveedorId): Promise<number>` — suma `subtotal_usd - pagado_usd` de compras abiertas del proveedor. Es el servicio que `03-proveedores` debe consumir en la ficha de proveedor (volver a esa tarea pendiente si `03-proveedores` ya se implementó con el placeholder `—`).
 
+> **Notas de ejecución de Compras (2026-10-06, Claude Code):**
+> - Migración agregada `0012_compras_registro.sql`: RPC `registrar_compra` (compra + items + movimientos en una sola transacción; supabase-js no tiene transacciones), RPC `registrar_pago_proveedor` (security definer, solo admin; bloquea la fila de la compra para evitar sobrepagos concurrentes) y trigger `compras_guard_proveedor_bloqueado` (repite en la base la regla de crédito con proveedor bloqueado).
+> - Tarea 6: `movimientoService.crearMovimiento` es la Factory (el signo del peso lo decide el tipo). La compra no llama a `registrarMovimiento` uno por uno: construye los movimientos con la Factory y los pasa a la RPC transaccional, para que una compra nunca quede sin su movimiento de stock. `registrarMovimiento` queda para movimientos sueltos.
+> - Compras con moneda `bs`: el costo/kg se captura en Bs y se guarda en USD (`costo_kg / tasa_snapshot`). Solo se admiten productos `crudo` activos.
+> - Compra `contado` (o a crédito con total 0) se crea con `estado = 'pagada'`; así no aparece en el saldo pendiente.
+> - Rol: cualquier usuario autenticado registra compras (recepción); importes, saldo y pagos son solo de admin (al operador no le llegan los importes en el payload).
+> - Pantalla en `src/app/(protected)/compras/` (la ruta real, no `src/app/compras`).
+
 ## Procesamiento
 
 12. **`src/lib/repositories/procesamientoRepository.ts`** (+ interfaz `IProcesamientoRepository`): `create(procesamiento, items)`, `list()`.

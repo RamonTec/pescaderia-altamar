@@ -45,7 +45,7 @@
 - [x] `/clientes` sigue funcionando igual tras generalizar `DocumentoUpload`, `RepresentantesLegalesFieldArray` y `actionState`.
 - [x] Componentes nuevos registrados en la tabla de `00-estandares-ui/spec.md`.
 - [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
-- [ ] Si `04-inventario` ya existe: el saldo pendiente muestra un valor real, no `—`. *(04-inventario no implementa `proveedorBalanceService` → se muestra `—`, como prevé el spec)*
+- [x] Si `04-inventario` ya existe: el saldo pendiente muestra un valor real, no `—`. *(2026-10-06: `proveedorService.getSaldoPendiente` delega en `proveedorBalanceService` de 04-inventario; requiere la migración `0012` aplicada para tener compras registradas)*
 
 ## Pendientes / deuda técnica
 - [ ] Aplicar migraciones `0007`–`0010` en el proyecto Supabase real (SQL Editor / `db push`).

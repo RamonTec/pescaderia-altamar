@@ -6,12 +6,12 @@
 - [ ] Configuración (IVA, fuente de tasa, umbral de stock bajo) se puede editar y persiste.
 
 ## Compras
-- [ ] Registrar una compra crea la fila en `compras`, sus `compra_items` y un movimiento `compra` por cada item en `movimientos`.
-- [ ] La tasa usada queda "congelada" en `compras.tasa_snapshot` (no cambia si después cambia la tasa del día).
-- [ ] Compra `contado` queda con `pagado_usd = subtotal_usd` automáticamente.
-- [ ] Compra `credito` queda abierta y permite registrar pagos parciales con su propia tasa y ganancia cambiaria calculada.
-- [ ] Intentar una compra a crédito con un proveedor `bloqueado` (de `03-proveedores`) se rechaza siempre.
-- [ ] El saldo pendiente por proveedor (`proveedorBalanceService`, consumido por `03-proveedores`) refleja la suma correcta de todas sus compras abiertas.
+- [ ] Registrar una compra crea la fila en `compras`, sus `compra_items` y un movimiento `compra` por cada item en `movimientos`. *(implementado: RPC `registrar_compra` en `0012`, una sola transacción; falta aplicar `0012` y verificar)*
+- [ ] La tasa usada queda "congelada" en `compras.tasa_snapshot` (no cambia si después cambia la tasa del día). *(implementado: el servicio guarda la tasa del formulario; nada la recalcula)*
+- [ ] Compra `contado` queda con `pagado_usd = subtotal_usd` automáticamente. *(implementado en `compraService.crearCompra`, con `estado = 'pagada'`)*
+- [ ] Compra `credito` queda abierta y permite registrar pagos parciales con su propia tasa y ganancia cambiaria calculada. *(implementado: `PagoProveedorDialog` + RPC `registrar_pago_proveedor`, solo admin; falta verificación manual)*
+- [ ] Intentar una compra a crédito con un proveedor `bloqueado` (de `03-proveedores`) se rechaza siempre. *(servicio + trigger `compras_guard_proveedor_bloqueado`; la UI deshabilita "Crédito")*
+- [ ] El saldo pendiente por proveedor (`proveedorBalanceService`, consumido por `03-proveedores`) refleja la suma correcta de todas sus compras abiertas. *(implementado; la ficha ya lo consume)*
 - [ ] El costo ponderado tras una segunda compra del mismo producto coincide con la fórmula de `/SPEC.md` §4.1 (verificado a mano, ver tarea 22 de `tasks.md`).
 
 ## Procesamiento
@@ -33,3 +33,7 @@
 
 ## Pendientes / deuda técnica
 - [ ] _(anotar aquí cualquier ítem diferido con motivo y fecha)_
+- [ ] **(2026-10-06) Aplicar `0012_compras_registro.sql`** en el proyecto Supabase real (SQL Editor). Sin esta migración, registrar compras y pagos falla porque las RPC no existen.
+- [ ] (2026-10-06) `compras.subtotal_usd`/`pagado_usd` siguen legibles para el operador vía PostgREST (RLS `read_all` de `0001`). La UI no se los envía, pero la protección en la base queda pendiente (vista o columnas separadas, mismo enfoque que `0003`).
+- [ ] (2026-10-06) Sin anulación de compras: `estado = 'anulada'` existe en el esquema, pero revertir los movimientos de stock y los pagos no está en el alcance de las tareas 5–11.
+- [ ] (2026-10-06) El listado de `/proveedores` sigue con la columna "Saldo pendiente" en `—` (oculta por defecto); solo la ficha consume `proveedorBalanceService`.
