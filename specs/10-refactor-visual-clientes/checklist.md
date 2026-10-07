@@ -1,41 +1,48 @@
 # Checklist — 10-refactor-visual-clientes
 
+> Marcado el 2026-10-07 por el ejecutor. `[x]` = verificado en código + `npm run lint`, `npx tsc --noEmit` y `npm run build`. Lo que necesita navegador queda `[ ]` con "pendiente de verificación del usuario": el ejecutor no tiene sesión en la app (las rutas exigen login contra Supabase) y no ingresa credenciales.
+
 ## Componentes compartidos
-- [ ] `AppDataGrid` acepta `normalizeSearch` y lo aplica en la grilla y en las tarjetas `xs`; las tablas que no lo pasan no cambian.
-- [ ] Una fila con `getRowHref` se abre con Enter, sin romper las flechas de la grilla ni dispararse desde el `⋮`.
-- [ ] `StatusChips` en `soft`, 22 px, con `mostrarActivo`; proveedores se sigue viendo bien.
-- [ ] `DocumentoUpload` acepta `disabled` y `ClienteForm` lo pasa mientras guarda.
-- [ ] `BloqueoDialog` es `AppDialog xs`, con `Button loading`, cierre protegido (`pending` y `dirty`) y sin doble envío; probado en clientes y proveedores.
-- [ ] `FichaHeader` existe en `molecules`, es genérico (sin nada propio de clientes) y queda en la tabla de componentes de `00-estandares-ui/spec.md`, junto con las props nuevas.
+- [x] `AppDataGrid` acepta `normalizeSearch` y lo aplica en la grilla y en las tarjetas `xs`; las tablas que no lo pasan no cambian. _(En modo cliente la búsqueda la resuelve el propio `AppDataGrid` antes de pasar las filas a la grilla o a `MobileCards`: un solo camino. Prop adicional `getSearchValues(row)` porque la celda "Cliente" muestra nombre + RIF y el RIF no es un `field` de columna. Por defecto `normalizarBusqueda` (sin acentos, minúsculas) sobre los valores crudos de las columnas, igual que hacían las tarjetas; antes la grilla usaba el quick filter de MUI, que no quitaba acentos. Ninguna otra tabla usaba `AppDataGrid` salvo `/estandares`, así que nada más cambia. Caso agregado en `/estandares`.)_
+- [ ] Una fila con `getRowHref` se abre con Enter, sin romper las flechas de la grilla ni dispararse desde el `⋮`. _(Implementado con `onCellKeyDown`: solo si `event.target === event.currentTarget` y la columna no es `ACTIONS_FIELD`/`type: 'actions'`. Pendiente de verificación del usuario con teclado en navegador.)_
+- [ ] `StatusChips` en `soft`, 22 px, con `mostrarActivo`; proveedores se sigue viendo bien. _(Código hecho: `variant="soft"` + `size="small"` (22 px en el theme), `mostrarActivo`, Bloqueado convive con Activo/Inactivo. Proveedores no pasa `mostrarActivo`: su listado sigue sin "Activo"; ahora un bloqueado también muestra "Inactivo"/"Doc. incompleta" si aplica. Vista en proveedores pendiente de verificación del usuario.)_
+- [x] `DocumentoUpload` acepta `disabled` y `ClienteForm` lo pasa mientras guarda. _(También pasa a `Button loading` en lugar del `CircularProgress` manual; deshabilita eliminar.)_
+- [ ] `BloqueoDialog` es `AppDialog xs`, con `Button loading`, cierre protegido (`pending` y `dirty`) y sin doble envío; probado en clientes y proveedores. _(Código hecho: `AppDialog size="xs"`, primario `color="error"` con `loading`, `submittingRef`, `dirty` = motivo escrito, error del motivo en el campo y otros en el `Alert`. La interfaz (`onConfirm`/`onClose`) no cambió, así que proveedores no se tocó. Prueba en navegador en clientes y proveedores pendiente del usuario.)_
+- [x] `FichaHeader` existe en `molecules`, es genérico (sin nada propio de clientes) y queda en la tabla de componentes de `00-estandares-ui/spec.md`, junto con las props nuevas. _(Con `lib/navigationOrigin.ts` para la vuelta. Registrado también `EmptyState compact`, `AppDataGrid embedded`/`getSearchValues`/`writeUrlParams` y `ACTIONS_FIELD` en `00-estandares-ui/tasks.md`.)_
 
 ## Listado
-- [ ] `ClientesTable` usa `AppDataGrid` en modo cliente: 25 filas por defecto, opciones 25/50/100, textos en español, página en `?pagina=`.
-- [ ] Columnas como en `spec.md`: montos a la derecha y tabulares, "Sin crédito" cuando no hay límite, chips `soft`, una sola columna de acciones con `RowActionsMenu`.
-- [ ] Búsqueda ignora acentos, mayúsculas, espacios, puntos y guiones ("v12345" encuentra "V-12.345").
-- [ ] Filtros como chips (Activos / Bloqueados / Todos, con conteo), en `?estado=`; volver desde la ficha conserva filtro y página.
-- [ ] `EmptyState` para "sin clientes" (con "Nuevo cliente"), sin resultados de búsqueda y filtro vacío (con "Ver todos").
-- [ ] En `xs`: tarjetas como la muestra *Movil-lista*, `Fab` "Nuevo cliente" que no tapa la última tarjeta, sin scroll horizontal.
-- [ ] La fila con una acción en curso muestra su `⋮` deshabilitado con indicador; las demás siguen operables.
+- [x] `ClientesTable` usa `AppDataGrid` en modo cliente: 25 filas por defecto, opciones 25/50/100, textos en español, página en `?pagina=`.
+- [x] Columnas como en `spec.md`: montos a la derecha y tabulares, "Sin crédito" cuando no hay límite, chips `soft`, una sola columna de acciones con `RowActionsMenu`.
+- [ ] Búsqueda ignora acentos, mayúsculas, espacios, puntos y guiones ("v12345" encuentra "V-12.345"). _(Lógica comprobada con un script de Node sobre la misma normalización: "v12345" → "V-12.345", "MARIA" y "maría lóp" → "María López". Pendiente de verificación del usuario en la app, escritorio y `xs`.)_
+- [ ] Filtros como chips (Activos / Bloqueados / Todos, con conteo), en `?estado=`; volver desde la ficha conserva filtro y página. _(Código hecho: `writeUrlParams` con `history.replaceState`, cambiar filtro borra `?pagina=`; la vuelta de `FichaHeader` usa `router.back()` si la ficha se abrió desde el listado. Pendiente de verificación del usuario en navegador; ver también el pendiente (a) de 00.)_
+- [x] `EmptyState` para "sin clientes" (con "Nuevo cliente"), sin resultados de búsqueda y filtro vacío (con "Ver todos").
+- [ ] En `xs`: tarjetas como la muestra *Movil-lista*, `Fab` "Nuevo cliente" que no tapa la última tarjeta, sin scroll horizontal. _(Código hecho: `mobileCard`, `PageHeader primaryAction` (Fab en `xs`), `pb: 10` en `xs`. Comparación con la muestra pendiente del usuario.)_
+- [ ] La fila con una acción en curso muestra su `⋮` deshabilitado con indicador; las demás siguen operables. _(Código hecho: `useClienteAcciones` lleva un conjunto de ids en curso (`estaPendiente(id)`, además de `pendienteId`) y `colAcciones isPending`. Pendiente de verificación del usuario.)_
 
 ## Ficha
-- [ ] La ficha recibe todo por props desde el servidor; `cliente-ficha.tsx` no importa `createClient` ni repositorios. _(O hecho por 09, tarea 20: anotar.)_
-- [ ] Un fallo de carga muestra `ErrorState` con "Reintentar" (`[id]/error.tsx`), nunca secciones vacías.
-- [ ] `FichaHeader`: nombre `h5`, RIF copiable, tipo de persona y chips; "Editar cliente" + `⋮` en `sm+`, solo `⋮` en `xs`; la vuelta conserva página y filtro del listado.
-- [ ] Representantes como lista (sin columnas ocultas en `xs`); Facturas y Pedidos con `AppDataGrid` embebida, `EstadoChip soft` y tarjetas en `xs`.
-- [ ] `CreditoResumen` usa `h5` para la cifra, con contraste AA sobre el casco en ambos esquemas.
-- [ ] Secciones con radio 8, borde `divider` y sin sombra; avisos con `maxWidth: 75ch`.
+- [x] La ficha recibe todo por props desde el servidor; `cliente-ficha.tsx` no importa `createClient` ni repositorios. _(Hecho aquí (09 no estaba implementado); anotado en `09-cuentas-por-cobrar/tasks.md`, tarea 20. Nota: `cliente-ficha.tsx` sigue importando `makeClienteDocumentoStore` (adaptador de `DocumentoUpload`, que sube desde el navegador); no es carga de datos de la ficha.)_
+- [ ] Un fallo de carga muestra `ErrorState` con "Reintentar" (`[id]/error.tsx`), nunca secciones vacías. _(Código hecho. Desvío: usa `retry` y no `reset`: en Next 16.3 `retry` vuelve a pedir los datos al servidor; `reset` solo re-renderiza con el mismo error (ver `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md`). Simular el fallo (tarea 24) pendiente del usuario.)_
+- [ ] `FichaHeader`: nombre `h5`, RIF copiable, tipo de persona y chips; "Editar cliente" + `⋮` en `sm+`, solo `⋮` en `xs`; la vuelta conserva página y filtro del listado. _(Código hecho. Pendiente de verificación del usuario a 375 y 1024 px y de la vuelta.)_
+- [x] Representantes como lista (sin columnas ocultas en `xs`); Facturas y Pedidos con `AppDataGrid` embebida, `EstadoChip soft` y tarjetas en `xs`. _(Prop nueva `embedded` en `AppDataGrid` para no dibujar tarjeta dentro de la sección.)_
+- [x] `CreditoResumen` usa `h5` para la cifra, con contraste AA sobre el casco en ambos esquemas. _(Calculado con los tokens del theme: `onHull`/`hull` 8,59:1 claro y 10,01:1 oscuro; `onHullMuted` 5,41:1 y 5,80:1.)_
+- [x] Secciones con radio 8, borde `divider` y sin sombra; avisos con `maxWidth: 75ch`. _(`FichaSeccion` es `Paper variant="outlined"`, radio 8 del theme.)_
 
 ## Estándares generales (para todo el módulo)
-- [ ] Sin `DataGrid`, `Dialog` ni `Table` de MUI usados directamente en archivos de clientes.
-- [ ] Sin `CircularProgress` dentro de botones: toda acción asíncrona usa `Button loading`.
-- [ ] Solo íconos `Outlined`; sin `fontSize`/tamaños sueltos fuera de la escala de `00-estandares-ui`.
-- [ ] Sin colores sueltos (hex o clases de color de Tailwind); `NUM` local eliminado donde el theme ya aplica cifras tabulares.
-- [ ] Copy: verbo del botón = verbo del toast; sentence case; errores con causa y solución.
-- [ ] Doble clic rápido en guardar o bloquear produce una sola escritura.
-- [ ] Teclado y lectores de pantalla: foco visible, `aria-label` en íconos, filas abribles con Enter.
-- [ ] Revisado en 375 / 768 / 1024 / 1440 px y en claro/oscuro (listado, ficha natural y jurídica, `ClienteForm`, `BloqueoDialog`).
-- [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
-- [ ] Ítems de `00-estandares-ui/checklist.md` cerrados para clientes, anotados con "clientes, 10-refactor-visual-clientes".
+- [x] Sin `DataGrid`, `Dialog` ni `Table` de MUI usados directamente en archivos de clientes. _(grep en `clientes/**`, `ClientesTable`, `ClienteForm`, `BloqueoDialog`.)_
+- [x] Sin `CircularProgress` dentro de botones: toda acción asíncrona usa `Button loading`. _(El único `CircularProgress` es el indicador de `RowActionsMenu pending`, que es el estándar.)_
+- [x] Solo íconos `Outlined`; sin `fontSize`/tamaños sueltos fuera de la escala de `00-estandares-ui`. _(Incluye `RepresentantesLegalesFieldArray` (`AddOutlined`), que usa `ClienteForm`.)_
+- [x] Sin colores sueltos (hex o clases de color de Tailwind); `NUM` local eliminado donde el theme ya aplica cifras tabulares. _(`NUM` queda solo en `CreditoResumen`, documentado: el theme aplica cifras tabulares en `Table`/`DataGrid`, no en el casco.)_
+- [x] Copy: verbo del botón = verbo del toast; sentence case; errores con causa y solución. _("Guardar cliente"/"Cliente guardado" (antes "Crear cliente"/"Cliente creado"), "Actualizar cliente"/"Cliente actualizado", Bloquear/Desbloquear/Desactivar/Activar con su toast; "Sin sesión" y "Datos inválidos" reescritos con solución.)_
+- [ ] Doble clic rápido en guardar o bloquear produce una sola escritura. _(Guardas en código: `submittingRef` en `ClienteForm` y `BloqueoDialog`, y `useClienteAcciones` ignora una segunda acción sobre el mismo cliente. Prueba en navegador pendiente del usuario.)_
+- [ ] Teclado y lectores de pantalla: foco visible, `aria-label` en íconos, filas abribles con Enter. _(`aria-label` en todos los `IconButton` revisados; foco del theme sin tocar. Prueba con teclado pendiente del usuario.)_
+- [ ] Revisado en 375 / 768 / 1024 / 1440 px y en claro/oscuro (listado, ficha natural y jurídica, `ClienteForm`, `BloqueoDialog`). _(Pendiente de verificación del usuario: sin sesión en la app.)_
+- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores. _(2026-10-07.)_
+- [x] Ítems de `00-estandares-ui/checklist.md` cerrados para clientes, anotados con "clientes, 10-refactor-visual-clientes". _(Cerrado (d); anotados los de loaders, botones, tablas, diálogos, tipografía e íconos; (b) implementado y pendiente de prueba con teclado.)_
 
 ## Pendientes / deuda técnica
-- _(anotar aquí lo que se difiera, con motivo)_
+- Verificación visual y de interacción en navegador (tareas 20–25): pendiente del usuario, por falta de sesión del ejecutor.
+- `[id]/loading.tsx` y `clientes/loading.tsx`: no se tocó `PageLoader` (los skeletons `table` y `ficha` ya tienen la forma general: barra + filas de 52 px; encabezado + dos columnas en `md+`). Revisarlo junto con la verificación visual.
+- `clientes/error.tsx` y los `error.tsx` de las demás rutas siguen usando `reset`, que en Next 16.3 no vuelve a pedir los datos del servidor: conviene pasarlos a `retry` en la Fase 2b.
+- `ClienteForm` sigue leyendo representantes desde el navegador (`representanteLegalRepository`): es el pendiente (e) de 00, fuera del alcance de este módulo.
+- `StatusChips` en tooltips: el motivo de bloqueo solo se ve con el mouse en la tabla (el chip no es enfocable); en la ficha está también en el `Alert`.
+- `clienteRepository.getById` pasó a `maybeSingle()` y `clienteService.getCliente` devuelve `null` si el id no tiene forma de UUID, para que la ficha muestre not-found en vez de `error.tsx`. Es una corrección de la capa de datos de `02-clientes` (cumple el contrato `Promise<Cliente | null>` de la interfaz); los demás consumidores ya manejaban `null`.

@@ -9,7 +9,7 @@ import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Collapse from '@mui/material/Collapse'
-import AddIcon from '@mui/icons-material/Add'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import { RifCiField } from '@/components/atoms/RifCiField'
 import type { RepresentanteFormValues } from '@/lib/clienteValidation'
@@ -42,7 +42,7 @@ export function RepresentantesLegalesFieldArray() {
         <Typography variant="h6">Representantes legales</Typography>
         <Button
           size="small"
-          startIcon={<AddIcon />}
+          startIcon={<AddOutlinedIcon />}
           disabled={disabled}
           onClick={() => append({ nombre: '', cedula: '', cargo: '', telefono: '' })}
         >
