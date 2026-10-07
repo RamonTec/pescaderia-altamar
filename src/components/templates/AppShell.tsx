@@ -31,6 +31,7 @@ import CategoryIcon from '@mui/icons-material/Category'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices'
 import PaymentsIcon from '@mui/icons-material/Payments'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import { createClient } from '@/lib/supabase/client'
 import { signOutAction } from '@/app/(auth)/login/actions'
 import { ColorModeToggle } from '@/components/atoms/ColorModeToggle'
@@ -51,6 +52,7 @@ const NAV_ITEMS: {
   { href: '/procesamiento', label: 'Procesamiento', icon: <CleaningServicesIcon /> },
   { href: '/pedidos', label: 'Pedidos / POS', icon: <PointOfSaleIcon /> },
   { href: '/cobros', label: 'Cobros y Pagos', icon: <PaymentsIcon /> },
+  { href: '/notas-credito', label: 'Notas de crédito', icon: <DescriptionOutlinedIcon /> },
   { href: '/inventario', label: 'Inventario', icon: <Inventory2Icon /> },
   { href: '/usuarios', label: 'Usuarios', icon: <GroupIcon />, adminOnly: true },
 ]
