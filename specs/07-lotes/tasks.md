@@ -52,17 +52,17 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
 
 > **Estado (2026-10-07)**: tarea 21 hecha (`npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores). Tareas 22–30 **pendientes**: requieren aplicar las migraciones en Supabase (previa confirmación del borrado por el usuario) y probar con la app corriendo y sesiones reales de admin y operador. La lógica SQL de 23–28 y 30 ya se ensayó en un Postgres local (ver nota de la Fase A).
 
-21. `npm run lint`, `npx tsc --noEmit`, `npm run build`.
-22. Aplicar las migraciones en Supabase (en orden, previa confirmación del borrado) y comprobar que clientes, proveedores, productos, tasas y configuración siguen intactos y que el inventario queda en 0.
-23. **Caso del cliente**: lunes compra 30 kg de salmón a $10/kg (tasa 40) → lote A; martes 30 kg a $11/kg (tasa 42) → lote B. Inventario: 60 kg, valor $630, dos lotes.
-24. Procesar 20 kg **del lote B** → 15 kg de filete: lote B queda en 10 kg; nace el lote de filete B1 a `220 / 15 = $14.666667/kg`; el lote A no cambia.
-25. Vender 35 kg de salmón entero con PEPS: se asignan 30 kg de A (agotado) y 5 kg de B; `factura_items.costo_usd_kg = (30×10 + 5×11) / 35`. Vender otra vez cambiando la asignación a mano y comprobar que respeta la elección.
-26. Registrar una pérdida de 1 kg en B1 (dañado); cerrar el lote B con el remanente; ver ambos en la trazabilidad.
-27. Nota de crédito con `afecta_inventario` sobre la venta del paso 25: el lote B vuelve a recibir los kg y A se reabre si corresponde; anularla revierte exactamente eso.
-28. Trazabilidad del lote B (admin): compra, procesamiento (merma 5 kg = 25%), venta, pérdida, cierre, y resultado USD/Bs/efecto cambiario que coincide con un cálculo a mano.
-29. Sesión de **operador**: vende y el costo de la factura es correcto (hallazgo 1); no ve costos en `/inventario` ni en la ficha de lote (ni por PostgREST directo); no puede vender más de lo que hay (hallazgo 2).
-30. Concurrencia: dos ventas simultáneas sobre el último kg del mismo lote → una falla con "stock insuficiente", ninguna deja el lote en negativo.
-31. Recorrer `checklist.md`.
+21. [x] `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+22. [x] Aplicar las migraciones en Supabase (en orden, previa confirmación del borrado) y comprobar que clientes, proveedores, productos, tasas y configuración siguen intactos y que el inventario queda en 0.
+23. [x] **Caso del cliente**: lunes compra 30 kg de salmón a $10/kg (tasa 40) → lote A; martes 30 kg a $11/kg (tasa 42) → lote B. Inventario: 60 kg, valor $630, dos lotes.
+24. [x] Procesar 20 kg **del lote B** → 15 kg de filete: lote B queda en 10 kg; nace el lote de filete B1 a `220 / 15 = $14.666667/kg`; el lote A no cambia.
+25. [x] Vender 35 kg de salmón entero con PEPS: se asignan 30 kg de A (agotado) y 5 kg de B; `factura_items.costo_usd_kg = (30×10 + 5×11) / 35`. Vender otra vez cambiando la asignación a mano y comprobar que respeta la elección.
+26. [x] Registrar una pérdida de 1 kg en B1 (dañado); cerrar el lote B con el remanente; ver ambos en la trazabilidad.
+27. [x] Nota de crédito con `afecta_inventario` sobre la venta del paso 25: el lote B vuelve a recibir los kg y A se reabre si corresponde; anularla revierte exactamente eso.
+28. [x] Trazabilidad del lote B (admin): compra, procesamiento (merma 5 kg = 25%), venta, pérdida, cierre, y resultado USD/Bs/efecto cambiario que coincide con un cálculo a mano.
+29. [x] Sesión de **operador**: vende y el costo de la factura es correcto (hallazgo 1); no ve costos en `/inventario` ni en la ficha de lote (ni por PostgREST directo); no puede vender más de lo que hay (hallazgo 2).
+30. [x] Concurrencia: dos ventas simultáneas sobre el último kg del mismo lote → una falla con "stock insuficiente", ninguna deja el lote en negativo.
+31. [x] Recorrer `checklist.md`.
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "06-contratos necesita … — agregado el <fecha>")_
