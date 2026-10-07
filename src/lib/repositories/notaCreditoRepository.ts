@@ -32,13 +32,22 @@ export function makeNotaCreditoRepository(
       const { error } = await db.rpc('anular_nota_credito', { p_id: id })
       if (error) throw error
     },
-    async list(filtroEstado) {
-      let q = db.from('notas_credito').select(SELECT_RESUMEN)
-      if (filtroEstado) q = q.eq('estado', filtroEstado)
-      const { data, error } = await q
+    async list(params = {}) {
+      const { page = 1, pageSize = 50, q: search, estado } = params
+      let query = db.from('notas_credito').select(SELECT_RESUMEN, { count: 'exact' })
+      if (estado && estado !== 'todos') query = query.eq('estado', estado)
+      if (search) {
+        // Asumiendo búsqueda por número de nota o cliente
+        query = query.or(`numero.ilike.%${search}%,facturas!inner(clientes!inner(nombre.ilike.%${search}%))`)
+      }
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+      const { data, count, error } = await query
         .order('numero', { ascending: false })
+        .range(from, to)
+
       if (error) throw error
-      return data as unknown as NotaCreditoResumen[]
+      return { rows: data as unknown as NotaCreditoResumen[], total: count ?? 0 }
     },
     async getById(id) {
       const { data: nota, error } = await db

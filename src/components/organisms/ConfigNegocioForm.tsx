@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useTransition } from 'react'
-import { useForm, useWatch, FormProvider } from 'react-hook-form'
+import { Controller, useForm, useWatch, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -13,6 +13,8 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import { configFormSchema, type ConfigFormValues } from '@/lib/configValidation'
 import { NumberField } from '@/components/atoms/NumberField'
+import { RifCiField } from '@/components/atoms/RifCiField'
+import { PhoneField } from '@/components/atoms/PhoneField'
 import { FormSection } from '@/components/molecules/FormSection'
 import type { ConfigNegocio } from '@/types/domain'
 import { updateConfigAction } from '@/app/(protected)/catalogos/actions'
@@ -36,6 +38,11 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     nombre_comercial: c?.nombre_comercial ?? 'Altamar Sea Food',
     email_respuesta: c?.email_respuesta ?? '',
     instrucciones_pago: c?.instrucciones_pago ?? '',
+    // 06-contratos: datos del negocio para el encabezado de los contratos.
+    razon_social: c?.razon_social ?? '',
+    rif: c?.rif ?? '',
+    direccion: c?.direccion ?? '',
+    telefono: c?.telefono ?? '',
   }
 }
 
@@ -251,6 +258,70 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
               </Typography>
             </Box>
           ) : null}
+          </FormSection>
+
+          <FormSection
+            titulo="Datos del negocio para contratos"
+            ayuda="Obligatorios para generar contratos. Salen en el encabezado y en las firmas del PDF."
+          >
+          <TextField
+            label="Razón social"
+            fullWidth
+            size="small"
+            {...register('razon_social')}
+            error={!!formState.errors.razon_social}
+            helperText={formState.errors.razon_social?.message}
+          />
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <Controller
+              name="rif"
+              control={control}
+              render={({ field }) => (
+                <RifCiField
+                  label="RIF"
+                  size="small"
+                  fullWidth
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={field.disabled}
+                  error={!!formState.errors.rif}
+                  helperText={formState.errors.rif?.message}
+                />
+              )}
+            />
+            <Controller
+              name="telefono"
+              control={control}
+              render={({ field }) => (
+                <PhoneField
+                  label="Teléfono"
+                  size="small"
+                  fullWidth
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  disabled={field.disabled}
+                  error={!!formState.errors.telefono}
+                  helperText={formState.errors.telefono?.message}
+                />
+              )}
+            />
+          </Box>
+
+          <TextField
+            label="Dirección"
+            fullWidth
+            size="small"
+            multiline
+            minRows={2}
+            {...register('direccion')}
+            error={!!formState.errors.direccion}
+            helperText={formState.errors.direccion?.message}
+          />
           </FormSection>
 
           {serverError ? <Alert severity="error">{serverError}</Alert> : null}

@@ -13,6 +13,8 @@ import { createClient } from '@/lib/supabase/client'
  */
 const SELECT_RESUMEN = '*, cliente:clientes(id, nombre, rif_ci, bloqueado, dias_credito)'
 
+const SELECT_INNER = '*, cliente:clientes!inner(id, nombre, rif_ci, bloqueado, dias_credito)'
+
 export function makePedidoRepository(db: SupabaseClient = createClient()): IPedidoRepository {
   return {
     async create(pedido, items) {
@@ -23,14 +25,34 @@ export function makePedidoRepository(db: SupabaseClient = createClient()): IPedi
       if (error) throw error
       return data as string
     },
-    async list(filtroEstado) {
-      let q = db.from('pedidos').select(SELECT_RESUMEN)
-      if (filtroEstado) q = q.eq('estado', filtroEstado)
-      const { data, error } = await q
+    async list(filtros) {
+      const start = filtros.page * filtros.pageSize
+      const end = start + filtros.pageSize - 1
+
+      const query = db
+        .from('pedidos')
+        .select(filtros.q ? SELECT_INNER : SELECT_RESUMEN, { count: 'exact' })
+
+      if (filtros.estado && filtros.estado !== 'todos') {
+        query.eq('estado', filtros.estado)
+      }
+
+      if (filtros.q) {
+        query.or(`nombre.ilike.%${filtros.q}%,rif_ci.ilike.%${filtros.q}%`, {
+          foreignTable: 'clientes',
+        })
+      }
+
+      const { data, count, error } = await query
         .order('fecha', { ascending: false })
         .order('created_at', { ascending: false })
+        .range(start, end)
+
       if (error) throw error
-      return data as unknown as PedidoResumen[]
+      return {
+        rows: data as unknown as PedidoResumen[],
+        total: count ?? 0,
+      }
     },
     async getById(id) {
       const { data: pedido, error } = await db

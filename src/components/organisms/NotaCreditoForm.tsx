@@ -4,21 +4,15 @@ import * as React from 'react'
 import { useTransition } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
+import { AppDialog } from '@/components/organisms/AppDialog'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
 import { notaCreditoFormSchema, type NotaCreditoFormInput, type NotaCreditoFormValues } from '@/lib/notaCreditoValidation'
 import { fechaHoy, formatKg, formatUsd } from '@/lib/format'
@@ -50,8 +44,6 @@ function vacio(facturaId: string): NotaCreditoFormInput {
 export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: NotaCreditoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
@@ -62,6 +54,7 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
   >({
     resolver: zodResolver(notaCreditoFormSchema),
     mode: 'onSubmit',
+    disabled: isPending,
     defaultValues: vacio(facturaInicialId ?? ''),
   })
 
@@ -166,18 +159,22 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
   }
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={isPending ? undefined : pedirCierre}
-      maxWidth="sm"
-      fullWidth
-      fullScreen={fullScreen}
+      onClose={pedirCierre}
+      size="sm"
+      title="Emitir nota de crédito"
+      onSubmit={onSubmit}
+      pending={isPending}
+      dirty={formState.isDirty}
+      primaryAction={
+        <Button type="submit" variant="contained" disabled={isPending}>
+          Emitir nota
+        </Button>
+      }
+      error={serverError}
     >
-      <Box component="form" onSubmit={onSubmit} noValidate>
-        <DialogTitle>Emitir nota de crédito</DialogTitle>
-
-        <DialogContent dividers>
-          <Box sx={{ display: 'grid', gap: 2.5 }}>
+      <Box sx={{ display: 'grid', gap: 2.5, py: 2 }}>
             <Controller
               control={control}
               name="factura_id"
@@ -295,24 +292,7 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
               </Box>
             ) : null}
 
-            {serverError ? <Alert severity="error">{serverError}</Alert> : null}
           </Box>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={pedirCierre} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isPending}
-            startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-          >
-            Emitir nota
-          </Button>
-        </DialogActions>
-      </Box>
-    </Dialog>
+    </AppDialog>
   )
 }

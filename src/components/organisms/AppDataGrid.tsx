@@ -30,7 +30,10 @@ import {
 import { EmptyState, type EmptyStateProps } from '@/components/molecules/EmptyState'
 import { ErrorState } from '@/components/molecules/ErrorState'
 import { ACTIONS_FIELD } from '@/components/organisms/appDataGridColumns'
+import { paginaDesdeParam } from '@/lib/pagination'
 import { recordarOrigen } from '@/lib/navigationOrigin'
+
+export { paginaDesdeParam }
 
 /**
  * Toda tabla del sistema (spec § Tablas y paginación).
@@ -135,13 +138,6 @@ export interface AppDataGridProps<R extends GridValidRowModel> {
    * fondo propios, para no dibujar una tarjeta dentro de otra.
    */
   embedded?: boolean
-}
-
-/** Lee `?pagina=N` (1-based) y devuelve la página 0-based. Para `page.tsx` en modo servidor. */
-export function paginaDesdeParam(value: string | string[] | null | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value
-  const n = Number(raw)
-  return Number.isInteger(n) && n > 1 ? n - 1 : 0
 }
 
 declare module '@mui/x-data-grid' {

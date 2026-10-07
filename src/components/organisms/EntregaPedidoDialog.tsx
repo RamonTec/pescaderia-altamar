@@ -6,19 +6,13 @@ import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
+import { AppDialog } from '@/components/organisms/AppDialog'
 import Grid from '@mui/material/Grid'
+import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
 import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
@@ -77,8 +71,6 @@ export function EntregaPedidoDialog({
 }: EntregaPedidoDialogProps) {
   const notify = useNotify()
   const confirm = useConfirm()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
@@ -89,6 +81,7 @@ export function EntregaPedidoDialog({
   >({
     resolver: zodResolver(entregaPedidoSchema),
     mode: 'onSubmit',
+    disabled: isPending,
     defaultValues: vacio(pedido?.id ?? ''),
     values: pedido
       ? {
@@ -183,147 +176,138 @@ export function EntregaPedidoDialog({
   })
 
   return (
-    <Dialog open={!!pedido} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
+    <AppDialog
+      open={!!pedido}
+      onClose={onClose}
+      size="sm"
+      title="Entregar pedido"
+      onSubmit={(e) => {
+        onSubmit(e)
+      }}
+      pending={isPending}
+      dirty={formState.isDirty}
+      primaryAction={<Button type="submit" variant="contained" disabled={hayFaltante || isPending}>Entregar y facturar</Button>}
+    >
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate>
-          <DialogTitle>Entregar pedido</DialogTitle>
-
-        <DialogContent dividers>
-          <Box sx={{ display: 'grid', gap: 2.5 }}>
-            <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'action.hover', display: 'grid', gap: 1 }}>
-              <Box>
-                <Typography variant="body2">{pedido.cliente?.nombre}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Pedido del {formatFecha(pedido.fecha)} · total estimado {formatUsd(totalUsd)}
-                </Typography>
-              </Box>
+        <Box sx={{ display: 'grid', gap: 2.5 }}>
+          <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'action.hover', display: 'grid', gap: 1 }}>
+            <Box>
+              <Typography variant="body2">{pedido.cliente?.nombre}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Pedido del {formatFecha(pedido.fecha)} · total estimado {formatUsd(totalUsd)}
+              </Typography>
             </Box>
+          </Box>
 
-            <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  label="Fecha *"
-                  type="date"
-                  fullWidth
-                  size="small"
-                  {...register('fecha')}
-                  error={!!formState.errors.fecha}
-                  helperText={formState.errors.fecha?.message}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-                  Condición
-                </Typography>
+          <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Fecha *"
+                type="date"
+                fullWidth
+                size="small"
+                {...register('fecha')}
+                error={!!formState.errors.fecha}
+                helperText={formState.errors.fecha?.message}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                Condición
+              </Typography>
+              <Controller
+                control={control}
+                name="condicion"
+                render={({ field }) => (
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    fullWidth
+                    value={field.value}
+                    onChange={(_, next) => next && field.onChange(next)}
+                    aria-label="Condición de pago"
+                  >
+                    <ToggleButton value="contado">Contado</ToggleButton>
+                    <ToggleButton value="credito">Crédito</ToggleButton>
+                  </ToggleButtonGroup>
+                )}
+              />
+            </Grid>
+          </Grid>
+
+          {condicion === 'credito' ? (
+            <DiasCreditoField
+              value={diasCredito}
+              onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
+              fecha={fecha || fechaHoy()}
+              diasHabituales={pedido.cliente?.dias_credito ?? diasCreditoDefault}
+              error={!!formState.errors.dias_credito}
+              helperText={formState.errors.dias_credito?.message}
+              disabled={isPending}
+            />
+          ) : null}
+
+          <Box sx={{ display: 'grid', gap: 1.5 }}>
+            <Typography variant="h6">Peso real entregado</Typography>
+            {pedido.items.map((item, index) => (
+              <Box key={item.id} sx={{ display: 'grid', gap: 0.5 }}>
                 <Controller
                   control={control}
-                  name="condicion"
+                  name={`pesos_reales.${index}.peso_kg`}
                   render={({ field }) => (
-                    <ToggleButtonGroup
-                      exclusive
-                      size="small"
+                    <NumberField
+                      label={`${item.producto.nombre} (estimado ${formatKg(Number(item.peso_estimado_kg))})`}
                       fullWidth
+                      size="small"
+                      decimals={3}
+                      suffix="kg"
                       value={field.value}
-                      onChange={(_, next) => next && field.onChange(next)}
-                      aria-label="Condición de pago"
-                    >
-                      <ToggleButton value="contado">Contado</ToggleButton>
-                      <ToggleButton value="credito">Crédito</ToggleButton>
-                    </ToggleButtonGroup>
+                      onChange={(v) => {
+                        field.onChange(v)
+                        // Otro peso: la línea vuelve a PEPS (07-lotes).
+                        setValue(`pesos_reales.${index}.asignaciones`, undefined)
+                      }}
+                      onBlur={field.onBlur}
+                      error={!!formState.errors.pesos_reales?.[index]?.peso_kg}
+                      helperText={formState.errors.pesos_reales?.[index]?.peso_kg?.message}
+                    />
                   )}
                 />
-              </Grid>
-            </Grid>
-
-            {condicion === 'credito' ? (
-              <DiasCreditoField
-                value={diasCredito}
-                onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
-                fecha={fecha || fechaHoy()}
-                diasHabituales={pedido.cliente?.dias_credito ?? diasCreditoDefault}
-                error={!!formState.errors.dias_credito}
-                helperText={formState.errors.dias_credito?.message}
-                disabled={isPending}
-              />
-            ) : null}
-
-            <Box sx={{ display: 'grid', gap: 1.5 }}>
-              <Typography variant="h6">Peso real entregado</Typography>
-              {pedido.items.map((item, index) => (
-                <Box key={item.id} sx={{ display: 'grid', gap: 0.5 }}>
-                  <Controller
-                    control={control}
-                    name={`pesos_reales.${index}.peso_kg`}
-                    render={({ field }) => (
-                      <NumberField
-                        label={`${item.producto.nombre} (estimado ${formatKg(Number(item.peso_estimado_kg))})`}
-                        fullWidth
-                        size="small"
-                        decimals={3}
-                        suffix="kg"
-                        value={field.value}
-                        onChange={(v) => {
-                          field.onChange(v)
-                          // Otro peso: la línea vuelve a PEPS (07-lotes).
-                          setValue(`pesos_reales.${index}.asignaciones`, undefined)
-                        }}
-                        onBlur={field.onBlur}
-                        error={!!formState.errors.pesos_reales?.[index]?.peso_kg}
-                        helperText={formState.errors.pesos_reales?.[index]?.peso_kg?.message}
-                      />
-                    )}
-                  />
-                  <LotesLineaVenta
-                    productoId={item.producto_id}
-                    pesoKg={pesosReales?.[index]?.peso_kg}
-                    controlaStock={
-                      productos.find((p) => p.id === item.producto_id)?.controla_stock ?? true
-                    }
-                    asignaciones={pesosReales?.[index]?.asignaciones}
-                    onAsignacionesChange={(a) =>
-                      setValue(`pesos_reales.${index}.asignaciones`, a, { shouldDirty: true })
-                    }
-                    error={formState.errors.pesos_reales?.[index]?.asignaciones?.message}
-                    disabled={isPending}
-                    onSuficiencia={(ok) => marcarSuficiencia(item.id, ok)}
-                  />
-                </Box>
-              ))}
-            </Box>
-
-            <TasaSelector
-              fecha={fecha || fechaHoy()}
-              config={configTasas}
-              onReferencial={setReferencial}
-              titulo="Tasa de la factura"
-            />
-
-            {hayFaltante ? (
-              <Alert severity="warning">
-                Hay productos sin stock suficiente en lotes: no se puede facturar la entrega.
-              </Alert>
-            ) : null}
-
-            {serverError ? <Alert severity="error">{serverError}</Alert> : null}
+                <LotesLineaVenta
+                  productoId={item.producto_id}
+                  pesoKg={pesosReales?.[index]?.peso_kg}
+                  controlaStock={
+                    productos.find((p) => p.id === item.producto_id)?.controla_stock ?? true
+                  }
+                  asignaciones={pesosReales?.[index]?.asignaciones}
+                  onAsignacionesChange={(a) =>
+                    setValue(`pesos_reales.${index}.asignaciones`, a, { shouldDirty: true })
+                  }
+                  error={formState.errors.pesos_reales?.[index]?.asignaciones?.message}
+                  disabled={isPending}
+                  onSuficiencia={(ok) => marcarSuficiencia(item.id, ok)}
+                />
+              </Box>
+            ))}
           </Box>
-        </DialogContent>
 
-        <DialogActions>
-          <Button onClick={onClose} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isPending || hayFaltante}
-            startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-          >
-            Entregar y facturar
-          </Button>
-        </DialogActions>
+          <TasaSelector
+            fecha={fecha || fechaHoy()}
+            config={configTasas}
+            onReferencial={setReferencial}
+            titulo="Tasa de la factura"
+          />
+
+          {hayFaltante ? (
+            <Alert severity="warning">
+              Hay productos sin stock suficiente en lotes: no se puede facturar la entrega.
+            </Alert>
+          ) : null}
+
+          {serverError ? <Alert severity="error">{serverError}</Alert> : null}
         </Box>
       </FormProvider>
-    </Dialog>
+    </AppDialog>
   )
 }

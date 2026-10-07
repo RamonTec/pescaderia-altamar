@@ -14,10 +14,12 @@ import { useTransition } from 'react'
 
 export function NotasCreditoScreen({
   notas,
+  totalNotas,
   facturas,
   esAdmin,
 }: {
   notas: NotaCreditoResumen[]
+  totalNotas: number
   facturas: FacturaResumen[]
   esAdmin: boolean
 }) {
@@ -54,7 +56,7 @@ export function NotasCreditoScreen({
         ) : null}
       </PageHeader>
 
-      <NotasCreditoTable notas={notas} esAdmin={esAdmin} onAnular={anular} />
+      <NotasCreditoTable notas={notas} totalNotas={totalNotas} esAdmin={esAdmin} onAnular={anular} />
 
       {esAdmin ? (
         <NotaCreditoForm

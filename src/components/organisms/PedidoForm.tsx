@@ -7,20 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
+import Button from '@mui/material/Button'
+import { AppDialog } from '@/components/organisms/AppDialog'
+import { FormSection } from '@/components/molecules/FormSection'
 import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
 import { PedidoItemsFieldArray, pedidoItemVacio } from '@/components/molecules/PedidoItemsFieldArray'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
 import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
@@ -89,8 +84,6 @@ export function PedidoForm({
 }: PedidoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
@@ -98,6 +91,7 @@ export function PedidoForm({
     resolver: zodResolver(pedidoFormSchema),
     mode: 'onSubmit',
     defaultValues: vacio(),
+    disabled: isPending,
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
@@ -203,86 +197,90 @@ export function PedidoForm({
   })
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={isPending ? undefined : pedirCierre}
-      maxWidth="md"
-      fullWidth
-      fullScreen={fullScreen}
+      onClose={pedirCierre}
+      size="md"
+      title="Nueva venta / pedido"
+      onSubmit={(e) => {
+        // AppDialog no hace e.preventDefault, react-hook-form lo hace
+        onSubmit(e)
+      }}
+      pending={isPending}
+      dirty={formState.isDirty}
+      primaryAction={<Button type="submit" variant="contained" disabled={productos.length === 0 || hayFaltante || isPending}>{entregaInmediata ? 'Registrar venta' : 'Crear pedido'}</Button>}
     >
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate>
-          <DialogTitle>Nueva venta / pedido</DialogTitle>
-
-          <DialogContent dividers>
-            <Box sx={{ display: 'grid', gap: 3 }}>
-              <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
-                <Grid size={{ xs: 12, sm: 8 }}>
-                  <Controller
-                    control={control}
-                    name="cliente_id"
-                    render={({ field }) => (
-                      <Autocomplete
-                        options={clientes}
-                        value={cliente}
-                        onChange={(_, next) => {
-                          field.onChange(next?.id ?? '')
-                          if (next?.bloqueado) setValue('condicion', 'contado')
-                          // Precarga los días del nuevo cliente (editables).
-                          setValue('dias_credito', next?.dias_credito ?? diasCreditoDefault)
-                        }}
-                        onBlur={field.onBlur}
-                        getOptionLabel={(c) => (c.rif_ci ? `${c.nombre} · ${c.rif_ci}` : c.nombre)}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        noOptionsText="Sin clientes activos"
-                        renderOption={({ key, ...props }, c) => (
-                          <Box component="li" key={key} {...props} sx={{ gap: 1 }}>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body2">{c.nombre}</Typography>
-                              {c.rif_ci ? (
-                                <Typography variant="caption" color="text.secondary">
-                                  {c.rif_ci}
-                                </Typography>
-                              ) : null}
-                            </Box>
-                            {c.bloqueado ? <Chip label="Bloqueado" size="small" color="error" /> : null}
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <FormSection titulo="Cliente y tipo">
+            <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <Controller
+                  control={control}
+                  name="cliente_id"
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={clientes}
+                      value={cliente}
+                      onChange={(_, next) => {
+                        field.onChange(next?.id ?? '')
+                        if (next?.bloqueado) setValue('condicion', 'contado')
+                        // Precarga los días del nuevo cliente (editables).
+                        setValue('dias_credito', next?.dias_credito ?? diasCreditoDefault)
+                      }}
+                      onBlur={field.onBlur}
+                      getOptionLabel={(c) => (c.rif_ci ? `${c.nombre} · ${c.rif_ci}` : c.nombre)}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      noOptionsText="Sin clientes activos"
+                      renderOption={({ key, ...props }, c) => (
+                        <Box component="li" key={key} {...props} sx={{ gap: 1 }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2">{c.nombre}</Typography>
+                            {c.rif_ci ? (
+                              <Typography variant="caption" color="text.secondary">
+                                {c.rif_ci}
+                              </Typography>
+                            ) : null}
                           </Box>
-                        )}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Cliente *"
-                            error={!!formState.errors.cliente_id}
-                            helperText={formState.errors.cliente_id?.message}
-                          />
-                        )}
-                      />
-                    )}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-                    Tipo de venta
-                  </Typography>
-                  <Controller
-                    control={control}
-                    name="entrega_inmediata"
-                    render={({ field }) => (
-                      <ToggleButtonGroup
-                        exclusive
-                        size="small"
-                        fullWidth
-                        value={field.value}
-                        onChange={(_, next: boolean | null) => next != null && field.onChange(next)}
-                        aria-label="Tipo de venta"
-                      >
-                        <ToggleButton value={false}>Pedido agendado</ToggleButton>
-                        <ToggleButton value>Entrega inmediata</ToggleButton>
-                      </ToggleButtonGroup>
-                    )}
-                  />
-                </Grid>
+                          {c.bloqueado ? <Chip label="Bloqueado" size="small" color="error" /> : null}
+                        </Box>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Cliente *"
+                          error={!!formState.errors.cliente_id}
+                          helperText={formState.errors.cliente_id?.message}
+                        />
+                      )}
+                    />
+                  )}
+                />
               </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                  Tipo de venta
+                </Typography>
+                <Controller
+                  control={control}
+                  name="entrega_inmediata"
+                  render={({ field }) => (
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      fullWidth
+                      value={field.value}
+                      onChange={(_, next: boolean | null) => next != null && field.onChange(next)}
+                      aria-label="Tipo de venta"
+                    >
+                      <ToggleButton value={false}>Pedido agendado</ToggleButton>
+                      <ToggleButton value>Entrega inmediata</ToggleButton>
+                    </ToggleButtonGroup>
+                  )}
+                />
+              </Grid>
+            </Grid>
+          </FormSection>
 
               {cliente?.bloqueado ? (
                 <Alert severity="error">
@@ -290,149 +288,153 @@ export function PedidoForm({
                 </Alert>
               ) : null}
 
-              <Grid container spacing={2}>
+          <FormSection titulo="Condiciones">
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  label="Fecha *"
+                  type="date"
+                  fullWidth
+                  size="small"
+                  {...register('fecha')}
+                  error={!!formState.errors.fecha}
+                  helperText={formState.errors.fecha?.message}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Grid>
+              {!entregaInmediata ? (
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField
-                    label="Fecha *"
+                    label="Fecha de entrega"
                     type="date"
                     fullWidth
                     size="small"
-                    {...register('fecha')}
-                    error={!!formState.errors.fecha}
-                    helperText={formState.errors.fecha?.message}
+                    value={methods.getValues('fecha_entrega') ?? ''}
+                    onChange={(e) =>
+                      setValue('fecha_entrega', e.target.value || null, { shouldDirty: true })
+                    }
+                    error={!!formState.errors.fecha_entrega}
+                    helperText={formState.errors.fecha_entrega?.message}
                     slotProps={{ inputLabel: { shrink: true } }}
                   />
                 </Grid>
-                {!entregaInmediata ? (
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    <TextField
-                      label="Fecha de entrega"
-                      type="date"
-                      fullWidth
+              ) : null}
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                  Condición de pago
+                </Typography>
+                <Controller
+                  control={control}
+                  name="condicion"
+                  render={({ field }) => (
+                    <ToggleButtonGroup
+                      exclusive
                       size="small"
-                      value={methods.getValues('fecha_entrega') ?? ''}
-                      onChange={(e) =>
-                        setValue('fecha_entrega', e.target.value || null, { shouldDirty: true })
-                      }
-                      error={!!formState.errors.fecha_entrega}
-                      helperText={formState.errors.fecha_entrega?.message}
-                      slotProps={{ inputLabel: { shrink: true } }}
-                    />
-                  </Grid>
-                ) : null}
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-                    Condición de pago
-                  </Typography>
-                  <Controller
-                    control={control}
-                    name="condicion"
-                    render={({ field }) => (
-                      <ToggleButtonGroup
-                        exclusive
-                        size="small"
-                        fullWidth
-                        value={field.value}
-                        onChange={(_, next) => next && field.onChange(next)}
-                        aria-label="Condición de pago"
-                      >
-                        <ToggleButton value="contado">Contado</ToggleButton>
-                        <ToggleButton value="credito" disabled={!!cliente?.bloqueado}>
-                          Crédito
-                        </ToggleButton>
-                      </ToggleButtonGroup>
-                    )}
-                  />
-                </Grid>
+                      fullWidth
+                      value={field.value}
+                      onChange={(_, next) => next && field.onChange(next)}
+                      aria-label="Condición de pago"
+                    >
+                      <ToggleButton value="contado">Contado</ToggleButton>
+                      <ToggleButton value="credito" disabled={!!cliente?.bloqueado}>
+                        Crédito
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  )}
+                />
               </Grid>
+            </Grid>
 
-              {entregaInmediata && condicion === 'credito' ? (
-                <DiasCreditoField
-                  value={diasCredito}
-                  onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
-                  fecha={fecha || fechaHoy()}
-                  diasHabituales={diasHabituales}
-                  error={!!formState.errors.dias_credito}
-                  helperText={formState.errors.dias_credito?.message}
-                  disabled={isPending}
-                />
-              ) : null}
+            {entregaInmediata && condicion === 'credito' ? (
+              <DiasCreditoField
+                value={diasCredito}
+                onChange={(v) => setValue('dias_credito', v, { shouldDirty: true })}
+                fecha={fecha || fechaHoy()}
+                diasHabituales={diasHabituales}
+                error={!!formState.errors.dias_credito}
+                helperText={formState.errors.dias_credito?.message}
+                disabled={isPending}
+              />
+            ) : null}
 
-              {!entregaInmediata ? (
-                <TextField
-                  label="Notas"
-                  fullWidth
-                  size="small"
-                  multiline
-                  maxRows={3}
-                  {...register('notas')}
-                  placeholder="Ej. Entregar en dos lotes"
-                />
-              ) : null}
+            {!entregaInmediata ? (
+              <TextField
+                label="Notas"
+                fullWidth
+                size="small"
+                multiline
+                maxRows={3}
+                {...register('notas')}
+                placeholder="Ej. Entregar en dos lotes"
+              />
+            ) : null}
+          </FormSection>
 
-              <PedidoItemsFieldArray
-                productos={productos}
-                etiquetaPeso={entregaInmediata ? 'Peso real' : 'Peso estimado'}
-                onQuitar={(filaId) => marcarSuficiencia(filaId, true)}
-                renderLinea={
-                  entregaInmediata
-                    ? (index, filaId) => {
-                        const item = items?.[index]
-                        return (
-                          <LotesLineaVenta
-                            productoId={item?.producto_id}
-                            pesoKg={item?.peso_kg}
-                            controlaStock={
-                              productos.find((p) => p.id === item?.producto_id)?.controla_stock ??
-                              false
-                            }
-                            asignaciones={item?.asignaciones}
-                            onAsignacionesChange={(a) =>
-                              setValue(`items.${index}.asignaciones`, a, { shouldDirty: true })
-                            }
-                            error={formState.errors.items?.[index]?.asignaciones?.message}
-                            disabled={isPending}
-                            onSuficiencia={(ok) => marcarSuficiencia(filaId, ok)}
-                          />
-                        )
-                      }
-                    : undefined
+          <FormSection titulo="Artículos">
+            <PedidoItemsFieldArray
+              productos={productos}
+              etiquetaPeso={entregaInmediata ? 'Peso real' : 'Peso estimado'}
+              onQuitar={(filaId) => marcarSuficiencia(filaId, true)}
+              renderLinea={
+                entregaInmediata
+                  ? (index, filaId) => {
+                      const item = items?.[index]
+                      return (
+                        <LotesLineaVenta
+                          productoId={item?.producto_id}
+                          pesoKg={item?.peso_kg}
+                          controlaStock={
+                            productos.find((p) => p.id === item?.producto_id)?.controla_stock ??
+                            false
+                          }
+                          asignaciones={item?.asignaciones}
+                          onAsignacionesChange={(a) =>
+                            setValue(`items.${index}.asignaciones`, a, { shouldDirty: true })
+                          }
+                          error={formState.errors.items?.[index]?.asignaciones?.message}
+                          disabled={isPending}
+                          onSuficiencia={(ok) => marcarSuficiencia(filaId, ok)}
+                        />
+                      )
+                    }
+                  : undefined
+              }
+            />
+
+            {entregaInmediata ? (
+              <TasaSelector
+                fecha={fecha || fechaHoy()}
+                config={configTasas}
+                onReferencial={setReferencial}
+                renderEquivalencia={(tasaFinal) =>
+                  totalUsd && tasaFinal ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Equivale a {formatBs(totalUsd * tasaFinal)} con esta tasa.
+                    </Typography>
+                  ) : null
                 }
               />
+            ) : null}
 
-              {entregaInmediata ? (
-                <TasaSelector
-                  fecha={fecha || fechaHoy()}
-                  config={configTasas}
-                  onReferencial={setReferencial}
-                  renderEquivalencia={(tasaFinal) =>
-                    totalUsd && tasaFinal ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Equivale a {formatBs(totalUsd * tasaFinal)} con esta tasa.
-                      </Typography>
-                    ) : null
-                  }
-                />
-              ) : null}
-
-              <Box
-                sx={{
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  pt: 2,
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Total USD
-                  </Typography>
-                  <Typography variant="h6" sx={MONO}>
-                    {formatUsd(totalUsd)}
-                  </Typography>
-                </Box>
+            <Box
+              sx={{
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                pt: 2,
+                display: 'flex',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Total USD
+                </Typography>
+                <Typography variant="h6" sx={MONO}>
+                  {formatUsd(totalUsd)}
+                </Typography>
               </Box>
+            </Box>
+          </FormSection>
 
               {condicion === 'credito' && totalUsd ? (
                 <Alert severity="info">
@@ -450,23 +452,7 @@ export function PedidoForm({
 
               {serverError ? <Alert severity="error">{serverError}</Alert> : null}
             </Box>
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={pedirCierre} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isPending || productos.length === 0 || hayFaltante}
-              startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-            >
-              {entregaInmediata ? 'Registrar venta' : 'Crear pedido'}
-            </Button>
-          </DialogActions>
-        </Box>
       </FormProvider>
-    </Dialog>
+    </AppDialog>
   )
 }

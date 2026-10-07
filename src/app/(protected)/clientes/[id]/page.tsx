@@ -10,6 +10,7 @@ import { requireAdmin } from '@/lib/services/authService'
 import { carteraDeCliente } from '@/lib/services/carteraService'
 import { getDiasCreditoDefault } from '@/lib/services/configService'
 import { historialDeCliente } from '@/lib/services/recordatorioService'
+import { elegibilidadFacturas } from '@/lib/services/contratoService'
 
 /**
  * Ficha del cliente: todo se carga aquí, en paralelo, y llega por props.
@@ -40,6 +41,13 @@ export default async function ClienteFichaPage({
       getDiasCreditoDefault(),
     ])
 
+  // 06-contratos: elegibilidad de contrato de las facturas del cliente, en
+  // lote (solo admin). Necesita los ids de la cartera: va después del Promise.all.
+  const contratos =
+    esAdmin && cartera.documentos.length > 0
+      ? Object.fromEntries(await elegibilidadFacturas(cartera.documentos.map((d) => d.id)))
+      : {}
+
   return (
     <ClienteFicha
       cliente={cliente}
@@ -50,6 +58,7 @@ export default async function ClienteFichaPage({
       cartera={cartera}
       recordatorios={recordatorios}
       diasCreditoDefault={diasCreditoDefault}
+      contratos={contratos}
     />
   )
 }

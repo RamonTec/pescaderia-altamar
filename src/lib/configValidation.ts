@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { MSG_EMAIL_INVALIDO } from './validationMessages'
+import { MSG_EMAIL_INVALIDO, MSG_RIF_CI_INVALIDO } from './validationMessages'
+import { RIF_CI_REGEX, TELEFONO_VE_REGEX } from './clienteValidation'
 
 /**
  * Validación de la configuración del negocio (04-inventario, 08-tasas).
@@ -41,6 +42,22 @@ export const configFormSchema = z.object({
   nombre_comercial: z.string().trim().min(1, 'Nombre comercial requerido').max(120, 'Máximo 120 caracteres'),
   email_respuesta: z.string().trim().email(MSG_EMAIL_INVALIDO).or(z.literal('')),
   instrucciones_pago: z.string().max(1500, 'Máximo 1500 caracteres'),
+  // 06-contratos: encabezado de los contratos. Opcionales aquí (vacío → null
+  // en la action); `contratoService` los exige para generar.
+  razon_social: z.string().trim().max(160, 'Máximo 160 caracteres'),
+  rif: z.string().trim().regex(RIF_CI_REGEX, MSG_RIF_CI_INVALIDO).or(z.literal('')),
+  direccion: z.string().trim().max(300, 'Máximo 300 caracteres'),
+  telefono: z
+    .string()
+    .trim()
+    .regex(TELEFONO_VE_REGEX, 'Teléfono inválido (ej. 0295-2911234)')
+    .or(z.literal('')),
 })
+
+/** `02952911234` → `0295-2911234` (como lo muestra `PhoneField`). */
+export function formatearTelefonoVe(telefono: string): string {
+  const digitos = telefono.replace(/\D/g, '')
+  return digitos.length === 11 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : telefono
+}
 
 export type ConfigFormValues = z.infer<typeof configFormSchema>

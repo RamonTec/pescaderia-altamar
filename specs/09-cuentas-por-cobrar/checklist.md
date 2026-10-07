@@ -63,3 +63,4 @@
   - _2026-10-07, usuario_: migraciones aplicadas y módulo probado en la app. Quedan aparte la prueba por PostgREST con operador (tarea 29) y el correo por Resend (tarea 28).
 - [ ] (2026-10-07) `/cobros` en paginación de servidor (tarea 40 de `00-estandares-ui`): hoy `DocumentosCarteraTable` pagina en cliente.
 - [ ] (2026-10-07) Verificar un dominio en Resend y cargar `RESEND_API_KEY` y `RECORDATORIO_EMAIL_FROM` en Vercel; sin eso, el canal correo queda deshabilitado (WhatsApp funciona).
+  - _2026-10-07_: dominio verificado por el usuario en Resend; `RESEND_API_KEY` ya estaba en `.env` y se agregó `RECORDATORIO_EMAIL_FROM=cobranza@altamarseafood.com`. **Sin marcar**: falta cargar ambas en Vercel y probar un envío real desde la ficha del cliente (llega el correo, queda `enviado`, "Reintentar" ante un fallo).

@@ -64,3 +64,7 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
 - **Tareas 16–19 (pantalla `/inventario`) absorbidas por `07-lotes`** (tareas 18–20 de ese módulo): se construyen directamente con lotes, no sobre el promedio ponderado.
 - **Tarea 22 (costo ponderado tras una segunda compra) queda obsoleta**: la reemplaza la tarea 23 de `07-lotes` (dos lotes con su propio costo).
 - **08-tasas (2026-10-07)**: `tasas` cambia (`bs_por_usd` → `valor_bs`, + `moneda`/`origen`; RLS de escritura solo admin). `compras` y `pagos_proveedores` suman `tasa_origen`, `tasa_fuente`, `tasa_referencial` y `tasa_registrada_por`, y se actualizan `registrar_compra`/`registrar_pago_proveedor`. `config_negocio` suma `umbral_desviacion_tasa_pct`. `getTasaSugerida` se reemplaza por `getTasaVigente`, y `CompraForm`/`PagoProveedorDialog` usan `TasaSelector`.
+- **06-contratos (2026-10-07)**: cambios en el esquema y la UI de este módulo:
+  - `config_negocio` suma `razon_social`, `rif`, `direccion` y `telefono` (migración `20261007190000_config_negocio_datos_contrato.sql`), editables en `ConfigNegocioForm` y validados en `configFormSchema`. Son datos del encabezado del PDF.
+  - `ComprasTable` recibe `accionesExtra` para las opciones de contrato en su menú `⋮` (solo admin).
+  - Las RLS de `config_negocio` no cambian.

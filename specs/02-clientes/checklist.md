@@ -16,6 +16,6 @@
 
 ## Pendientes / deuda técnica
 - [ ] `clientes/actions.ts` no vuelve a validar con `clienteFormSchema` (solo hace `JSON.parse`) — agregar `clienteFormSchema.safeParse(input)` antes de llamar al servicio (ver `00-estandares-ui/tasks.md` tarea 23, detectado al definir el estándar de validación).
-- [ ] Aplicar migraciones `0004`–`0006` en el proyecto Supabase real (SQL Editor / `db push`).
+- [x] Aplicar migraciones `0004`–`0006` en el proyecto Supabase real (SQL Editor / `db push`). _(Aplicadas; confirmado por el usuario el 2026-10-07.)_
 - [ ] Crear bucket privado `documentos-clientes` en Storage y otorgar a `authenticated` `INSERT/SELECT/UPDATE` (necesario para subir y reemplazar).
 - [ ] Verificación manual en navegador: subir/ver/reemplazar documento, bloqueo con sesión de operador rechazado, desactivación de cliente con facturas no borra físicamente.

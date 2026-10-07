@@ -11,7 +11,7 @@
 
 ## Datos y seguridad
 - [x] `tasas` tiene `valor_bs`, `moneda`, `origen`; unique `(fecha, fuente, moneda)` (migración `0018_tasas_monedas.sql` escrita; backfill a `USD` incluido). Falta aplicarla en Supabase: ver Pendientes.
-- [ ] Un operador no puede insertar ni modificar tasas (UI ni PostgREST). RLS solo-admin en `0018` escrita, pero requiere migraciones aplicadas y prueba real vía PostgREST.
+- [ ] Un operador no puede insertar ni modificar tasas (UI ni PostgREST). RLS solo-admin en `0018` escrita, migraciones aplicadas el 2026-10-07; falta la prueba real vía PostgREST.
 - [x] `tasa_vigente` usa la de mayor fecha ≤ X: fines de semana y feriados funcionan con la tasa arrastrada (función en `0018` + `getTasaVigente` en `tasaService`). El escenario real de fin de semana queda en Pendientes (tarea 22).
 - [x] Compras, facturas, cobros y pagos a proveedores guardan `tasa_origen`, `tasa_fuente`, `tasa_referencial` y `tasa_registrada_por` (fijado por trigger) (migración `0019_tasa_operaciones.sql`).
 - [x] La historia no se recalcula: corregir la tasa de un día no cambia operaciones ya registradas (las operaciones guardan snapshot propio; nada en el módulo toca filas existentes).
@@ -34,8 +34,8 @@
 - [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores (verificado el 2026-10-07).
 
 ## Pendientes / deuda técnica
-- [ ] **(2026-10-07)** Aplicar `supabase/migrations/0018_tasas_monedas.sql` y `0019_tasa_operaciones.sql` en Supabase (el usuario las aplica por SQL Editor). Tras aplicar: verificar que las tasas existentes quedan `moneda = 'USD'` y que las filas viejas de operaciones quedan `referencial` con `tasa_referencial = tasa_snapshot`.
+- [x] **(2026-10-07)** Aplicar `supabase/migrations/0018_tasas_monedas.sql` y `0019_tasa_operaciones.sql` en Supabase (el usuario las aplica por SQL Editor). Tras aplicar: verificar que las tasas existentes quedan `moneda = 'USD'` y que las filas viejas de operaciones quedan `referencial` con `tasa_referencial = tasa_snapshot`. _(Aplicadas; confirmado por el usuario el 2026-10-07. La comprobación de datos posterior queda en la tarea 19 y en los escenarios 22–26.)_
 - [ ] **(2026-10-07)** Prueba RLS como operador vía PostgREST: insert/update en `tasas` debe fallar con rol `authenticated` operador (tarea 19).
-- [ ] **(2026-10-07)** Cron real en Vercel: desplegar `vercel.json` y configurar `CRON_SECRET` en el entorno de producción; confirmar que la ejecución diaria actualiza (tarea 21 en producción).
+- [ ] **(2026-10-07)** Cron real en Vercel: desplegar `vercel.json` (horarios corregidos el 2026-10-07 a 21:30 UTC y 12:00 UTC según `spec.md`; antes estaba 17:00 UTC, antes de la publicación del BCV) y configurar `CRON_SECRET` en el entorno de producción; confirmar que la ejecución diaria actualiza (tarea 21 en producción).
 - [ ] **(2026-10-07)** Escenarios con la app corriendo y migraciones aplicadas (tareas 22–26): venta en fin de semana con tasa arrastrada y su aviso; venta con tasa manual 10 % mayor (queda `manual` + `tasa_referencial` + usuario) y confirmación con desvío de un orden de magnitud; compra con fecha de ayer propone la referencial de ayer; abono en Bs con tasa manual usa esa tasa para la ganancia cambiaria; `/tasas` como operador sin acciones de admin.
 - [ ] **(2026-10-07)** Revisión visual de `/tasas` y `TasaSelector` en 375 px, modo claro y oscuro.

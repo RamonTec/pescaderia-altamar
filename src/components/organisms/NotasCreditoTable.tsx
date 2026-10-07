@@ -1,41 +1,68 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
-import { DataGrid, type GridColDef, GridToolbarQuickFilter } from '@mui/x-data-grid'
-import { EmptyState } from '@/components/molecules/EmptyState'
-import { formatFecha, formatUsd } from '@/lib/format'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import { type GridColDef } from '@mui/x-data-grid'
+import { AppDataGrid } from '@/components/organisms/AppDataGrid'
+import { colAcciones, colEstado, colFecha, colMonto, type EstadoDef } from '@/components/organisms/appDataGridColumns'
+import { formatUsd } from '@/lib/format'
 import type { NotaCreditoResumen } from '@/lib/repositories/interfaces'
+import { EstadoChip } from '@/components/organisms/appDataGridColumns'
 
-const NUM = { fontVariantNumeric: 'tabular-nums' }
+const ESTADO: Record<'emitida' | 'anulada', EstadoDef> = {
+  emitida: { label: 'Emitida', color: 'success' },
+  anulada: { label: 'Anulada', color: 'default' },
+}
 
 export interface NotasCreditoTableProps {
   notas: NotaCreditoResumen[]
+  totalNotas?: number
   esAdmin: boolean
   onAnular: (nota: NotaCreditoResumen) => void
 }
 
-export function NotasCreditoTable({ notas, esAdmin, onAnular }: NotasCreditoTableProps) {
-  const columns: GridColDef<NotaCreditoResumen>[] = [
+function EstadoFilter() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const current = searchParams.get('estado') || 'todos'
+
+  const handleChange = (_: unknown, next: string | null) => {
+    if (!next) return
+    const p = new URLSearchParams(searchParams)
+    if (next === 'todos') p.delete('estado')
+    else p.set('estado', next)
+    p.delete('page') // Al filtrar, volver a pág 1
+    router.replace(`?${p.toString()}`)
+  }
+
+  return (
+    <ToggleButtonGroup
+      size="small"
+      value={current}
+      exclusive
+      onChange={handleChange}
+      aria-label="Filtrar por estado"
+    >
+      <ToggleButton value="todos">Todas</ToggleButton>
+      <ToggleButton value="emitida">Emitidas</ToggleButton>
+      <ToggleButton value="anulada">Anuladas</ToggleButton>
+    </ToggleButtonGroup>
+  )
+}
+
+export function NotasCreditoTable({ notas, totalNotas, esAdmin, onAnular }: NotasCreditoTableProps) {
+  const columns: GridColDef<NotaCreditoResumen>[] = React.useMemo(() => [
     {
       field: 'numero',
       headerName: 'N.º',
       width: 90,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={NUM}>
-          {params.row.numero}
-        </Typography>
-      ),
     },
-    {
-      field: 'fecha',
-      headerName: 'Fecha',
-      width: 120,
-      valueFormatter: (v: string) => formatFecha(v),
-    },
+    colFecha('fecha', 'Fecha', { width: 120 }),
     {
       field: 'factura',
       headerName: 'Factura',
@@ -43,7 +70,7 @@ export function NotasCreditoTable({ notas, esAdmin, onAnular }: NotasCreditoTabl
       minWidth: 180,
       valueGetter: (_v, row) => `${row.factura.numero} · ${row.factura.cliente.nombre}`,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ display: 'grid', alignContent: 'center', height: '100%' }}>
           <Typography variant="body2">
             Factura N.º {params.row.factura.numero}
           </Typography>
@@ -59,73 +86,48 @@ export function NotasCreditoTable({ notas, esAdmin, onAnular }: NotasCreditoTabl
       flex: 1,
       minWidth: 160,
     },
-    {
-      field: 'total_usd',
-      headerName: 'Total',
-      type: 'number',
-      width: 120,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={NUM}>
-          {formatUsd(Number(params.row.total_usd))}
-        </Typography>
-      ),
-    },
-    {
-      field: 'estado',
-      headerName: 'Estado',
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.row.estado === 'emitida' ? 'Emitida' : 'Anulada'}
-          size="small"
-          color={params.row.estado === 'emitida' ? 'success' : 'default'}
-          variant="outlined"
-        />
-      ),
-    },
+    colMonto('total_usd', 'Total', { width: 120 }),
+    colEstado('estado', 'Estado', ESTADO, { width: 120 }),
     ...(esAdmin
-      ? ([
-          {
-            field: 'acciones',
-            headerName: '',
-            sortable: false,
-            filterable: false,
-            width: 110,
-            renderCell: (params) =>
-              params.row.estado === 'emitida' ? (
-                <Button size="small" color="error" onClick={() => onAnular(params.row)}>
-                  Anular
-                </Button>
-              ) : null,
-          },
-        ] satisfies GridColDef<NotaCreditoResumen>[])
+      ? [
+          colAcciones<NotaCreditoResumen>(
+            (row) => [
+              {
+                label: 'Anular',
+                onClick: () => onAnular(row),
+                show: row.estado === 'emitida',
+                danger: true,
+              },
+            ],
+            { rowLabel: (row) => `Nota N.º ${row.numero}` }
+          ),
+        ]
       : []),
-  ]
-
-  if (notas.length === 0) {
-    return (
-      <EmptyState
-        title="Aún no hay notas de crédito"
-        description="Las devoluciones y correcciones sobre facturas emitidas aparecerán aquí."
-      />
-    )
-  }
+  ], [esAdmin, onAnular])
 
   return (
-    <DataGrid
+    <AppDataGrid
+      tableId="notas-credito"
+      label="Notas de crédito"
+      mode="server"
       rows={notas}
+      rowCount={totalNotas}
       columns={columns}
-      autoHeight
-      disableRowSelectionOnClick
-      pageSizeOptions={[10, 25, 50]}
-      initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-      slots={{
-        toolbar: () => <GridToolbarQuickFilter debounceMs={250} />,
-        noRowsOverlay: () => (
-          <EmptyState title="Sin resultados" description="No hay notas que coincidan." />
-        ),
+      filters={<EstadoFilter />}
+      searchPlaceholder="Buscar por número o cliente..."
+      emptyState={{
+        title: 'Aún no hay notas de crédito',
+        description: 'Las devoluciones y correcciones sobre facturas emitidas aparecerán aquí.',
       }}
-      sx={{ bgcolor: 'background.paper' }}
+      mobileCard={(row) => ({
+        primary: `Nota N.º ${row.numero}`,
+        secondary: `Factura ${row.factura.numero} · ${row.factura.cliente.nombre}`,
+        status: <EstadoChip {...ESTADO[row.estado as 'emitida' | 'anulada']} />,
+        amount: formatUsd(Number(row.total_usd)),
+        actions: esAdmin && row.estado === 'emitida' ? (
+          <Button size="small" color="error" onClick={() => onAnular(row)}>Anular</Button>
+        ) : undefined,
+      })}
     />
   )
 }

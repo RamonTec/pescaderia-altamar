@@ -17,3 +17,9 @@ export const MSG_TASA_SIN_REFERENCIAL =
 /** Aviso (canal `info` de la action): la referencial cambió mientras el formulario estaba abierto. */
 export const MSG_TASA_REFERENCIAL_CAMBIO =
   'La tasa referencial cambió desde que abriste el formulario: se guardó la vigente del servidor'
+
+// 09-cuentas-por-cobrar / 06-contratos: días de crédito (entero 0–365).
+export const MSG_DIAS_REQUERIDOS = 'Días requeridos'
+export const MSG_DIAS_ENTERO = 'Usa un número entero de días'
+export const MSG_DIAS_NO_NEGATIVO = 'No puede ser negativo'
+export const MSG_DIAS_MAX_365 = 'Máximo 365 días'

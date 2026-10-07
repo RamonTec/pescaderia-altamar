@@ -54,7 +54,7 @@ export function PedidoItemsFieldArray({
   const {
     control,
     setValue,
-    formState: { errors },
+    formState: { errors, disabled },
   } = useFormContext<PedidoFormInput>()
   const volverAPeps = (index: number) =>
     setValue(`items.${index}.asignaciones`, undefined, { shouldDirty: true })
@@ -83,7 +83,7 @@ export function PedidoItemsFieldArray({
     <Box sx={{ display: 'grid', gap: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Productos</Typography>
-        <Button size="small" startIcon={<AddIcon />} onClick={() => append(pedidoItemVacio())}>
+        <Button size="small" startIcon={<AddIcon />} onClick={() => append(pedidoItemVacio())} disabled={disabled}>
           Agregar
         </Button>
       </Box>
@@ -126,6 +126,7 @@ export function PedidoItemsFieldArray({
                       onBlur={f.onBlur}
                       error={!!errorItem?.producto_id}
                       helperText={errorItem?.producto_id?.message}
+                      disabled={disabled}
                     >
                       {productos.map((p) => (
                         <MenuItem key={p.id} value={p.id}>
@@ -155,6 +156,7 @@ export function PedidoItemsFieldArray({
                       onBlur={f.onBlur}
                       error={!!errorItem?.peso_kg}
                       helperText={errorItem?.peso_kg?.message}
+                      disabled={disabled}
                     />
                   )}
                 />
@@ -175,6 +177,7 @@ export function PedidoItemsFieldArray({
                       onBlur={f.onBlur}
                       error={!!errorItem?.precio_usd_kg}
                       helperText={errorItem?.precio_usd_kg?.message}
+                      disabled={disabled}
                     />
                   )}
                 />
@@ -183,7 +186,7 @@ export function PedidoItemsFieldArray({
                 <IconButton
                   aria-label="Quitar producto"
                   onClick={() => quitar(index)}
-                  disabled={fields.length === 1}
+                  disabled={fields.length === 1 || disabled}
                 >
                   <DeleteOutlinedIcon fontSize="small" />
                 </IconButton>

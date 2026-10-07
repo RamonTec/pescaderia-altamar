@@ -19,6 +19,9 @@ import { estadoDe, estaAbierto } from '@/lib/cartera/estado'
 import type { DocumentoCartera, EstadoCartera } from '@/lib/cartera/types'
 import type { FacturaResumen } from '@/lib/repositories/interfaces'
 import type { CobrosAbiertos } from '@/lib/services/carteraService'
+import type { ElegibilidadContrato } from '@/types/domain'
+import { useContratoAcciones } from '@/app/(protected)/contratos/useContratoAcciones'
+import { numeroFactura } from '@/lib/repositories/carteraRepository'
 
 interface Recordando {
   key: number
@@ -30,9 +33,12 @@ interface Recordando {
 export function CobrosScreen({
   cobros,
   configTasas,
+  contratos = {},
 }: {
   cobros: CobrosAbiertos
   configTasas: TasaSelectorConfig
+  /** Elegibilidad de contrato por factura (06-contratos, solo admin). */
+  contratos?: Record<string, ElegibilidadContrato>
 }) {
   const router = useRouter()
   const { documentos, resumen, facturas, contexto } = cobros
@@ -40,6 +46,8 @@ export function CobrosScreen({
   const [cobrando, setCobrando] = React.useState<FacturaResumen | null>(null)
   const [recordando, setRecordando] = React.useState<Recordando | null>(null)
   const [filtro, setFiltro] = React.useState<FiltroCartera>('todas')
+  const contratoAcciones = useContratoAcciones()
+  const { accionesDeOrigen } = contratoAcciones
 
   const facturasPorId = React.useMemo(() => new Map(facturas.map((f) => [f.id, f])), [facturas])
 
@@ -70,9 +78,24 @@ export function CobrosScreen({
             }),
         })
       }
+      // 06-contratos: generar / ver contrato de la factura a crédito.
+      if (factura) {
+        lista.push(
+          ...accionesDeOrigen(
+            {
+              tipo: 'venta_credito',
+              id: factura.id,
+              fecha: String(factura.fecha).slice(0, 10),
+              dias_credito_factura: Number(factura.dias_credito),
+              etiqueta: `Factura ${numeroFactura(factura.numero)} · ${factura.cliente?.nombre ?? ''}`,
+            },
+            contratos[factura.id]
+          )
+        )
+      }
       return lista
     },
-    [esAdmin, facturasPorId, contexto.hoy, contexto.diasAviso]
+    [esAdmin, facturasPorId, contexto.hoy, contexto.diasAviso, accionesDeOrigen, contratos]
   )
 
   return (
@@ -109,6 +132,8 @@ export function CobrosScreen({
           onClose={() => setCobrando(null)}
         />
       ) : null}
+
+      {esAdmin ? contratoAcciones.dialogos : null}
 
       {esAdmin && recordando ? (
         <RecordatorioDialog

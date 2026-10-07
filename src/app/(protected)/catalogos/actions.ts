@@ -7,7 +7,7 @@ import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { makeConfigNegocioRepository } from '@/lib/repositories/configRepository'
 import { createClient } from '@/lib/supabase/server'
 import { productoFormSchema } from '@/lib/productoValidation'
-import { configFormSchema } from '@/lib/configValidation'
+import { configFormSchema, formatearTelefonoVe } from '@/lib/configValidation'
 import { toActionError, type ActionState } from '@/lib/actionState'
 
 const MAPA_CAMPOS = { codigo: 'codigo' }
@@ -194,6 +194,11 @@ export async function updateConfigAction(
       nombre_comercial: safe.data.nombre_comercial,
       email_respuesta: safe.data.email_respuesta || null,
       instrucciones_pago: safe.data.instrucciones_pago.trim() || null,
+      // 06-contratos: datos del negocio para el encabezado de los contratos.
+      razon_social: safe.data.razon_social || null,
+      rif: safe.data.rif || null,
+      direccion: safe.data.direccion || null,
+      telefono: safe.data.telefono ? formatearTelefonoVe(safe.data.telefono) : null,
     })
   } catch (e) {
     return { error: toActionError(e).error, success: null }
@@ -203,5 +208,6 @@ export async function updateConfigAction(
   revalidatePath('/clientes', 'layout')
   revalidatePath('/cobros')
   revalidatePath('/inventario', 'layout')
+  revalidatePath('/contratos')
   return { error: null, success: 'Configuración guardada' }
 }

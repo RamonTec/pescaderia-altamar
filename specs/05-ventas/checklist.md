@@ -35,7 +35,7 @@
 - [x] La ficha de cliente en `02-clientes` ya no muestra `—` en saldo pendiente.
 
 ## Pendientes / deuda técnica
-- [ ] **(2026-10-06) Aplicar migraciones `0015_facturas_secuencia.sql` y `0016_notas_credito_y_rpc_ventas.sql`** en el proyecto Supabase real (SQL Editor / `db push`). Sin estas, todo el módulo falla porque las RPC no existen y `facturas.numero` no tiene secuencia.
+- [x] **(2026-10-06) Aplicar migraciones `0015_facturas_secuencia.sql` y `0016_notas_credito_y_rpc_ventas.sql`** en el proyecto Supabase real (SQL Editor / `db push`). Sin estas, todo el módulo falla porque las RPC no existen y `facturas.numero` no tiene secuencia. _(Aplicadas; confirmado por el usuario el 2026-10-07.)_
 - [ ] **(2026-10-06) Verificación manual** de `tasks.md` 21–23 contra una base real (IVA 16%, ganancia cambiaria 27 Bs, nota parcial de 2 kg) — no se pudo correr sin acceso al proyecto Supabase.
 - [ ] **(2026-10-06) `facturas`/`pagos`/`pedidos` siguen legibles para el operador vía PostgREST** (RLS `read_all` de `0001`). La UI no envía importes al operador en `/cobros`, pero la protección de columna en la base queda pendiente (mismo enfoque que `0003` para `factura_items`, pendiente para `facturas.subtotal/iva/total/pagado` y `pagos`).
 - [ ] **(2026-10-06) Nota de crédito accesible desde la ficha de la factura**: hoy se emite desde `/notas-credito`. No existe ficha de factura propia; el spec pedía "emitir nota de crédito" también desde ahí. Se difiere hasta que exista una pantalla de detalle de factura.

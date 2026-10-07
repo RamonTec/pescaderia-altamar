@@ -1,8 +1,8 @@
 # Checklist — 03-proveedores
 
 ## Datos y seguridad
-- [ ] Migraciones `0007`–`0010` aplicadas sin romper los proveedores semilla. *(archivos creados; aplicación en Supabase pendiente de ejecutar vía SQL Editor, igual que `02-clientes`)*
-- [ ] El bucket `documentos-proveedores` existe, es privado, limita a 5 MB y a imagen/PDF; los archivos solo se abren con signed URL. *(bucket creado por la migración `0010`; falta aplicarla)*
+- [x] Migraciones `0007`–`0010` aplicadas sin romper los proveedores semilla. *(Aplicadas; confirmado por el usuario el 2026-10-07. Falta comprobar a mano que los proveedores semilla siguen bien.)*
+- [ ] El bucket `documentos-proveedores` existe, es privado, limita a 5 MB y a imagen/PDF; los archivos solo se abren con signed URL. *(bucket creado por la migración `0010`, aplicada el 2026-10-07; falta comprobar a mano el límite de 5 MB, los tipos y la signed URL)*
 - [ ] Un operador no puede bloquear ni desbloquear, ni desde la UI ni llamando la action o PostgREST directamente (lo rechaza el trigger). *(trigger `proveedores_guard_bloqueo` + `getRol()` en el servicio; falta verificación manual con sesión de operador)*
 - [ ] Bloquear sin motivo es imposible (lo impiden zod, el servicio y el `check` de la base).
 - [ ] No se pueden crear dos proveedores con el mismo RIF (sin importar mayúsculas); el error aparece en el campo RIF, no como error crudo de Postgres. *(índice único `upper(rif_ci)` + mapeo `23505`→`rif_ci` en `toActionError`)*
@@ -48,6 +48,6 @@
 - [x] Si `04-inventario` ya existe: el saldo pendiente muestra un valor real, no `—`. *(2026-10-06: `proveedorService.getSaldoPendiente` delega en `proveedorBalanceService` de 04-inventario; requiere la migración `0012` aplicada para tener compras registradas)*
 
 ## Pendientes / deuda técnica
-- [ ] Aplicar migraciones `0007`–`0010` en el proyecto Supabase real (SQL Editor / `db push`).
+- [x] Aplicar migraciones `0007`–`0010` en el proyecto Supabase real (SQL Editor / `db push`). _(Aplicadas; confirmado por el usuario el 2026-10-07.)_
 - [ ] Verificar el catálogo `BANCOS_VE` contra la lista vigente de SUDEBAN (marcado en `src/lib/bancosVe.ts`).
 - [ ] Verificación manual en navegador (claro/oscuro, desktop/375px): alta natural y jurídica completa, RIF duplicado, cuenta con prefijo desconocido, Zelle sin email ni teléfono, reemplazo de documento, sesión de operador sin bloquear, copiar cuenta desde la ficha.

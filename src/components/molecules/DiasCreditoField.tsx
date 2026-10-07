@@ -28,8 +28,12 @@ export interface DiasCreditoFieldProps {
   onChange: (dias: number | null) => void
   /** Fecha de emisión (`YYYY-MM-DD`), para "Vence el …". */
   fecha: string
-  /** Días habituales del cliente (o el default del negocio). */
-  diasHabituales: number
+  /**
+   * Días habituales del cliente (o el default del negocio). `null` = sin
+   * habituales (06-contratos): el campo vacío se muestra vacío y no hay aviso
+   * de "distinto a lo habitual"; el que lo usa pone su propio aviso.
+   */
+  diasHabituales: number | null
   error?: boolean
   helperText?: React.ReactNode
   disabled?: boolean
@@ -51,9 +55,9 @@ export function DiasCreditoField({
   disabled,
 }: DiasCreditoFieldProps) {
   const dias = value ?? diasHabituales
-  const valido = Number.isInteger(dias) && dias >= 0 && dias <= 365
+  const valido = dias !== null && Number.isInteger(dias) && dias >= 0 && dias <= 365
   const vence = valido ? textoVence(fecha, dias) : null
-  const distinto = valido && dias !== diasHabituales
+  const distinto = valido && diasHabituales !== null && dias !== diasHabituales
 
   return (
     <Box sx={{ display: 'grid', gap: 1 }}>

@@ -2,12 +2,17 @@ import type {
   CanalRecordatorioId,
   Cliente,
   ClienteInput,
+  CondicionPago,
   Compra,
   CompraItem,
   ConfigNegocio,
+  Contrato,
+  ContratoListado,
   DocumentoCliente,
   DocumentoProveedor,
   DevolucionLote,
+  EstadoContrato,
+  EstadoDoc,
   EstadoLote,
   Factura,
   FacturaItem,
@@ -31,6 +36,7 @@ import type {
   RepresentanteLegal,
   RepresentanteProveedor,
   SugerenciaLotes,
+  TipoContrato,
   TipoDocumentoCliente,
   TipoDocumentoProveedor,
   VentaLote,
@@ -182,7 +188,12 @@ export interface PedidoDetalle extends PedidoResumen {
 export interface IPedidoRepository {
   /** Inserta pedido + items en una transacción (RPC `registrar_pedido`). */
   create(pedido: Pedido, items: PedidoItemNuevo[]): Promise<string>
-  list(filtroEstado?: Pedido['estado']): Promise<PedidoResumen[]>
+  list(filtros: {
+    page: number
+    pageSize: number
+    q?: string
+    estado?: Pedido['estado'] | 'todos'
+  }): Promise<{ rows: PedidoResumen[]; total: number }>
   getById(id: string): Promise<PedidoDetalle | null>
   /** Pedidos de un cliente, del más reciente al más antiguo (ficha del cliente). */
   listByCliente(clienteId: string): Promise<Pedido[]>
@@ -296,7 +307,12 @@ export interface INotaCreditoRepository {
   create(nota: NotaCreditoNueva, items: NotaCreditoItemNuevo[]): Promise<string>
   /** Pasa la nota a `anulada` y revierte su efecto en inventario (RPC `anular_nota_credito`). */
   anular(id: string): Promise<void>
-  list(filtroEstado?: NotaCredito['estado']): Promise<NotaCreditoResumen[]>
+  list(params?: {
+    page?: number
+    pageSize?: number
+    q?: string
+    estado?: NotaCredito['estado'] | 'todos'
+  }): Promise<{ rows: NotaCreditoResumen[]; total: number }>
   getById(id: string): Promise<NotaCreditoDetalle | null>
   listByFactura(facturaId: string): Promise<NotaCreditoResumen[]>
   /** Total de notas `emitida` asociadas a las facturas de un cliente. */
@@ -459,4 +475,74 @@ export interface ILoteRepository {
   registrarPerdida(perdida: PerdidaNueva): Promise<string>
   /** Baja del remanente (motivo `cierre`) y estado `cerrado` (RPC `cerrar_lote`). */
   cerrar(loteId: string, detalle: string | null, pesoEsperadoKg: number | null): Promise<{ peso_baja_kg: number }>
+}
+
+/* ========================= CONTRATOS (06) ========================= */
+
+/** Fila nueva de `contratos` (`numero` reservado con `siguienteNumero`); `estado`, `fecha_vencimiento` y auditoría los pone la base. */
+export type ContratoNuevo = Pick<
+  Contrato,
+  'id' | 'numero' | 'tipo' | 'factura_id' | 'compra_id' | 'fecha' | 'dias_credito' | 'url_storage' | 'notas'
+>
+
+export interface FiltrosContratosRepo {
+  tipo?: TipoContrato
+  /** `activos` = generado, enviado o firmado. */
+  estado: EstadoContrato | 'activos' | 'todos'
+  /** Texto libre sobre `contratos_listado_view.busqueda` (minúsculas). */
+  q?: string
+  /** Página 0-based. */
+  page: number
+  pageSize: number
+}
+
+export interface PaginaContratos {
+  rows: ContratoListado[]
+  total: number
+}
+
+/** Datos mínimos de un documento de origen para decidir si admite contrato. */
+export interface OrigenContrato {
+  id: string
+  condicion: CondicionPago
+  estado: EstadoDoc
+}
+
+/** Contrato activo de un origen (para la elegibilidad). */
+export type ContratoActivoOrigen = Pick<Contrato, 'id' | 'numero' | 'estado' | 'factura_id' | 'compra_id'>
+
+/** Error `23505` del índice de contrato activo, tipado para que el servicio lo reconozca. */
+export class ContratoActivoDuplicadoError extends Error {
+  readonly code = '23505'
+  constructor(message = 'Ya existe un contrato activo para este documento') {
+    super(message)
+    this.name = 'ContratoActivoDuplicadoError'
+  }
+}
+
+export interface IContratoRepository {
+  /** Reserva el siguiente `numero` (RPC `siguiente_numero_contrato`, solo admin). */
+  siguienteNumero(): Promise<number>
+  /** Inserta la fila. Lanza `ContratoActivoDuplicadoError` ante `23505`. */
+  create(contrato: ContratoNuevo): Promise<Contrato>
+  getById(id: string): Promise<Contrato | null>
+  /** Página de `contratos_listado_view`, orden `fecha desc, numero desc`. */
+  list(filtros: FiltrosContratosRepo): Promise<PaginaContratos>
+  /** Contratos no anulados de esas facturas (una consulta). */
+  activosPorFacturas(ids: string[]): Promise<ContratoActivoOrigen[]>
+  /** Contratos no anulados de esas compras (una consulta). */
+  activosPorCompras(ids: string[]): Promise<ContratoActivoOrigen[]>
+  updateEstado(id: string, estado: EstadoContrato): Promise<Contrato>
+  /** Condición y estado de esas facturas (una consulta). */
+  origenesFacturas(ids: string[]): Promise<OrigenContrato[]>
+  /** Condición y estado de esas compras (una consulta). */
+  origenesCompras(ids: string[]): Promise<OrigenContrato[]>
+}
+
+/** PDFs en el bucket privado `contratos`. Solo rutas; la URL firmada nunca se guarda. */
+export interface IContratoArchivoRepository {
+  /** Sube con `upsert: false` (el PDF es inmutable). */
+  subir(ruta: string, bytes: Uint8Array): Promise<void>
+  eliminar(ruta: string): Promise<void>
+  urlFirmada(ruta: string, ttlSegundos: number, nombreDescarga?: string): Promise<string>
 }

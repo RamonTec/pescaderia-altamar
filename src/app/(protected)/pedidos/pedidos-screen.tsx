@@ -18,12 +18,14 @@ import { useTransition } from 'react'
 
 export function PedidosScreen({
   pedidos,
+  totalPedidos,
   clientes,
   productos,
   configTasas,
   diasCreditoDefault,
 }: {
   pedidos: PedidoResumen[]
+  totalPedidos: number
   clientes: Cliente[]
   productos: Producto[]
   configTasas: TasaSelectorConfig
@@ -73,6 +75,7 @@ export function PedidosScreen({
 
       <PedidosTable
         pedidos={pedidos}
+        total={totalPedidos}
         onEntregar={entregar}
         onAnular={anular}
         onNuevo={() => setNuevoAbierto(true)}

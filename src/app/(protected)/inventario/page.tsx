@@ -1,5 +1,5 @@
 import { InventarioScreen } from './inventario-screen'
-import { paginaDesdeParam } from '@/components/organisms/AppDataGrid'
+import { paginaDesdeParam } from '@/lib/pagination'
 import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { makeProveedorRepository } from '@/lib/repositories/proveedorRepository'
 import { getInventarioPorLotes } from '@/lib/services/costingService'

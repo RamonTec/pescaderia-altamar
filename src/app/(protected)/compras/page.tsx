@@ -7,6 +7,7 @@ import { makeLoteRepository } from '@/lib/repositories/loteRepository'
 import { getConfigTasas } from '@/lib/services/tasaService'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/services/authService'
+import { elegibilidadCompras } from '@/lib/services/contratoService'
 import type { Compra } from '@/types/domain'
 
 export default async function ComprasPage({
@@ -34,10 +35,16 @@ export default async function ComprasPage({
     requireAdmin(),
   ])
 
-  // Códigos de lote de cada compra (07-lotes), para los chips del listado.
-  const lotes = await makeLoteRepository(db).listByOrigen({
-    compraIds: paginaCompras.rows.map((c) => c.id),
-  })
+  // Códigos de lote de cada compra (07-lotes), para los chips del listado, y
+  // elegibilidad de contrato de las filas de la página (06-contratos, solo
+  // admin, en lote: paginar cambia la elegibilidad sin consultas por fila).
+  const compraIds = paginaCompras.rows.map((c) => c.id)
+  const [lotes, contratos] = await Promise.all([
+    makeLoteRepository(db).listByOrigen({ compraIds }),
+    esAdmin && compraIds.length > 0
+      ? elegibilidadCompras(compraIds).then((m) => Object.fromEntries(m))
+      : Promise.resolve({}),
+  ])
   const lotesPorCompra = new Map<string, string[]>()
   for (const l of lotes) {
     if (!l.compra_id) continue
@@ -60,6 +67,7 @@ export default async function ComprasPage({
       productos={productos.filter((p) => p.activo && p.tipo === 'crudo')}
       configTasas={configTasas}
       esAdmin={esAdmin}
+      contratos={contratos}
     />
   )
 }

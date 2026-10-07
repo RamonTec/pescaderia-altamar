@@ -1,0 +1,24 @@
+# Tareas — 14-refactor-visual-ventas
+
+- [x] 1. **`PedidosTable.tsx`**:
+   - Reemplazar `DataGrid` de MUI directamente por `AppDataGrid`.
+   - Modificar la prop de las columnas utilizando `colFecha`, `colEstado` y `colAcciones` del archivo `appDataGridColumns.tsx`.
+   - Implementar `mobileCard` para vistas móviles responsivas.
+   - Ajustar el componente para funcionar en `mode="server"`, comunicando los parámetros al repositorio padre.
+   - Ajustar `/pedidos/page.tsx` para cargar los datos respetando la paginación de servidor.
+- [x] 2. **`PedidoForm.tsx`**:
+   - Convertir en un `AppDialog md`.
+   - Modificar `useForm` añadiendo `{ disabled: isPending }`.
+   - Reestructurar el grid de campos utilizando `<FormSection titulo="...">` (ej. "Cliente y fecha", "Condiciones", "Artículos").
+- [x] 3. **`PedidoItemsFieldArray.tsx`**:
+   - Extraer `disabled` de `useFormContext` y utilizarlo para inhabilitar botones e inputs.
+- [x] 4. **`EntregaPedidoDialog.tsx`**:
+   - Convertir en `AppDialog sm` o `md`.
+   - Integrar `useForm({ disabled: isPending })`.
+   - Agrupar contenido en `FormSection`.
+- [x] 5. **`NotasCreditoTable.tsx` y `NotaCreditoForm.tsx`**:
+   - Pasar la tabla a `AppDataGrid` en modo servidor, con sus correspondientes helpers de `appDataGridColumns.tsx`.
+   - Pasar el form a `AppDialog md` con `useForm({ disabled: isPending })` y agrupar con `FormSection`.
+   - Ajustar `/notas-credito/page.tsx` para carga paginada de servidor.
+- [x] 6. **Verificación general**:
+   - Compilar y asegurar que no hay errores TS ni de ESLint (`npm run lint && npx tsc --noEmit`).

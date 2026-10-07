@@ -41,10 +41,13 @@ import {
 } from '@/components/organisms/appDataGridColumns'
 import { makeClienteDocumentoStore } from '@/lib/repositories/documentoClienteRepository'
 import { formatFecha } from '@/lib/format'
-import type { EstadoCartera } from '@/lib/cartera/types'
+import type { DocumentoCartera, EstadoCartera } from '@/lib/cartera/types'
+import { diasHastaVencimiento } from '@/lib/cartera/estado'
+import { useContratoAcciones } from '@/app/(protected)/contratos/useContratoAcciones'
 import type { CarteraDeCliente } from '@/lib/services/carteraService'
 import type {
   Cliente,
+  ElegibilidadContrato,
   EstadoPedido,
   Pedido,
   RecordatorioCobro,
@@ -78,6 +81,7 @@ export function ClienteFicha({
   cartera,
   recordatorios,
   diasCreditoDefault,
+  contratos = {},
 }: {
   cliente: Cliente
   saldo: number | null
@@ -88,6 +92,8 @@ export function ClienteFicha({
   cartera: CarteraDeCliente
   recordatorios: RecordatorioCobro[]
   diasCreditoDefault: number
+  /** 06-contratos: elegibilidad de contrato por factura (solo admin). */
+  contratos?: Record<string, ElegibilidadContrato>
 }) {
   const router = useRouter()
   const refrescar = React.useCallback(() => router.refresh(), [router])
@@ -96,6 +102,22 @@ export function ClienteFicha({
     diasCreditoDefault,
   })
   const [filtroCartera, setFiltroCartera] = React.useState<FiltroCartera>('todas')
+  const contratoAcciones = useContratoAcciones()
+  const { accionesDeOrigen } = contratoAcciones
+  const accionesFactura = React.useCallback(
+    (doc: DocumentoCartera): RowAction[] =>
+      accionesDeOrigen(
+        {
+          tipo: 'venta_credito',
+          id: doc.id,
+          fecha: doc.fecha,
+          dias_credito_factura: diasHastaVencimiento(doc.fecha_vencimiento, doc.fecha),
+          etiqueta: `Factura ${doc.numero} · ${cliente.nombre}`,
+        },
+        contratos[doc.id]
+      ),
+    [accionesDeOrigen, contratos, cliente.nombre]
+  )
   // `key` nuevo en cada apertura: el diálogo vuelve a preparar el recordatorio.
   const [recordatorioKey, setRecordatorioKey] = React.useState<number | null>(null)
   const { resumen, documentos, contexto } = cartera
@@ -306,6 +328,7 @@ export function ClienteFicha({
                 onFiltroChange={setFiltroCartera}
                 pageParam="pfacturas"
                 embedded
+                renderAcciones={esAdmin ? accionesFactura : undefined}
               />
               <Divider />
               <Typography variant="subtitle1" component="h3">
@@ -357,6 +380,7 @@ export function ClienteFicha({
         </Box>
 
         {dialogos}
+        {esAdmin ? contratoAcciones.dialogos : null}
         {esAdmin && recordatorioKey !== null ? (
           <RecordatorioDialog
             key={recordatorioKey}
