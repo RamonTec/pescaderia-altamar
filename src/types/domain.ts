@@ -19,12 +19,49 @@ export type TipoMovimiento =
   | 'venta'
   | 'ajuste'
 
+export type MonedaTasa = 'USD' | 'EUR'
+export type OrigenTasa = 'bcv_scraping' | 'dolarapi' | 'manual'
+
 export interface Tasa {
   id: string
+  /** Fecha valor: la fecha que rige la tasa, no la de consulta (08-tasas). */
   fecha: string
   fuente: FuenteTasa
-  bs_por_usd: number
+  moneda: MonedaTasa
+  /** Bs por 1 unidad de `moneda` (antes `bs_por_usd`). */
+  valor_bs: number
+  origen: OrigenTasa
+  /** Usuario si es manual; null si es automática. */
+  registrada_por: string | null
+  /** Hora reportada por la fuente. */
+  publicada_en: string | null
+  created_at: string
 }
+
+/** Procedencia de la tasa congelada en una operación (08-tasas). */
+export interface TasaOperacion {
+  tasa_origen: 'referencial' | 'manual'
+  /** Fuente de la referencial elegida (o de la que se reemplazó). */
+  tasa_fuente: 'bcv' | 'paralela' | null
+  /** Valor referencial vigente en ese momento; null si no había. */
+  tasa_referencial: number | null
+  /** Valor final usado por la operación. */
+  tasa_snapshot: number
+}
+
+/** Resultado de `getTasaVigente`: la tasa y si arrastra una fecha anterior. */
+export interface TasaVigente {
+  tasa: Tasa
+  arrastrada: boolean
+  fecha_valor: string
+}
+
+/**
+ * Procedencia de la tasa congelada que comparten compras, facturas y abonos
+ * (08-tasas, migración 0019). El valor final sigue en `tasa_snapshot` /
+ * `tasa_pago` de cada entidad; la historia nunca se recalcula (/SPEC.md §2).
+ */
+export type TasaProcedencia = Pick<TasaOperacion, 'tasa_origen' | 'tasa_fuente' | 'tasa_referencial'>
 
 export interface Producto {
   id: string
@@ -43,6 +80,8 @@ export interface ConfigNegocio {
   iva_pct: number
   fuente_tasa_default: 'bcv' | 'paralela'
   umbral_stock_bajo_kg: number | null
+  /** Umbral % de desviación de una tasa manual que pide confirmación (08-tasas). */
+  umbral_desviacion_tasa_pct: number
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -141,7 +180,7 @@ export interface EstadoDocumental {
   faltantes: string[]
 }
 
-export interface Compra {
+export interface Compra extends TasaProcedencia {
   id: string
   proveedor_id: string
   fecha: string
@@ -163,7 +202,7 @@ export interface CompraItem {
   costo_usd_kg: number | null
 }
 
-export interface PagoProveedor {
+export interface PagoProveedor extends TasaProcedencia {
   id: string
   compra_id: string
   fecha: string
@@ -209,7 +248,7 @@ export interface PedidoItem {
   precio_usd_kg: number
 }
 
-export interface Factura {
+export interface Factura extends TasaProcedencia {
   id: string
   numero: number
   cliente_id: string
@@ -255,7 +294,7 @@ export interface FacturaItem {
   costo_usd_kg: number
 }
 
-export interface Pago {
+export interface Pago extends TasaProcedencia {
   id: string
   factura_id: string
   fecha: string
