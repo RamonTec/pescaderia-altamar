@@ -25,7 +25,11 @@ import { NumberField } from '@/components/atoms/NumberField'
 import { PeneroStripes } from '@/components/atoms/PeneroStripes'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { RowActionsMenu } from '@/components/molecules/RowActionsMenu'
-import { AppDataGrid, type AppDataGridQuery } from '@/components/organisms/AppDataGrid'
+import {
+  AppDataGrid,
+  normalizarBusquedaSinSeparadores,
+  type AppDataGridQuery,
+} from '@/components/organisms/AppDataGrid'
 import { AppDialog, type AppDialogSize } from '@/components/organisms/AppDialog'
 import {
   EstadoChip,
@@ -340,7 +344,7 @@ function TablasSection() {
   return (
     <Section
       title="Tablas (AppDataGrid)"
-      description="Cambia el estado para ver vacío, cargando, error y paginación en servidor. En 375 px las filas pasan a tarjetas."
+      description="Cambia el estado para ver vacío, cargando, error y paginación en servidor. En 375 px las filas pasan a tarjetas. La búsqueda ignora acentos, espacios, puntos y guiones («j30007919» encuentra «J-30007919-1») y Enter sobre una celda con foco abre la fila."
     >
       <ToggleButtonGroup
         exclusive
@@ -372,7 +376,9 @@ function TablasSection() {
             : null
         }
         onRetry={() => setEstado('datos')}
-        searchPlaceholder="Buscar por nombre o RIF"
+        searchPlaceholder="Buscar por nombre, RIF o teléfono"
+        normalizeSearch={normalizarBusquedaSinSeparadores}
+        getSearchValues={(row) => [row.nombre, row.rif, row.telefono]}
         filters={
           <>
             <Chip label="Activos" color="primary" variant="outlined" onClick={() => {}} />

@@ -6,11 +6,10 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
-import CircularProgress from '@mui/material/CircularProgress'
 import Skeleton from '@mui/material/Skeleton'
 import Fade from '@mui/material/Fade'
 import LinearProgress from '@mui/material/LinearProgress'
-import CloudUploadIcon from '@mui/icons-material/CloudUploadOutlined'
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
 import type { DocumentoStore, DocumentoItem } from '@/lib/documentoStore'
@@ -23,6 +22,11 @@ export interface DocumentoUploadProps<TTipo extends string = string> {
   label: string
   accept?: string
   representanteId?: string
+  /**
+   * Deshabilita subir, reemplazar, eliminar y soltar archivos (p. ej.
+   * mientras el formulario dueño guarda). "Ver" sigue funcionando.
+   */
+  disabled?: boolean
 }
 
 const MAX_BYTES = 5 * 1024 * 1024
@@ -82,6 +86,7 @@ export function DocumentoUpload<TTipo extends string = string>({
   label,
   accept,
   representanteId,
+  disabled = false,
 }: DocumentoUploadProps<TTipo>) {
   const notify = useNotify()
   const confirm = useConfirm()
@@ -141,8 +146,10 @@ export function DocumentoUpload<TTipo extends string = string>({
     return null
   }
 
+  const bloqueado = disabled || uploading
+
   const handleFile = async (file: File | null) => {
-    if (!file) return
+    if (!file || bloqueado) return
     const error = validarAntesDeSubir(file)
     if (error) {
       notify.error(error)
@@ -175,6 +182,7 @@ export function DocumentoUpload<TTipo extends string = string>({
   }
 
   const handleDelete = async (doc: DocumentoItem<TTipo>) => {
+    if (bloqueado) return
     const ok = await confirm({
       title: 'Eliminar documento',
       message: `¿Eliminar este documento de ${label}?`,
@@ -202,10 +210,10 @@ export function DocumentoUpload<TTipo extends string = string>({
         <Button
           size="small"
           variant="outlined"
-          startIcon={
-            uploading ? <CircularProgress size={16} color="inherit" /> : <CloudUploadIcon />
-          }
-          disabled={uploading}
+          startIcon={<CloudUploadOutlinedIcon />}
+          loading={uploading}
+          loadingPosition="start"
+          disabled={disabled}
           onClick={() => inputRef.current?.click()}
         >
           {docs.length > 0 ? 'Reemplazar' : 'Subir'}
@@ -216,6 +224,7 @@ export function DocumentoUpload<TTipo extends string = string>({
           accept={accept}
           capture="environment"
           hidden
+          disabled={bloqueado}
           onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
         />
       </Box>
@@ -225,7 +234,7 @@ export function DocumentoUpload<TTipo extends string = string>({
       <Box
         onDragOver={(e) => {
           e.preventDefault()
-          setDragOver(true)
+          if (!bloqueado) setDragOver(true)
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
@@ -234,9 +243,9 @@ export function DocumentoUpload<TTipo extends string = string>({
         }}
         sx={{
           border: '1px dashed',
-          borderColor: dragOver ? 'primary.main' : 'divider',
+          borderColor: dragOver && !bloqueado ? 'primary.main' : 'divider',
           borderRadius: 2,
-          bgcolor: dragOver ? 'action.hover' : 'transparent',
+          bgcolor: dragOver && !bloqueado ? 'action.hover' : 'transparent',
           transition: (t) => t.transitions.create(['border-color', 'background-color']),
         }}
       >
@@ -303,9 +312,10 @@ export function DocumentoUpload<TTipo extends string = string>({
                     </Link>
                   ) : null}
                   <IconButton
-                    aria-label="Eliminar documento"
+                    aria-label={`Eliminar documento de ${label}`}
                     color="error"
                     size="small"
+                    disabled={bloqueado}
                     onClick={() => handleDelete(doc)}
                   >
                     <DeleteOutlinedIcon />

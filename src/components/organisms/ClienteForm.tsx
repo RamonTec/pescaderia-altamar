@@ -130,7 +130,7 @@ export function ClienteForm({ open, cliente, onClose, onGuardado }: ClienteFormP
         if (result.error) {
           setServerError(result.error)
         } else {
-          notify.success(result.success ?? (cliente ? 'Cliente actualizado' : 'Cliente creado'))
+          notify.success(result.success ?? (cliente ? 'Cliente actualizado' : 'Cliente guardado'))
           onGuardado?.()
           onClose()
         }
@@ -157,7 +157,7 @@ export function ClienteForm({ open, cliente, onClose, onGuardado }: ClienteFormP
       error={serverError}
       primaryAction={
         <Button type="submit" variant="contained" loading={isPending}>
-          {cliente ? 'Actualizar cliente' : 'Crear cliente'}
+          {cliente ? 'Actualizar cliente' : 'Guardar cliente'}
         </Button>
       }
     >
@@ -176,11 +176,13 @@ export function ClienteForm({ open, cliente, onClose, onGuardado }: ClienteFormP
                 <DocumentoUpload
                   store={makeClienteDocumentoStore(cliente.id)}
                   tipo={'cedula' as TipoDocumentoCliente}
+                  disabled={isPending}
                   label="Cédula"
                 />
                 <DocumentoUpload
                   store={makeClienteDocumentoStore(cliente.id)}
                   tipo={'rif' as TipoDocumentoCliente}
+                  disabled={isPending}
                   label="RIF"
                 />
               </Box>

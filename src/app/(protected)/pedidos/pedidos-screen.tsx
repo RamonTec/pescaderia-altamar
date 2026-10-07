@@ -76,7 +76,7 @@ export function PedidosScreen({
       />
 
       <PedidoForm
-        key={nuevoAbierto ? 'abierto' : 'cerrado'}
+        key={nuevoAbierto ? 'form-abierto' : 'form-cerrado'}
         open={nuevoAbierto}
         onClose={() => setNuevoAbierto(false)}
         clientes={clientes}
@@ -85,7 +85,7 @@ export function PedidosScreen({
       />
 
       <EntregaPedidoDialog
-        key={entregando?.id ?? 'cerrado'}
+        key={entregando?.id ?? 'entrega-cerrado'}
         pedido={entregando}
         configTasas={configTasas}
         onClose={() => setEntregando(null)}

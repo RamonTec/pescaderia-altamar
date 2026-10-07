@@ -1,18 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
-import TextField from '@mui/material/TextField'
 import { useTransition } from 'react'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import { AppDialog } from '@/components/organisms/AppDialog'
 import { bloqueoSchema } from '@/lib/proveedorValidation'
 
 export interface BloqueoDialogProps {
   open: boolean
+  /** La acción con su contexto: "Bloquear a Hotel Bahía Azul". */
   titulo?: string
   labelMotivo?: string
   onConfirm: (motivo: string) => Promise<{ error: string | null; fieldErrors?: Record<string, string> }>
@@ -20,9 +17,12 @@ export interface BloqueoDialogProps {
 }
 
 /**
- * Diálogo genérico de bloqueo con motivo obligatorio (≥10 caracteres) y
- * botón `error` con loader interno. Recibe `onConfirm(motivo)` para que
- * clientes pueda adoptarlo también.
+ * Bloqueo con motivo obligatorio (≥10 caracteres), compartido por clientes y
+ * proveedores. `AppDialog size="xs"` (centrado también en el teléfono):
+ * mientras guarda no se cierra ni se edita, con el motivo escrito cerrar pide
+ * "¿Descartar cambios?", y un segundo envío se ignora. El error de validación
+ * o del servidor sobre el motivo va en el campo; cualquier otro, en el
+ * `Alert` del diálogo. Tras confirmar con éxito se cierra solo.
  */
 export function BloqueoDialog({
   open,
@@ -33,67 +33,84 @@ export function BloqueoDialog({
 }: BloqueoDialogProps) {
   const [isPending, startTransition] = useTransition()
   const [motivo, setMotivo] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
+  const [errorMotivo, setErrorMotivo] = React.useState<string | null>(null)
+  const [errorServidor, setErrorServidor] = React.useState<string | null>(null)
+  // Doble envío: `isPending` no cambia hasta el re-render; la ref, sí.
+  const submittingRef = React.useRef(false)
+
+  const limpiar = () => {
+    setMotivo('')
+    setErrorMotivo(null)
+    setErrorServidor(null)
+  }
 
   const handleClose = () => {
-    setMotivo('')
-    setError(null)
+    limpiar()
     onClose()
   }
 
-  const handleConfirm = () => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (submittingRef.current) return
     const safe = bloqueoSchema.safeParse({ motivo })
     if (!safe.success) {
-      setError(safe.error.issues[0]?.message ?? 'Motivo inválido')
+      setErrorMotivo(safe.error.issues[0]?.message ?? 'Motivo inválido')
       return
     }
-    setError(null)
+    submittingRef.current = true
+    setErrorMotivo(null)
+    setErrorServidor(null)
     startTransition(async () => {
-      const result = await onConfirm(safe.data.motivo)
-      if (result.error) {
-        setError(result.fieldErrors?.motivo ?? result.error)
-        return
+      try {
+        const result = await onConfirm(safe.data.motivo)
+        if (result.error) {
+          if (result.fieldErrors?.motivo) setErrorMotivo(result.fieldErrors.motivo)
+          else setErrorServidor(result.error)
+          return
+        }
+        handleClose()
+      } finally {
+        submittingRef.current = false
       }
-      setMotivo('')
-      setError(null)
-      onClose()
     })
   }
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{titulo}</DialogTitle>
-      <DialogContent>
-        <TextField
-          label={`${labelMotivo} *`}
-          fullWidth
-          multiline
-          minRows={3}
-          value={motivo}
-          onChange={(e) => {
-            setMotivo(e.target.value)
-            setError(null)
-          }}
-          error={!!error}
-          helperText={error}
-          autoFocus
-          sx={{ mt: 1 }}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isPending}>
-          Cancelar
-        </Button>
+    <AppDialog
+      open={open}
+      onClose={handleClose}
+      size="xs"
+      title={titulo}
+      onSubmit={handleSubmit}
+      pending={isPending}
+      dirty={motivo.trim() !== ''}
+      error={errorServidor}
+      primaryAction={
         <Button
-          onClick={handleConfirm}
-          color="error"
+          type="submit"
           variant="contained"
-          disabled={isPending || !motivo.trim()}
-          startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
+          color="error"
+          loading={isPending}
+          disabled={!motivo.trim()}
         >
           Bloquear
         </Button>
-      </DialogActions>
-    </Dialog>
+      }
+    >
+      <TextField
+        label={`${labelMotivo} *`}
+        fullWidth
+        multiline
+        minRows={3}
+        value={motivo}
+        disabled={isPending}
+        onChange={(e) => {
+          setMotivo(e.target.value)
+          setErrorMotivo(null)
+        }}
+        error={!!errorMotivo}
+        helperText={errorMotivo ?? 'Mínimo 10 caracteres.'}
+      />
+    </AppDialog>
   )
 }

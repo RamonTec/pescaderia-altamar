@@ -11,6 +11,8 @@ export interface CreditoResumenProps {
   saldoUsd: number | null
 }
 
+// El casco no es una tabla (el theme aplica cifras tabulares solo en
+// Table/DataGrid): la cifra y el detalle las piden aquí.
 const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 /**
@@ -47,7 +49,7 @@ export function CreditoResumen({ limiteUsd, saldoUsd }: CreditoResumenProps) {
             <Typography variant="body2" sx={{ color: 'brand.onHullMuted' }}>
               {disponible != null ? 'Disponible' : 'Límite'}
             </Typography>
-            <Typography sx={{ ...NUM, fontSize: { xs: '1.75rem', sm: '2.125rem' }, lineHeight: 1.15 }}>
+            <Typography variant="h5" component="p" sx={NUM}>
               {formatUsd(disponible ?? limiteUsd)}
             </Typography>
           </Box>

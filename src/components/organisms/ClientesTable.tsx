@@ -1,39 +1,55 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Box from '@mui/material/Box'
-import IconButton from '@mui/material/IconButton'
-import InputAdornment from '@mui/material/InputAdornment'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import ListItemText from '@mui/material/ListItemText'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import TextField from '@mui/material/TextField'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
-import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import SearchIcon from '@mui/icons-material/Search'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
+import type { GridColDef } from '@mui/x-data-grid'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import BlockIcon from '@mui/icons-material/BlockOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
-import PersonSearchOutlinedIcon from '@mui/icons-material/PersonSearchOutlined'
-import { EmptyState } from '@/components/molecules/EmptyState'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
+import FilterListOffOutlinedIcon from '@mui/icons-material/FilterListOffOutlined'
+import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
 import { StatusChips } from '@/components/molecules/StatusChips'
-import { formatUsd } from '@/lib/format'
+import type { EmptyStateProps } from '@/components/molecules/EmptyState'
+import {
+  AppDataGrid,
+  normalizarBusquedaSinSeparadores,
+  writeUrlParams,
+} from '@/components/organisms/AppDataGrid'
+import { colAcciones, colMonto } from '@/components/organisms/appDataGridColumns'
 import type { Cliente } from '@/types/domain'
 
-type Filtro = 'activos' | 'bloqueados' | 'todos'
+/** Filtro del listado; vive en `?estado=` (sin parámetro = activos). */
+export type FiltroClientes = 'activos' | 'bloqueados' | 'todos'
+
+const FILTROS: { value: FiltroClientes; label: string }[] = [
+  { value: 'activos', label: 'Activos' },
+  { value: 'bloqueados', label: 'Bloqueados' },
+  { value: 'todos', label: 'Todos' },
+]
+
+const VACIO_FILTRO: Record<Exclude<FiltroClientes, 'todos'>, string> = {
+  activos: 'No hay clientes activos',
+  bloqueados: 'No hay clientes bloqueados',
+}
+
+export function filtroDesdeParam(value: string | null): FiltroClientes {
+  return value === 'bloqueados' || value === 'todos' ? value : 'activos'
+}
 
 export interface ClientesTableProps {
   clientes: Cliente[]
   esAdmin: boolean
+  /** Cliente con una acción en curso: su `⋮` queda deshabilitado con indicador. */
+  estaPendiente: (id: string) => boolean
+  onNuevo: () => void
   onEdit: (cliente: Cliente) => void
   onBloquear: (cliente: Cliente) => void
   onDesbloquear: (cliente: Cliente) => void
@@ -41,33 +57,26 @@ export interface ClientesTableProps {
   onActivar: (cliente: Cliente) => void
 }
 
-const NUM = { fontVariantNumeric: 'tabular-nums' }
+const searchValues = (c: Cliente) => [c.nombre, c.rif_ci, c.telefono]
 
-/** Minúsculas, sin acentos ni separadores: "V-12.345" y "v12345" coinciden. */
-function normalizar(s: string | null | undefined): string {
-  return (s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[\s.\-]/g, '')
-}
-
+/**
+ * Listado de clientes sobre `AppDataGrid` (catálogo: modo cliente). Búsqueda
+ * que ignora acentos, mayúsculas, espacios, puntos y guiones; filtro en chips
+ * y en la URL; tarjetas en `xs`; fila abre la ficha (clic o Enter).
+ */
 export function ClientesTable({
   clientes,
   esAdmin,
+  estaPendiente,
+  onNuevo,
   onEdit,
   onBloquear,
   onDesbloquear,
   onDesactivar,
   onActivar,
 }: ClientesTableProps) {
-  const router = useRouter()
-  const theme = useTheme()
-  const compacto = useMediaQuery(theme.breakpoints.down('sm'))
-
-  const [filtro, setFiltro] = React.useState<Filtro>('activos')
-  const [busqueda, setBusqueda] = React.useState('')
-  const [menu, setMenu] = React.useState<{ el: HTMLElement; cliente: Cliente } | null>(null)
+  const searchParams = useSearchParams()
+  const filtro = filtroDesdeParam(searchParams.get('estado'))
 
   const conteo = React.useMemo(
     () => ({
@@ -78,214 +87,192 @@ export function ClientesTable({
     [clientes]
   )
 
-  const filas = React.useMemo(() => {
-    const q = normalizar(busqueda)
-    return clientes.filter((c) => {
-      if (filtro === 'activos' && !c.activo) return false
-      if (filtro === 'bloqueados' && !c.bloqueado) return false
-      if (!q) return true
-      return [c.nombre, c.rif_ci, c.telefono].some((v) => normalizar(v).includes(q))
-    })
-  }, [clientes, filtro, busqueda])
+  const filas = React.useMemo(
+    () =>
+      clientes.filter((c) => {
+        if (filtro === 'activos') return c.activo
+        if (filtro === 'bloqueados') return c.bloqueado
+        return true
+      }),
+    [clientes, filtro]
+  )
 
-  const cerrarMenu = () => setMenu(null)
-  const desdeMenu = (fn: (c: Cliente) => void) => () => {
-    if (!menu) return
-    const { cliente } = menu
-    cerrarMenu()
-    fn(cliente)
+  const cambiarFiltro = (next: FiltroClientes) => {
+    if (next === filtro) return
+    // Al cambiar el filtro, la página vuelve a 1.
+    writeUrlParams({ estado: next === 'activos' ? null : next, pagina: null })
   }
 
-  const columns: GridColDef<Cliente>[] = [
-    {
-      field: 'nombre',
-      headerName: 'Cliente',
-      flex: 1.6,
-      minWidth: 200,
-      renderCell: ({ row }) => (
-        <Box sx={{ display: 'grid', alignContent: 'center', height: '100%', minWidth: 0 }}>
-          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
-            {row.nombre}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap sx={NUM}>
-            {row.rif_ci ?? 'Sin RIF / cédula'}
-          </Typography>
-        </Box>
-      ),
+  const getActions = React.useCallback(
+    (c: Cliente): RowAction[] => {
+      const lista: RowAction[] = [
+        { label: 'Editar', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => onEdit(c) },
+      ]
+      if (esAdmin) {
+        lista.push(
+          c.bloqueado
+            ? {
+                label: 'Desbloquear',
+                icon: <LockOpenOutlinedIcon fontSize="small" />,
+                onClick: () => onDesbloquear(c),
+              }
+            : {
+                label: 'Bloquear',
+                icon: <LockOutlinedIcon fontSize="small" />,
+                onClick: () => onBloquear(c),
+              }
+        )
+      }
+      lista.push(
+        c.activo
+          ? {
+              label: 'Desactivar',
+              icon: <BlockOutlinedIcon fontSize="small" />,
+              destructive: true,
+              onClick: () => onDesactivar(c),
+            }
+          : {
+              label: 'Activar',
+              icon: <CheckCircleOutlinedIcon fontSize="small" />,
+              onClick: () => onActivar(c),
+            }
+      )
+      return lista
     },
-    { field: 'telefono', headerName: 'Teléfono', flex: 1, minWidth: 130, valueGetter: (v) => v ?? '—' },
-    {
-      field: 'limite_credito_usd',
-      headerName: 'Crédito',
-      type: 'number',
-      flex: 0.8,
-      minWidth: 120,
-      renderCell: ({ value }) =>
-        value ? (
-          <Box component="span" sx={NUM}>
-            {formatUsd(value)}
-          </Box>
-        ) : (
-          <Typography variant="body2" component="span" color="text.secondary">
-            Contado
-          </Typography>
-        ),
-    },
-    {
-      field: 'estado',
-      headerName: 'Estado',
-      sortable: false,
-      flex: 0.8,
-      minWidth: 110,
-      renderCell: ({ row }) => (
-        <StatusChips bloqueado={row.bloqueado} motivoBloqueo={row.motivo_bloqueo} activo={row.activo} />
-      ),
-    },
-    {
-      field: 'acciones',
-      headerName: '',
-      sortable: false,
-      filterable: false,
-      disableColumnMenu: true,
-      width: 56,
-      align: 'center',
-      renderCell: ({ row }) => (
-        <IconButton
-          aria-label={`Acciones para ${row.nombre}`}
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation()
-            setMenu({ el: e.currentTarget, cliente: row })
-          }}
-        >
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
-      ),
-    },
-  ]
+    [esAdmin, onEdit, onBloquear, onDesbloquear, onDesactivar, onActivar]
+  )
 
-  const sinClientes = clientes.length === 0
+  const columns = React.useMemo<GridColDef<Cliente>[]>(
+    () => [
+      {
+        field: 'nombre',
+        headerName: 'Cliente',
+        flex: 1.6,
+        minWidth: 200,
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'grid', alignContent: 'center', height: '100%', minWidth: 0 }}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+              {row.nombre}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {row.rif_ci ?? 'Sin RIF / cédula'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'telefono',
+        headerName: 'Teléfono',
+        flex: 1,
+        minWidth: 130,
+        valueFormatter: (value: string | null) => value || '—',
+      },
+      colMonto<Cliente>('limite_credito_usd', 'Límite de crédito', {
+        flex: 0.9,
+        minWidth: 140,
+        renderCell: ({ value, formattedValue }) =>
+          value ? (
+            formattedValue
+          ) : (
+            <Typography variant="body2" component="span" color="text.secondary">
+              Sin crédito
+            </Typography>
+          ),
+      }),
+      {
+        field: 'estado',
+        headerName: 'Estado',
+        sortable: false,
+        flex: 1,
+        minWidth: 150,
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <StatusChips
+              bloqueado={row.bloqueado}
+              motivoBloqueo={row.motivo_bloqueo}
+              activo={row.activo}
+              mostrarActivo
+            />
+          </Box>
+        ),
+      },
+      colAcciones<Cliente>(getActions, {
+        rowLabel: (row) => row.nombre,
+        isPending: (row) => estaPendiente(row.id),
+      }),
+    ],
+    [getActions, estaPendiente]
+  )
+
+  const emptyState: EmptyStateProps =
+    clientes.length === 0 || filtro === 'todos'
+      ? {
+          icon: <PeopleOutlinedIcon fontSize="large" />,
+          title: 'Aún no hay clientes',
+          description:
+            'Con los clientes registrados podrás venderles a crédito, agendar pedidos y ver su historial.',
+          action: (
+            <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={onNuevo}>
+              Nuevo cliente
+            </Button>
+          ),
+        }
+      : {
+          icon: <FilterListOffOutlinedIcon fontSize="large" />,
+          title: VACIO_FILTRO[filtro],
+          action: (
+            <Button variant="outlined" onClick={() => cambiarFiltro('todos')}>
+              Ver todos
+            </Button>
+          ),
+        }
 
   return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
-      {sinClientes ? null : (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' },
-            justifyContent: 'space-between',
-            gap: 1.5,
-          }}
-        >
-          <TextField
-            size="small"
-            placeholder="Buscar por nombre, RIF o teléfono"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            sx={{ width: { xs: '100%', sm: 340 } }}
-            slotProps={{
-              htmlInput: { 'aria-label': 'Buscar clientes' },
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            value={filtro}
-            onChange={(_, next: Filtro | null) => next && setFiltro(next)}
-            aria-label="Filtrar clientes"
-            sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}
-          >
-            <ToggleButton value="activos">Activos ({conteo.activos})</ToggleButton>
-            <ToggleButton value="bloqueados">Bloqueados ({conteo.bloqueados})</ToggleButton>
-            <ToggleButton value="todos">Todos ({conteo.todos})</ToggleButton>
-          </ToggleButtonGroup>
+    <AppDataGrid<Cliente>
+      tableId="clientes"
+      label="Clientes"
+      mode="client"
+      rows={filas}
+      columns={columns}
+      emptyState={emptyState}
+      searchPlaceholder="Buscar por nombre, RIF o teléfono"
+      normalizeSearch={normalizarBusquedaSinSeparadores}
+      getSearchValues={searchValues}
+      getRowHref={(row) => `/clientes/${row.id}`}
+      initialSort={[{ field: 'nombre', sort: 'asc' }]}
+      filters={
+        <Box role="group" aria-label="Filtrar clientes" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {FILTROS.map((f) => {
+            const activo = f.value === filtro
+            return (
+              <Chip
+                key={f.value}
+                label={`${f.label} (${conteo[f.value]})`}
+                variant={activo ? 'soft' : 'outlined'}
+                color={activo ? 'primary' : 'default'}
+                aria-pressed={activo}
+                onClick={() => cambiarFiltro(f.value)}
+              />
+            )
+          })}
         </Box>
-      )}
-
-      {sinClientes ? (
-        <EmptyState
-          title="Registra tu primer cliente"
-          description="Con los clientes registrados podrás venderles a crédito, agendar pedidos y ver su historial."
-        />
-      ) : filas.length === 0 ? (
-        <EmptyState
-          icon={<PersonSearchOutlinedIcon fontSize="large" />}
-          title="Ningún cliente coincide"
-          description={
-            busqueda
-              ? `No hay clientes ${filtro === 'todos' ? '' : filtro + ' '}que coincidan con "${busqueda}".`
-              : filtro === 'bloqueados'
-                ? 'No hay clientes bloqueados.'
-                : 'No hay clientes activos. Revisa la pestaña "Todos".'
-          }
-        />
-      ) : (
-        <DataGrid
-          rows={filas}
-          columns={columns}
-          autoHeight
-          rowHeight={60}
-          disableRowSelectionOnClick
-          disableColumnMenu
-          onRowClick={({ row }) => router.push(`/clientes/${row.id}`)}
-          columnVisibilityModel={{ telefono: !compacto, limite_credito_usd: !compacto }}
-          pageSizeOptions={[10, 25, 50]}
-          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-          sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
-        />
-      )}
-
-      <Menu anchorEl={menu?.el ?? null} open={!!menu} onClose={cerrarMenu}>
-        {menu
-          ? [
-              <MenuItem key="editar" onClick={desdeMenu(onEdit)}>
-                <ListItemIcon>
-                  <EditOutlinedIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Editar</ListItemText>
-              </MenuItem>,
-              esAdmin && menu.cliente.bloqueado ? (
-                <MenuItem key="desbloquear" onClick={desdeMenu(onDesbloquear)}>
-                  <ListItemIcon>
-                    <LockOpenOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Desbloquear</ListItemText>
-                </MenuItem>
-              ) : null,
-              esAdmin && !menu.cliente.bloqueado ? (
-                <MenuItem key="bloquear" onClick={desdeMenu(onBloquear)}>
-                  <ListItemIcon>
-                    <LockOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Bloquear</ListItemText>
-                </MenuItem>
-              ) : null,
-              menu.cliente.activo ? (
-                <MenuItem key="desactivar" onClick={desdeMenu(onDesactivar)} sx={{ color: 'error.main' }}>
-                  <ListItemIcon sx={{ color: 'inherit' }}>
-                    <BlockIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Desactivar</ListItemText>
-                </MenuItem>
-              ) : (
-                <MenuItem key="activar" onClick={desdeMenu(onActivar)}>
-                  <ListItemIcon>
-                    <CheckCircleOutlineIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Activar</ListItemText>
-                </MenuItem>
-              ),
-            ]
-          : null}
-      </Menu>
-    </Box>
+      }
+      mobileCard={(row) => ({
+        primary: row.nombre,
+        secondary: row.rif_ci ?? 'Sin RIF / cédula',
+        // En la tarjeta solo lo que informa algo: Bloqueado / Inactivo.
+        status: (
+          <StatusChips bloqueado={row.bloqueado} motivoBloqueo={row.motivo_bloqueo} activo={row.activo} />
+        ),
+        actions: (
+          <RowActionsMenu
+            label={row.nombre}
+            actions={getActions(row)}
+            pending={estaPendiente(row.id)}
+            size="medium"
+          />
+        ),
+      })}
+    />
   )
 }

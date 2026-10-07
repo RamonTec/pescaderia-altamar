@@ -29,6 +29,8 @@ import {
 } from '@mui/x-data-grid'
 import { EmptyState, type EmptyStateProps } from '@/components/molecules/EmptyState'
 import { ErrorState } from '@/components/molecules/ErrorState'
+import { ACTIONS_FIELD } from '@/components/organisms/appDataGridColumns'
+import { recordarOrigen } from '@/lib/navigationOrigin'
 
 /**
  * Toda tabla del sistema (spec § Tablas y paginación).
@@ -47,6 +49,14 @@ import { ErrorState } from '@/components/molecules/ErrorState'
  * - Estados: vacío (`emptyState`), sin resultados ("Limpiar búsqueda"),
  *   error (`ErrorState` dentro del área de la tabla), cargando (skeleton si no
  *   hay filas, barra si ya hay).
+ * - Fila con `getRowHref`: clic en cualquier parte o Enter con el foco en
+ *   una celda (no en el `⋮` ni en otro control) abre la ficha.
+ * - Búsqueda en `mode="client"`: la filtra el propio `AppDataGrid` antes de
+ *   pasar las filas a la grilla o a las tarjetas (un solo camino para ambas).
+ *   Cada palabra buscada debe aparecer en algún valor de la fila
+ *   (`getSearchValues`, por defecto los valores crudos de las columnas), los
+ *   dos normalizados con `normalizeSearch` (por defecto sin acentos y en
+ *   minúsculas).
  */
 
 export const PAGE_SIZE_OPTIONS = [25, 50, 100] as const
@@ -108,6 +118,23 @@ export interface AppDataGridProps<R extends GridValidRowModel> {
   initialSort?: GridSortModel
   /** Nombre del parámetro de página en la URL (si hay dos tablas en la misma pantalla). */
   pageParam?: string
+  /**
+   * Normaliza el texto buscado y el de cada valor (`mode="client"`). Por
+   * defecto `normalizarBusqueda` (sin acentos, minúsculas). Para documentos y
+   * teléfonos, `normalizarBusquedaSinSeparadores` ("V-12.345" ↔ "v12345").
+   */
+  normalizeSearch?: (s: string) => string
+  /**
+   * Valores de la fila donde busca la búsqueda rápida (`mode="client"`). Por
+   * defecto, el valor crudo de cada columna (`row[field]`). Útil cuando una
+   * celda muestra datos de más de un campo (nombre + RIF).
+   */
+  getSearchValues?: (row: R) => ReadonlyArray<string | number | null | undefined>
+  /**
+   * Tabla dentro de otra superficie (sección de una ficha): sin borde ni
+   * fondo propios, para no dibujar una tarjeta dentro de otra.
+   */
+  embedded?: boolean
 }
 
 /** Lee `?pagina=N` (1-based) y devuelve la página 0-based. Para `page.tsx` en modo servidor. */
@@ -240,12 +267,19 @@ function usePageSize(tableId: string): [number, (size: number) => void] {
 
 /* ---------- página en la URL ---------- */
 
-function writePageParam(pageParam: string, page: number) {
+/**
+ * Escribe parámetros en la URL (`null` los quita) sin volver a pedir la
+ * página al servidor: History API nativa, que Next sincroniza con
+ * `useSearchParams`. Para filtros de tabla que viven en la URL (`?estado=`),
+ * igual que `?pagina=`.
+ */
+export function writeUrlParams(cambios: Record<string, string | null>) {
   const params = new URLSearchParams(window.location.search)
-  if (page <= 0) params.delete(pageParam)
-  else params.set(pageParam, String(page + 1))
+  for (const [key, value] of Object.entries(cambios)) {
+    if (value === null) params.delete(key)
+    else params.set(key, value)
+  }
   const qs = params.toString()
-  // History API nativa: Next sincroniza `useSearchParams` sin volver a pedir la página al servidor.
   window.history.replaceState(
     null,
     '',
@@ -253,26 +287,49 @@ function writePageParam(pageParam: string, page: number) {
   )
 }
 
-/* ---------- búsqueda en cliente para las tarjetas ---------- */
-
-function normalize(s: string) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+function writePageParam(pageParam: string, page: number) {
+  writeUrlParams({ [pageParam]: page <= 0 ? null : String(page + 1) })
 }
 
-function matchesSearch<R extends GridValidRowModel>(
-  row: R,
+/* ---------- búsqueda en cliente ---------- */
+
+/** Normalización por defecto de la búsqueda: sin acentos y en minúsculas. */
+export function normalizarBusqueda(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+/**
+ * Además de acentos y mayúsculas, ignora espacios, puntos y guiones: para
+ * RIF, cédulas y teléfonos ("V-12.345" y "v12345" coinciden).
+ */
+export function normalizarBusquedaSinSeparadores(s: string): string {
+  return normalizarBusqueda(s).replace(/[\s.\-]/g, '')
+}
+
+function defaultSearchValues<R extends GridValidRowModel>(row: R, columns: GridColDef<R>[]) {
+  return columns.map((c) => (row as Record<string, unknown>)[c.field])
+}
+
+function filterRows<R extends GridValidRowModel>(
+  rows: readonly R[],
+  search: string,
   columns: GridColDef<R>[],
-  tokens: string[]
-) {
-  const text = normalize(
-    columns
-      .map((c) => {
-        const v = (row as Record<string, unknown>)[c.field]
-        return v === null || v === undefined ? '' : String(v)
-      })
-      .join(' ')
-  )
-  return tokens.every((t) => text.includes(t))
+  normalize: (s: string) => string,
+  getSearchValues?: (row: R) => ReadonlyArray<string | number | null | undefined>
+): readonly R[] {
+  // Las palabras se separan antes de normalizar: una normalización que quita
+  // espacios no debe convertir "maría lópez" en un solo término.
+  const tokens = search
+    .split(/\s+/)
+    .map((t) => normalize(t))
+    .filter(Boolean)
+  if (tokens.length === 0) return rows
+  return rows.filter((row) => {
+    const values = (getSearchValues ? getSearchValues(row) : defaultSearchValues(row, columns))
+      .filter((v) => v !== null && v !== undefined && v !== '')
+      .map((v) => normalize(String(v)))
+    return tokens.every((t) => values.some((v) => v.includes(t)))
+  })
 }
 
 /* ---------- componente ---------- */
@@ -299,6 +356,9 @@ export function AppDataGrid<R extends GridValidRowModel>({
   hideOnMobile,
   initialSort = [],
   pageParam = 'pagina',
+  normalizeSearch = normalizarBusqueda,
+  getSearchValues,
+  embedded = false,
 }: AppDataGridProps<R>) {
   const theme = useTheme()
   const router = useRouter()
@@ -384,15 +444,24 @@ export function AppDataGrid<R extends GridValidRowModel>({
   // Modelos controlados con referencia estable: un objeto nuevo en cada
   // render hace que DataGrid vuelva a aplicar el filtro/paginación cada vez.
   const paginationModel = React.useMemo(() => ({ page, pageSize }), [page, pageSize])
-  const filterModel = React.useMemo(
-    () => ({
-      items: [],
-      quickFilterValues: !server && appliedSearch ? appliedSearch.split(/\s+/) : [],
-    }),
-    [server, appliedSearch]
+
+  // Modo cliente: la búsqueda se resuelve aquí, igual para grilla y tarjetas.
+  const visibleRows = React.useMemo(
+    () =>
+      server || !appliedSearch
+        ? rows
+        : filterRows(rows, appliedSearch, columns, normalizeSearch, getSearchValues),
+    [server, rows, appliedSearch, columns, normalizeSearch, getSearchValues]
   )
 
   const useCards = isXs && !!mobileCard
+
+  const openRow = (row: R) => {
+    if (!getRowHref) return
+    const href = getRowHref(row)
+    recordarOrigen(href)
+    router.push(href)
+  }
 
   const toolbar =
     searchable || filters || actions ? (
@@ -436,8 +505,7 @@ export function AppDataGrid<R extends GridValidRowModel>({
     return (
       <MobileCards
         label={label}
-        rows={rows}
-        columns={columns}
+        rows={visibleRows}
         getRowId={getRowId}
         server={server}
         rowCount={rowCount}
@@ -458,7 +526,15 @@ export function AppDataGrid<R extends GridValidRowModel>({
   }
 
   return (
-    <Paper component="section" aria-label={label} sx={{ overflow: 'hidden' }}>
+    <Paper
+      component="section"
+      aria-label={label}
+      sx={
+        embedded
+          ? { overflow: 'hidden', border: 0, borderRadius: 0, bgcolor: 'transparent' }
+          : { overflow: 'hidden' }
+      }
+    >
       {toolbar}
       {error ? (
         <Box sx={{ borderTop: 1, borderColor: 'divider' }}>
@@ -467,7 +543,7 @@ export function AppDataGrid<R extends GridValidRowModel>({
       ) : (
         <DataGrid<R>
           aria-label={label}
-          rows={rows}
+          rows={visibleRows}
           columns={columns}
           getRowId={getRowId}
           autoHeight
@@ -481,19 +557,30 @@ export function AppDataGrid<R extends GridValidRowModel>({
           onPaginationModelChange={handlePagination}
           paginationMode={server ? 'server' : 'client'}
           sortingMode={server ? 'server' : 'client'}
-          filterMode={server ? 'server' : 'client'}
           rowCount={server ? (rowCount ?? 0) : undefined}
           sortModel={sortModel}
           onSortModelChange={handleSort}
-          filterModel={filterModel}
           columnVisibilityModel={columnVisibilityModel}
-          onRowClick={getRowHref ? ({ row }) => router.push(getRowHref(row as R)) : undefined}
+          onRowClick={getRowHref ? ({ row }) => openRow(row as R) : undefined}
+          onCellKeyDown={
+            getRowHref
+              ? (params, event) => {
+                  // Enter con el foco en la propia celda (no en un control dentro
+                  // de ella ni en el menú ⋮, cuyo portal también burbujea aquí).
+                  // Las flechas siguen siendo de la grilla.
+                  if (event.key !== 'Enter' || event.target !== event.currentTarget) return
+                  if (params.field === ACTIONS_FIELD || params.colDef.type === 'actions') return
+                  event.preventDefault()
+                  openRow(params.row as R)
+                }
+              : undefined
+          }
           slots={{ noRowsOverlay: NoRowsOverlay, noResultsOverlay: NoResultsOverlay }}
           slotProps={{
             noRowsOverlay: { emptyState, search: appliedSearch, onClearSearch: clearSearch },
             noResultsOverlay: { search: appliedSearch, onClearSearch: clearSearch },
             loadingOverlay: {
-              variant: rows.length > 0 ? 'linear-progress' : 'skeleton',
+              variant: visibleRows.length > 0 ? 'linear-progress' : 'skeleton',
               noRowsVariant: 'skeleton',
             },
           }}
@@ -527,8 +614,8 @@ export function AppDataGrid<R extends GridValidRowModel>({
 
 interface MobileCardsProps<R extends GridValidRowModel> {
   label: string
+  /** Filas ya filtradas por la búsqueda (modo cliente). */
   rows: readonly R[]
-  columns: GridColDef<R>[]
   getRowId?: GridRowIdGetter<R>
   server: boolean
   rowCount?: number
@@ -549,7 +636,6 @@ interface MobileCardsProps<R extends GridValidRowModel> {
 function MobileCards<R extends GridValidRowModel>({
   label,
   rows,
-  columns,
   getRowId,
   server,
   rowCount,
@@ -566,16 +652,10 @@ function MobileCards<R extends GridValidRowModel>({
   onClearSearch,
   onPage,
 }: MobileCardsProps<R>) {
-  const filtered = React.useMemo(() => {
-    if (server || !search) return rows
-    const tokens = normalize(search).split(/\s+/).filter(Boolean)
-    return rows.filter((r) => matchesSearch(r, columns, tokens))
-  }, [rows, columns, search, server])
-
-  const total = server ? (rowCount ?? rows.length) : filtered.length
+  const total = server ? (rowCount ?? rows.length) : rows.length
   const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1)
   const current = Math.min(page, lastPage)
-  const visible = server ? filtered : filtered.slice(current * pageSize, (current + 1) * pageSize)
+  const visible = server ? rows : rows.slice(current * pageSize, (current + 1) * pageSize)
   const from = total === 0 ? 0 : current * pageSize + 1
   const to = Math.min(total, (current + 1) * pageSize)
 
@@ -649,6 +729,7 @@ function MobileCards<R extends GridValidRowModel>({
             <Box
               component={Link}
               href={href}
+              onClick={() => recordarOrigen(href)}
               sx={{
                 display: 'flex',
                 minWidth: 0,

@@ -16,6 +16,9 @@ import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/fo
 
 type Base<R extends GridValidRowModel> = Partial<GridColDef<R>>
 
+/** `field` de la columna de acciones (`colAcciones`). */
+export const ACTIONS_FIELD = '__acciones'
+
 const NUMERIC: Partial<GridColDef> = {
   type: 'number',
   align: 'right',
@@ -123,7 +126,7 @@ export function colAcciones<R extends GridValidRowModel>(
 ): GridColDef<R> {
   const { rowLabel, isPending, ...extra } = options
   return {
-    field: '__acciones',
+    field: ACTIONS_FIELD,
     headerName: '',
     width: 64,
     align: 'center',
