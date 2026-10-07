@@ -222,10 +222,7 @@ export async function validarRepresentantes(clienteId: string): Promise<void> {
 
 /**
  * Saldo pendiente del cliente. La lógica real vive en 05-ventas
- * (ClienteBalanceService); este módulo la consume. Devuelve null hasta
- * que ese servicio exista — la UI muestra "—".
+ * (`clienteBalanceService.getSaldoPendiente`); aquí se re-exporta para no
+ * romper a los consumidores de 02-clientes.
  */
-export async function getSaldoPendiente(clienteId: string): Promise<number | null> {
-  void clienteId
-  return null
-}
+export { getSaldoPendiente } from './clienteBalanceService'
