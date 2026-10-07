@@ -10,8 +10,12 @@ import { createClient } from '@/lib/supabase/server'
  * - Nunca se edita la factura original: la nota es un documento nuevo que resta.
  * - El peso devuelto por item no puede exceder lo facturado menos lo ya
  *   devuelto en notas previas `emitida`.
- * - Si un item `afecta_inventario`, se registra movimiento `ajuste` positivo al
- *   costo original de la venta (snapshot), no al costo promedio actual.
+ * - Si un item `afecta_inventario`, los kg vuelven a sus lotes de origen en
+ *   orden inverso de la asignación de la venta (`factura_item_lotes`), al
+ *   costo de cada lote, sin superar lo vendido de cada lote; el lote se
+ *   reabre. Anular la nota revierte exactamente esos kg (07-lotes). Todo lo
+ *   hace la RPC `registrar_nota_credito` / `anular_nota_credito` en una
+ *   transacción con lock de cada lote: la firma del servicio no cambia.
  */
 
 export class NotaCreditoError extends Error {

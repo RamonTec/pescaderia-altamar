@@ -9,20 +9,30 @@ import {
   type ProcesoFila,
 } from '@/components/organisms/ProcesamientosTable'
 import { ProcesamientoForm, type CrudoConStock } from '@/components/organisms/ProcesamientoForm'
-import type { Producto } from '@/types/domain'
+import { LotesCreadosDialog } from '@/components/organisms/LotesCreadosDialog'
+import type { Lote, LoteCreado, Producto } from '@/types/domain'
 
 export function ProcesamientoScreen({
   filas,
   crudos,
   procesados,
+  lotes,
+  diasAlertaLote,
   esAdmin,
 }: {
   filas: ProcesoFila[]
   crudos: CrudoConStock[]
   procesados: Producto[]
+  lotes: Lote[]
+  diasAlertaLote: number | null
   esAdmin: boolean
 }) {
   const [nuevoAbierto, setNuevoAbierto] = React.useState(false)
+  const [lotesCreados, setLotesCreados] = React.useState<LoteCreado[] | null>(null)
+  const nombresProducto = React.useMemo(
+    () => Object.fromEntries(procesados.map((p) => [p.id, p.nombre])),
+    [procesados]
+  )
 
   return (
     <>
@@ -40,6 +50,16 @@ export function ProcesamientoScreen({
         onClose={() => setNuevoAbierto(false)}
         crudos={crudos}
         procesados={procesados}
+        lotes={lotes}
+        diasAlertaLote={diasAlertaLote}
+        onCreated={setLotesCreados}
+      />
+
+      <LotesCreadosDialog
+        lotes={lotesCreados}
+        nombresProducto={nombresProducto}
+        subtitle="Procesamiento registrado · rotula el recipiente con su código"
+        onClose={() => setLotesCreados(null)}
       />
     </>
   )

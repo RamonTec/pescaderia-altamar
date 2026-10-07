@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Cliente, CondicionPago, Factura } from '@/types/domain'
+import type { AsignacionLote, Cliente, CondicionPago, Factura } from '@/types/domain'
 import type { FacturaItemNuevo, FacturaNueva } from '@/lib/repositories/interfaces'
 import type { EntradaTasaOperacion } from './tasaService'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
@@ -8,8 +8,7 @@ import { makeConfigNegocioRepository } from '@/lib/repositories/configRepository
 import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
-import { crearMovimiento } from './movimientoService'
-import { getCostosPorProducto } from './costingService'
+import { sumaAsignacion, TOLERANCIA_KG } from '@/lib/loteValidation'
 import { resolverTasaOperacion } from './tasaService'
 import { getSaldoPendiente } from './clienteBalanceService'
 
@@ -20,11 +19,17 @@ import { getSaldoPendiente } from './clienteBalanceService'
  * Responsabilidades:
  *   - Validar cliente activo y, para crédito, no bloqueado (bloqueo duro).
  *   - Obtener `iva_pct` de `config_negocio`.
- *   - Snapshot de costo promedio por producto (`getCostosPorProducto`).
  *   - Calcular subtotal/IVA/total.
  *   - Verificar el límite de crédito del cliente contra su saldo pendiente.
- *   - Delegar la escritura atómica (factura + items + movimientos `venta`)
- *     al repositorio/RPC.
+ *   - Delegar la escritura atómica (factura + items + asignación por lote +
+ *     movimientos `venta`) al repositorio/RPC.
+ *
+ * 07-lotes: el servicio ya NO lee ni envía el costo (hallazgo 1: con la
+ * sesión de un operador `movimientos_view` devolvía `null` y el costo de la
+ * venta quedaba en 0). Lo calcula `registrar_factura` (security definer)
+ * desde los lotes asignados: la elección del vendedor (`asignaciones`) o PEPS
+ * si no viene. La RPC valida stock por lote bajo lock (hallazgo 2) y sus
+ * errores se mapean al item (`erroresDeLote`).
  *
  * 08-tasas: la tasa la elige el usuario (referencial o manual) y se resuelve
  * en el servidor con `resolverTasaOperacion` para la fecha de la factura.
@@ -60,11 +65,35 @@ export class LimiteCreditoExcedido extends Error {
 
 const redondea2 = (n: number) => Math.round(n * 100) / 100
 const redondea6 = (n: number) => Math.round(n * 1e6) / 1e6
+const redondea3 = (n: number) => Math.round(n * 1e3) / 1e3
 
 export interface ItemFacturaInput {
   producto_id: string
   peso_kg: number
   precio_usd_kg: number
+  /** Lotes elegidos a mano por el vendedor; sin ellos, la base asigna PEPS. */
+  asignaciones?: AsignacionLote[]
+}
+
+/** Códigos (`hint`) de `registrar_factura` que se marcan en la línea. */
+const HINTS_DE_LINEA: Record<string, 'peso_kg' | 'asignaciones' | 'producto_id'> = {
+  stock_insuficiente: 'peso_kg',
+  lote_no_disponible: 'asignaciones',
+  asignacion_no_cuadra: 'asignaciones',
+  producto_no_disponible: 'producto_id',
+}
+
+/**
+ * Traduce un error de lotes de la RPC (`hint` + `detail = 'item:N'`) a un
+ * `InvoiceError` con el campo de la línea (`items.N.peso_kg` /
+ * `items.N.asignaciones`). Devuelve `null` si no es un error de línea.
+ */
+export function erroresDeLote(e: unknown): InvoiceError | null {
+  const pg = (e ?? {}) as { code?: string; hint?: string; details?: string; message?: string }
+  const campo = pg.hint ? HINTS_DE_LINEA[pg.hint] : undefined
+  if (!campo || !pg.message) return null
+  const m = /^item:(\d+)$/.exec(pg.details ?? '')
+  return new InvoiceError(pg.message, m ? `items.${m[1]}.${campo}` : 'items')
 }
 
 export interface CrearFacturaInput {
@@ -187,6 +216,19 @@ export async function crearFactura(
     const p = productosMap.get(it.producto_id)
     if (!p || !p.activo) throw new InvoiceError('Producto no disponible', `items.${index}.producto_id`)
     if (it.peso_kg <= 0) throw new InvoiceError('El peso debe ser mayor a 0', `items.${index}.peso_kg`)
+    const asignadas = it.asignaciones ?? []
+    if (asignadas.length > 0) {
+      if (!p.controla_stock) {
+        throw new InvoiceError(`${p.nombre} no usa lotes`, `items.${index}.asignaciones`)
+      }
+      const suma = sumaAsignacion(asignadas)
+      if (Math.abs(suma - it.peso_kg) > TOLERANCIA_KG) {
+        throw new InvoiceError(
+          `Los lotes suman ${suma.toFixed(3)} kg y la línea pesa ${it.peso_kg.toFixed(3)} kg`,
+          `items.${index}.asignaciones`
+        )
+      }
+    }
   }
 
   const fecha = input.fecha ?? new Date().toISOString().slice(0, 10)
@@ -197,31 +239,29 @@ export async function crearFactura(
     config?.dias_credito_default
   )
 
-  // Tasa y costos en paralelo: una sola query de movimientos para todos los
-  // items (antes, un round-trip por producto).
-  const [resultado, costos] = await Promise.all([
-    resolverTasaOperacion(
-      input.tasa,
-      fecha,
-      client,
-      config?.fuente_tasa_default
-    ),
-    getCostosPorProducto(
-      input.items.map((i) => i.producto_id),
-      client
-    ),
-  ])
+  const resultado = await resolverTasaOperacion(
+    input.tasa,
+    fecha,
+    client,
+    config?.fuente_tasa_default
+  )
   if (resultado.error === 'sin_referencial' || !resultado.tasa_operacion) {
     throw new InvoiceError(MSG_TASA_SIN_REFERENCIAL, 'tasa')
   }
   const tasaOperacion = resultado.tasa_operacion
 
-  const items: FacturaItemNuevo[] = input.items.map((it) => ({
-    producto_id: it.producto_id,
-    peso_kg: redondea6(it.peso_kg),
-    precio_usd_kg: redondea6(it.precio_usd_kg),
-    costo_usd_kg: redondea6(costos.get(it.producto_id) ?? 0),
-  }))
+  // Sin costo: lo calcula la base desde los lotes asignados.
+  const items: FacturaItemNuevo[] = input.items.map((it) => {
+    const asignaciones = (it.asignaciones ?? [])
+      .filter((a) => a.peso_kg > 0)
+      .map((a) => ({ lote_id: a.lote_id, peso_kg: redondea3(a.peso_kg) }))
+    return {
+      producto_id: it.producto_id,
+      peso_kg: redondea3(it.peso_kg),
+      precio_usd_kg: redondea6(it.precio_usd_kg),
+      ...(asignaciones.length > 0 ? { asignaciones } : {}),
+    }
+  })
 
   const subtotal = subtotalItems(input.items)
   const iva = ivaSobre(subtotal, ivaPct)
@@ -246,10 +286,6 @@ export async function crearFactura(
     tasa_referencial: tasaOperacion.tasa_referencial,
   }
 
-  const movimientos = items.map((i) =>
-    crearMovimiento('venta', i.producto_id, i.peso_kg, i.costo_usd_kg, factura.id)
-  )
-
   // Soft-warning de límite de crédito: si la venta es a crédito y excede el
   // límite, se lanza `LimiteCreditoExcedido` ANTES de escribir, para que la UI
   // confirme y reintente con `forzar_limite = true`.
@@ -258,13 +294,17 @@ export async function crearFactura(
     if (advertencia) throw new LimiteCreditoExcedido(advertencia)
   }
 
-  const facturaId = await makeFacturaRepository(client).create(
-    factura,
-    items,
-    movimientos,
-    input.pedido_id,
-    input.pesos_reales
-  )
+  let facturaId: string
+  try {
+    facturaId = await makeFacturaRepository(client).create(
+      factura,
+      items,
+      input.pedido_id,
+      input.pesos_reales
+    )
+  } catch (e) {
+    throw erroresDeLote(e) ?? e
+  }
 
   return { factura_id: facturaId, advertencia: null, aviso: resultado.aviso }
 }

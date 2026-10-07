@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Compra, Producto } from '@/types/domain'
+import type { Compra, LoteCreado, Producto } from '@/types/domain'
 import type { CompraItemNuevo } from '@/lib/repositories/interfaces'
 import type { CompraFormValues, PagoProveedorFormValues } from '@/lib/compraValidation'
 import { makeCompraRepository } from '@/lib/repositories/compraRepository'
@@ -8,7 +8,6 @@ import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
 import { entradaTasaDe } from '@/lib/tasaValidation'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
-import { crearMovimiento } from './movimientoService'
 import { resolverTasaOperacion, type ResultadoTasaOperacion } from './tasaService'
 import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditService'
 
@@ -20,7 +19,9 @@ import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditSe
  *   1. Proveedor activo; si es a crédito, no bloqueado (03-proveedores).
  *   2. Items de productos crudos activos.
  *   3. Costo por kg convertido a USD con la tasa congelada (`tasa_snapshot`).
- *   4. Compra + items + un movimiento `compra` por item, en una transacción.
+ *   4. Compra + items + un lote y un movimiento `compra` por item, en una
+ *      transacción (RPC `registrar_compra`, 07-lotes). Devuelve los códigos
+ *      de lote para rotular los recipientes.
  *   5. Contado → `pagado_usd = subtotal_usd`, estado `pagada`.
  *
  * 08-tasas: la referencial se resuelve en el servidor con
@@ -79,6 +80,8 @@ async function tasaDeOperacion(
 
 export async function crearCompra(input: CompraFormValues): Promise<{
   compra_id: string
+  /** Lotes creados (uno por item con control de stock), sin costos. */
+  lotes: LoteCreado[]
   aviso?: 'referencial_cambio'
 }> {
   const db = await createClient()
@@ -135,12 +138,8 @@ export async function crearCompra(input: CompraFormValues): Promise<{
     notas: input.notas.trim() || null,
   }
 
-  const movimientos = items.map((i) =>
-    crearMovimiento('compra', i.producto_id, i.peso_kg, i.costo_usd_kg, compra.id)
-  )
-
-  const compraId = await makeCompraRepository(db).create(compra, items, movimientos)
-  return { compra_id: compraId, aviso }
+  const { compra_id, lotes } = await makeCompraRepository(db).create(compra, items)
+  return { compra_id, lotes, aviso }
 }
 
 /**

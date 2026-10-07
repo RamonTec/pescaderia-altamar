@@ -6,7 +6,6 @@ import { useForm, useWatch, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -28,6 +27,7 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     iva_pct: c?.iva_pct ?? 16,
     fuente_tasa_default: c?.fuente_tasa_default ?? 'bcv',
     umbral_stock_bajo_kg: c?.umbral_stock_bajo_kg ?? null,
+    dias_alerta_lote: c?.dias_alerta_lote ?? null,
     // 08-tasas: default de la migración (10 %) si la fila no lo trae.
     umbral_desviacion_tasa_pct: c?.umbral_desviacion_tasa_pct ?? 10,
     // 09-cuentas-por-cobrar: defaults de la migración si la fila no los trae.
@@ -48,12 +48,14 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
     resolver: zodResolver(configFormSchema),
     mode: 'onSubmit',
     defaultValues: toFormValues(config),
+    disabled: isPending,
   })
 
   const { handleSubmit, register, reset, setError, formState, control } = methods
 
   const ivaPct = useWatch({ control, name: 'iva_pct' })
   const umbralKg = useWatch({ control, name: 'umbral_stock_bajo_kg' })
+  const diasAlertaLote = useWatch({ control, name: 'dias_alerta_lote' })
   const umbralTasa = useWatch({ control, name: 'umbral_desviacion_tasa_pct' })
   const diasCredito = useWatch({ control, name: 'dias_credito_default' })
   const diasAviso = useWatch({ control, name: 'dias_aviso_por_vencer' })
@@ -129,6 +131,22 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             onChange={(v) => methods.setValue('umbral_stock_bajo_kg', v, { shouldDirty: true })}
             error={!!formState.errors.umbral_stock_bajo_kg}
             helperText={formState.errors.umbral_stock_bajo_kg?.message}
+          />
+
+          <NumberField
+            label="Días para marcar un lote como antiguo"
+            fullWidth
+            decimals={0}
+            suffix="días"
+            value={diasAlertaLote}
+            onChange={(v) =>
+              methods.setValue('dias_alerta_lote', v == null ? null : Math.round(v), { shouldDirty: true })
+            }
+            error={!!formState.errors.dias_alerta_lote}
+            helperText={
+              formState.errors.dias_alerta_lote?.message ??
+              'Opcional. Pescado fresco: los lotes abiertos con más días se destacan en inventario.'
+            }
           />
 
           <NumberField
@@ -235,12 +253,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
           {serverError ? <Alert severity="error">{serverError}</Alert> : null}
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isPending}
-              startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-            >
+            <Button type="submit" variant="contained" loading={isPending}>
               Guardar configuración
             </Button>
           </Box>

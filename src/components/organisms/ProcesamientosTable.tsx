@@ -8,6 +8,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { DataGrid, type GridColDef, GridToolbarQuickFilter } from '@mui/x-data-grid'
 import { EmptyState } from '@/components/molecules/EmptyState'
+import { LoteChip } from '@/components/molecules/LoteChip'
 import { formatFecha, formatKg, formatUsd } from '@/lib/format'
 import type { ProcesoItemDetalle } from '@/lib/repositories/interfaces'
 
@@ -29,6 +30,9 @@ export interface ProcesoFila {
   peso_entrada_kg: number
   peso_salida_kg: number
   costo_total_usd: number | null
+  /** Lote crudo de origen y lote procesado generado (07-lotes). */
+  lote_origen_codigo: string | null
+  lote_destino_codigo: string | null
 }
 
 export interface ProcesamientosTableProps {
@@ -65,9 +69,23 @@ export function ProcesamientosTable({ filas, esAdmin, onNuevo }: ProcesamientosT
           <Typography variant="body2">{params.row.destino.nombre}</Typography>
           <Typography variant="caption" color="text.secondary">
             de {params.row.origen.nombre}
+            {params.row.lote_origen_codigo ? ` · ${params.row.lote_origen_codigo}` : ''}
           </Typography>
         </Box>
       ),
+    },
+    {
+      field: 'lote_destino_codigo',
+      headerName: 'Lotes',
+      flex: 1.2,
+      minWidth: 180,
+      valueGetter: (_v, row) => `${row.lote_origen_codigo ?? ''} ${row.lote_destino_codigo ?? ''}`,
+      renderCell: (params) =>
+        params.row.lote_destino_codigo ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <LoteChip codigo={params.row.lote_destino_codigo} />
+          </Box>
+        ) : null,
     },
     {
       field: 'peso_entrada_kg',
@@ -152,7 +170,9 @@ export function ProcesamientosTable({ filas, esAdmin, onNuevo }: ProcesamientosT
       pageSizeOptions={[10, 25, 50]}
       initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
       columnVisibilityModel={
-        compacto ? { peso_entrada_kg: false, merma_kg: false, notas: false } : {}
+        compacto
+          ? { peso_entrada_kg: false, merma_kg: false, notas: false, lote_destino_codigo: false }
+          : {}
       }
       slots={{
         toolbar: () => <GridToolbarQuickFilter debounceMs={250} />,

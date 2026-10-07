@@ -9,18 +9,13 @@ import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
 import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
+
+import { AppDialog } from '@/components/organisms/AppDialog'
 import { CompraItemsFieldArray, itemVacio } from '@/components/molecules/CompraItemsFieldArray'
 import {
   pedirConfirmacionTasaManual,
@@ -34,12 +29,12 @@ import {
   type CompraFormValues,
 } from '@/lib/compraValidation'
 import { fechaHoy, formatBs, formatUsd } from '@/lib/format'
-import type { Producto, Proveedor } from '@/types/domain'
+import type { LoteCreado, Producto, Proveedor } from '@/types/domain'
 import { crearCompraAction } from '@/app/(protected)/compras/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const MONO = { fontVariantNumeric: 'tabular-nums' }
 
 export interface CompraFormProps {
   open: boolean
@@ -50,6 +45,8 @@ export interface CompraFormProps {
   productos: Producto[]
   /** Config de tasas de `config_negocio` (08-tasas Fase D). */
   configTasas: TasaSelectorConfig
+  /** Compra registrada: los lotes creados, para mostrarlos y rotular (07-lotes). */
+  onCreated?: (lotes: LoteCreado[]) => void
 }
 
 function vacio(): CompraFormInput {
@@ -74,11 +71,16 @@ function vacio(): CompraFormInput {
  * recalcula en vivo en USD y Bs. Montar con un `key` que cambie al abrir:
  * así cada apertura empieza en blanco.
  */
-export function CompraForm({ open, onClose, proveedores, productos, configTasas }: CompraFormProps) {
+export function CompraForm({
+  open,
+  onClose,
+  proveedores,
+  productos,
+  configTasas,
+  onCreated,
+}: CompraFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
 
@@ -143,204 +145,199 @@ export function CompraForm({ open, onClose, proveedores, productos, configTasas 
       notify.success(result.success ?? 'Compra registrada')
       if (result.info) notify.info(result.info)
       onClose()
+      onCreated?.(result.lotes ?? [])
     })
   })
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={isPending ? undefined : pedirCierre}
-      maxWidth="md"
-      fullWidth
-      fullScreen={fullScreen}
+      onClose={pedirCierre}
+      size="md"
+      title="Nueva compra"
+      onSubmit={(e) => {
+        // useForm.handleSubmit manages preventDefault
+        onSubmit(e)
+      }}
+      pending={isPending}
+      dirty={formState.isDirty}
+      error={serverError}
+      primaryAction={
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={productos.length === 0}
+          loading={isPending}
+        >
+          Registrar compra
+        </Button>
+      }
     >
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate>
-          <DialogTitle>Nueva compra</DialogTitle>
-
-          <DialogContent dividers>
-            <Box sx={{ display: 'grid', gap: 3 }}>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 8 }}>
-                  <Controller
-                    control={control}
-                    name="proveedor_id"
-                    render={({ field }) => (
-                      <Autocomplete
-                        options={proveedores}
-                        value={proveedor}
-                        onChange={(_, next) => {
-                          field.onChange(next?.id ?? '')
-                          // Con proveedor bloqueado solo se admite contado.
-                          if (next?.bloqueado) setValue('condicion', 'contado')
-                        }}
-                        onBlur={field.onBlur}
-                        getOptionLabel={(p) => (p.rif_ci ? `${p.nombre} · ${p.rif_ci}` : p.nombre)}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        noOptionsText="Sin proveedores activos"
-                        renderOption={({ key, ...props }, p) => (
-                          <Box component="li" key={key} {...props} sx={{ gap: 1 }}>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body2">{p.nombre}</Typography>
-                              {p.rif_ci ? (
-                                <Typography variant="caption" color="text.secondary">
-                                  {p.rif_ci}
-                                </Typography>
-                              ) : null}
-                            </Box>
-                            {p.bloqueado ? <Chip label="Bloqueado" size="small" color="error" /> : null}
-                          </Box>
-                        )}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Proveedor *"
-                            error={!!formState.errors.proveedor_id}
-                            helperText={formState.errors.proveedor_id?.message}
-                          />
-                        )}
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 8 }}>
+              <Controller
+                control={control}
+                name="proveedor_id"
+                render={({ field }) => (
+                  <Autocomplete
+                    options={proveedores}
+                    value={proveedor}
+                    onChange={(_, next) => {
+                      field.onChange(next?.id ?? '')
+                      // Con proveedor bloqueado solo se admite contado.
+                      if (next?.bloqueado) setValue('condicion', 'contado')
+                    }}
+                    onBlur={field.onBlur}
+                    getOptionLabel={(p) => (p.rif_ci ? `${p.nombre} · ${p.rif_ci}` : p.nombre)}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    noOptionsText="Sin proveedores activos"
+                    renderOption={({ key, ...props }, p) => (
+                      <Box component="li" key={key} {...props} sx={{ gap: 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2">{p.nombre}</Typography>
+                          {p.rif_ci ? (
+                            <Typography variant="caption" color="text.secondary">
+                              {p.rif_ci}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                        {p.bloqueado ? <Chip label="Bloqueado" size="small" color="error" /> : null}
+                      </Box>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Proveedor *"
+                        error={!!formState.errors.proveedor_id}
+                        helperText={formState.errors.proveedor_id?.message}
                       />
                     )}
                   />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField
-                    label="Fecha *"
-                    type="date"
-                    fullWidth
-                    {...register('fecha')}
-                    error={!!formState.errors.fecha}
-                    helperText={formState.errors.fecha?.message}
-                    slotProps={{ inputLabel: { shrink: true } }}
-                  />
-                </Grid>
-              </Grid>
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                label="Fecha *"
+                type="date"
+                fullWidth
+                {...register('fecha')}
+                error={!!formState.errors.fecha}
+                helperText={formState.errors.fecha?.message}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Grid>
+          </Grid>
 
-              {proveedor?.bloqueado ? (
-                <Alert severity="warning">
-                  {proveedor.nombre} está bloqueado
-                  {proveedor.motivo_bloqueo ? ` (${proveedor.motivo_bloqueo})` : ''}: solo se le puede
-                  comprar de contado.
-                </Alert>
+          {proveedor?.bloqueado ? (
+            <Alert severity="warning">
+              {proveedor.nombre} está bloqueado
+              {proveedor.motivo_bloqueo ? ` (${proveedor.motivo_bloqueo})` : ''}: solo se le puede
+              comprar de contado.
+            </Alert>
+          ) : null}
+
+          <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                Condición
+              </Typography>
+              <Controller
+                control={control}
+                name="condicion"
+                render={({ field }) => (
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={field.value}
+                    onChange={(_, next) => next && field.onChange(next)}
+                    aria-label="Condición de pago"
+                  >
+                    <ToggleButton value="contado">Contado</ToggleButton>
+                    <ToggleButton value="credito" disabled={!!proveedor?.bloqueado}>
+                      Crédito
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                )}
+              />
+              {formState.errors.condicion ? (
+                <Typography variant="caption" color="error" component="p">
+                  {formState.errors.condicion.message}
+                </Typography>
               ) : null}
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
+                Moneda pactada
+              </Typography>
+              <Controller
+                control={control}
+                name="moneda"
+                render={({ field }) => (
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={field.value}
+                    onChange={(_, next) => next && field.onChange(next)}
+                    aria-label="Moneda de la compra"
+                  >
+                    <ToggleButton value="usd">USD</ToggleButton>
+                    <ToggleButton value="bs">Bs</ToggleButton>
+                  </ToggleButtonGroup>
+                )}
+              />
+            </Grid>
+          </Grid>
 
-              <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-                    Condición
-                  </Typography>
-                  <Controller
-                    control={control}
-                    name="condicion"
-                    render={({ field }) => (
-                      <ToggleButtonGroup
-                        exclusive
-                        size="small"
-                        value={field.value}
-                        onChange={(_, next) => next && field.onChange(next)}
-                        aria-label="Condición de pago"
-                      >
-                        <ToggleButton value="contado">Contado</ToggleButton>
-                        <ToggleButton value="credito" disabled={!!proveedor?.bloqueado}>
-                          Crédito
-                        </ToggleButton>
-                      </ToggleButtonGroup>
-                    )}
-                  />
-                  {formState.errors.condicion ? (
-                    <Typography variant="caption" color="error" component="p">
-                      {formState.errors.condicion.message}
-                    </Typography>
-                  ) : null}
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-                    Moneda pactada
-                  </Typography>
-                  <Controller
-                    control={control}
-                    name="moneda"
-                    render={({ field }) => (
-                      <ToggleButtonGroup
-                        exclusive
-                        size="small"
-                        value={field.value}
-                        onChange={(_, next) => next && field.onChange(next)}
-                        aria-label="Moneda de la compra"
-                      >
-                        <ToggleButton value="usd">USD</ToggleButton>
-                        <ToggleButton value="bs">Bs</ToggleButton>
-                      </ToggleButtonGroup>
-                    )}
-                  />
-                </Grid>
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TasaSelector
+                fecha={fecha ?? fechaHoy()}
+                config={configTasas}
+                onReferencial={setReferencial}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Notas"
+                fullWidth
+                multiline
+                maxRows={3}
+                {...register('notas')}
+                placeholder="Ej. N.º de guía, lote"
+              />
+            </Grid>
+          </Grid>
 
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TasaSelector
-                    fecha={fecha ?? fechaHoy()}
-                    config={configTasas}
-                    onReferencial={setReferencial}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    label="Notas"
-                    fullWidth
-                    multiline
-                    maxRows={3}
-                    {...register('notas')}
-                    placeholder="Ej. N.º de guía, lote"
-                  />
-                </Grid>
-              </Grid>
+          <CompraItemsFieldArray productos={productos} />
 
-              <CompraItemsFieldArray productos={productos} />
+          <Box
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              pt: 2,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, auto)' },
+              justifyContent: { sm: 'end' },
+              columnGap: 4,
+              rowGap: 1,
+            }}
+          >
+            <Resumen label="Peso total" value={`${totalKg.toFixed(3)} kg`} />
+            <Resumen label="Total USD" value={totalUsd != null ? formatUsd(totalUsd) : '—'} destacado />
+            <Resumen label="Equivalente Bs" value={totalBs != null ? formatBs(totalBs) : '—'} />
+          </Box>
 
-              <Box
-                sx={{
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  pt: 2,
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, auto)' },
-                  justifyContent: { sm: 'end' },
-                  columnGap: 4,
-                  rowGap: 1,
-                }}
-              >
-                <Resumen label="Peso total" value={`${totalKg.toFixed(3)} kg`} />
-                <Resumen label="Total USD" value={totalUsd != null ? formatUsd(totalUsd) : '—'} destacado />
-                <Resumen label="Equivalente Bs" value={totalBs != null ? formatBs(totalBs) : '—'} />
-              </Box>
-
-              {condicion === 'credito' && totalUsd ? (
-                <Alert severity="info">
-                  Quedará una cuenta por pagar de {formatUsd(totalUsd)} a {proveedor?.nombre ?? 'este proveedor'}.
-                </Alert>
-              ) : null}
-
-              {serverError ? <Alert severity="error">{serverError}</Alert> : null}
-            </Box>
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={pedirCierre} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isPending || productos.length === 0}
-              startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-            >
-              Registrar compra
-            </Button>
-          </DialogActions>
+          {condicion === 'credito' && totalUsd ? (
+            <Alert severity="info">
+              Quedará una cuenta por pagar de {formatUsd(totalUsd)} a {proveedor?.nombre ?? 'este proveedor'}.
+            </Alert>
+          ) : null}
         </Box>
       </FormProvider>
-    </Dialog>
+    </AppDialog>
   )
 }
 

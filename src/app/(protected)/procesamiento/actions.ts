@@ -5,6 +5,12 @@ import { getSession } from '@/lib/services/authService'
 import { ProcesamientoError, crearProcesamiento } from '@/lib/services/procesamientoService'
 import { procesamientoFormSchema } from '@/lib/procesamientoValidation'
 import { toActionError, type ActionState } from '@/lib/actionState'
+import type { LoteCreado } from '@/types/domain'
+
+/** Resultado de registrar un procesamiento: el lote procesado creado (07-lotes). */
+export interface ProcesamientoActionState extends ActionState {
+  lotes?: LoteCreado[]
+}
 
 interface PostgresErrorLike {
   code?: string
@@ -21,7 +27,8 @@ function errorDeDominio(e: unknown): ActionState {
     }
   }
 
-  // Reglas que la base repite (0001 / 0013) por si el servicio se salta.
+  // Reglas que la base repite (0001 / registrar_procesamiento) por si el
+  // servicio se salta; el stock se valida contra el lote, bajo lock.
   const pg = (e ?? {}) as PostgresErrorLike
   if (pg.code === '23514' && pg.message?.includes('salida_menor_entrada')) {
     const mensaje = 'El peso de salida no puede superar al de entrada'
@@ -29,6 +36,9 @@ function errorDeDominio(e: unknown): ActionState {
   }
   if (pg.code === 'P0001' && pg.hint === 'stock_insuficiente' && pg.message) {
     return { error: pg.message, success: null, fieldErrors: { peso_entrada_kg: pg.message } }
+  }
+  if (pg.code === 'P0001' && pg.hint === 'lote_no_disponible' && pg.message) {
+    return { error: pg.message, success: null, fieldErrors: { lote_origen_id: pg.message } }
   }
   if (pg.code === 'P0001' && pg.hint === 'destino_no_corresponde' && pg.message) {
     return { error: pg.message, success: null, fieldErrors: { producto_destino_id: pg.message } }
@@ -41,7 +51,7 @@ function errorDeDominio(e: unknown): ActionState {
 export async function crearProcesamientoAction(
   _prev: ActionState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<ProcesamientoActionState> {
   if (!(await getSession())) return { error: 'Sin sesión', success: null }
 
   let payload: unknown = null
@@ -61,13 +71,14 @@ export async function crearProcesamientoAction(
     return { error: 'Revisa los campos marcados', success: null, fieldErrors }
   }
 
+  let lotes: LoteCreado[]
   try {
-    await crearProcesamiento(safe.data)
+    ;({ lotes } = await crearProcesamiento(safe.data))
   } catch (e) {
     return errorDeDominio(e)
   }
 
   revalidatePath('/procesamiento')
-  revalidatePath('/inventario')
-  return { error: null, success: 'Procesamiento registrado' }
+  revalidatePath('/inventario', 'layout')
+  return { error: null, success: 'Procesamiento registrado', lotes }
 }

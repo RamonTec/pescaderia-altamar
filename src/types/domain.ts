@@ -18,6 +18,8 @@ export type TipoMovimiento =
   | 'proceso_out'
   | 'venta'
   | 'ajuste'
+  /** Pérdida o cierre de un lote fuera del procesamiento (07-lotes). */
+  | 'perdida'
 
 export type MonedaTasa = 'USD' | 'EUR'
 export type OrigenTasa = 'bcv_scraping' | 'dolarapi' | 'manual'
@@ -91,6 +93,8 @@ export interface ConfigNegocio {
   nombre_comercial: string | null
   /** `reply_to` de los correos de cobranza. */
   email_respuesta: string | null
+  /** Días desde el ingreso a partir de los cuales un lote abierto es "antiguo" (07-lotes). */
+  dias_alerta_lote: number | null
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -239,6 +243,8 @@ export interface ProcesoItem {
   peso_salida_kg: number
   /** Costo del origen transferido completo al destino (/SPEC.md §4.3). */
   costo_total_usd: number
+  /** Lote crudo del que salió (07-lotes). */
+  lote_origen_id: string
 }
 
 export interface Pedido {
@@ -328,6 +334,8 @@ export interface Movimiento {
   peso_kg: number
   costo_usd_kg: number
   ref_id: string | null
+  /** Lote del movimiento; `null` solo en productos sin control de stock (07-lotes). */
+  lote_id: string | null
 }
 
 /* ==================== Cuentas por cobrar (09) ==================== */
@@ -351,4 +359,175 @@ export interface RecordatorioCobro {
   enviado_por_nombre: string | null
   created_at: string
   factura_ids: string[]
+}
+
+/* ==================== Lotes y trazabilidad (07) ==================== */
+
+export type EstadoLote = 'abierto' | 'agotado' | 'cerrado'
+export type OrigenLote = 'compra' | 'proceso' | 'inicial'
+/** `cierre` lo usa solo el cierre de lote (baja del remanente). */
+export type MotivoPerdida = 'danado' | 'vencido' | 'faltante' | 'cierre' | 'otro'
+
+/**
+ * Fila de `lotes_view`: lote físico (una línea de compra o de procesamiento)
+ * con su stock actual (Σ movimientos del lote). `costo_usd_kg` llega `null`
+ * al operador.
+ */
+export interface Lote {
+  id: string
+  /** Código legible para rotular la cava: `SALM-261005-1`. */
+  codigo: string
+  producto_id: string
+  producto_nombre: string
+  producto_codigo: string | null
+  producto_tipo: TipoProducto
+  origen: OrigenLote
+  compra_item_id: string | null
+  compra_id: string | null
+  proceso_item_id: string | null
+  procesamiento_id: string | null
+  /** Lote crudo del que salió un lote procesado. */
+  lote_padre_id: string | null
+  lote_padre_codigo: string | null
+  proveedor_id: string | null
+  proveedor_nombre: string | null
+  /** Fecha de la compra o del procesamiento; ordena el PEPS. */
+  fecha_ingreso: string
+  peso_inicial_kg: number
+  stock_kg: number
+  costo_usd_kg: number | null
+  moneda: Moneda
+  /** Tasa de la compra (los procesados la heredan del padre). */
+  tasa_snapshot: number
+  estado: EstadoLote
+  notas: string | null
+  created_at: string
+}
+
+/** Fila de `factura_item_lotes_view`: de qué lote salió una línea vendida. */
+export interface FacturaItemLote {
+  id: string
+  factura_item_id: string
+  lote_id: string
+  /** Orden de la asignación; la devolución lo recorre al revés. */
+  orden: number
+  peso_kg: number
+  /** `null` para el operador. */
+  costo_usd_kg: number | null
+}
+
+/** Fila de `perdidas_lote_view`. */
+export interface PerdidaLote {
+  id: string
+  lote_id: string
+  fecha: string
+  peso_kg: number
+  motivo: MotivoPerdida
+  detalle: string | null
+  usuario_id: string | null
+  usuario_nombre: string | null
+  created_at: string
+}
+
+/** Kg de una línea de venta asignados a un lote (PEPS o elegidos a mano). Sin costos. */
+export interface AsignacionLote {
+  lote_id: string
+  codigo: string
+  peso_kg: number
+  disponible_kg: number
+  fecha_ingreso: string
+}
+
+/** Resultado de la RPC `sugerir_lotes`. */
+export interface SugerenciaLotes {
+  /** `false`: el producto no usa lotes (sin asignación ni validación de stock). */
+  controla_stock: boolean
+  suficiente: boolean
+  /** Stock total en lotes abiertos; `null` sin control de stock. */
+  disponible_kg: number | null
+  faltante_kg: number
+  asignacion: AsignacionLote[]
+}
+
+/** Lote generado por una compra o un procesamiento (para rotular). */
+export interface LoteCreado {
+  lote_id: string
+  codigo: string
+  producto_id: string
+  peso_kg: number
+}
+
+/** Procesamiento de un lote crudo del árbol. */
+export interface ProcesoLote {
+  proceso_item_id: string
+  procesamiento_id: string
+  fecha: string
+  lote_origen_id: string
+  peso_entrada_kg: number
+  peso_salida_kg: number
+  lote_destino_id: string | null
+  lote_destino_codigo: string | null
+}
+
+/** Kg de un lote vendidos en una factura. Importes en USD; `costo_usd_kg` solo admin. */
+export interface VentaLote {
+  id: string
+  lote_id: string
+  factura_id: string
+  factura_numero: number
+  factura_estado: EstadoDoc
+  cliente_id: string
+  cliente_nombre: string
+  fecha: string
+  peso_kg: number
+  precio_usd_kg: number
+  costo_usd_kg: number | null
+  /** Tasa congelada de la factura. */
+  tasa_factura: number
+}
+
+/** Kg devueltos a un lote por una nota de crédito con `afecta_inventario`. */
+export interface DevolucionLote {
+  id: string
+  lote_id: string
+  nota_credito_id: string
+  nota_numero: number
+  nota_estado: EstadoNotaCredito
+  fecha: string
+  peso_kg: number
+  precio_usd_kg: number
+  factura_id: string
+  factura_numero: number
+  tasa_factura: number
+}
+
+/**
+ * Árbol de un lote para su trazabilidad: el lote, sus lotes procesados
+ * hijos (si es crudo) y todo lo que les pasó.
+ */
+export interface TrazabilidadLote {
+  lote: Lote
+  /** El lote y sus hijos (un lote crudo da lotes procesados; sin nietos). */
+  arbol: Lote[]
+  procesos: ProcesoLote[]
+  ventas: VentaLote[]
+  perdidas: PerdidaLote[]
+  devoluciones: DevolucionLote[]
+}
+
+/** Resultado de un lote (o su árbol) para kg vendidos y perdidos. */
+export interface ResultadoLote {
+  kgVendidos: number
+  kgPerdidos: number
+  ingresoUsd: number
+  costoVendidoUsd: number
+  costoPerdidoUsd: number
+  resultadoUsd: number
+  /** Ventas a la tasa de cada factura − costos a la tasa de compra del lote. */
+  resultadoBs: number
+  /** `resultadoBs − resultadoUsd × tasa de compra`. */
+  efectoCambiarioBs: number
+  mermaKg: number
+  /** `Σ salida / Σ entrada` de sus procesamientos; `null` si no se procesó. */
+  rendimiento: number | null
 }

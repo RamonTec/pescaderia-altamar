@@ -6,23 +6,15 @@ import { Controller, useForm, useWatch, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
-import Alert from '@mui/material/Alert'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
+import { AppDialog } from '@/components/organisms/AppDialog'
 import { productoFormSchema, type ProductoFormValues } from '@/lib/productoValidation'
 import type { Producto } from '@/types/domain'
 import { upsertProductoAction } from '@/app/(protected)/catalogos/actions'
 import { useNotify } from '@/lib/useNotify'
-import { useConfirm } from '@/lib/useConfirm'
 
 export interface ProductoFormProps {
   open: boolean
@@ -58,27 +50,19 @@ function toFormValues(p: Producto): ProductoFormValues {
 
 export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormProps) {
   const notify = useNotify()
-  const confirm = useConfirm()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
+  // Copia síncrona: dos clics antes del re-render deben ver el primero.
+  const submittingRef = React.useRef(false)
 
   const methods = useForm<ProductoFormValues>({
     resolver: zodResolver(productoFormSchema),
     mode: 'onSubmit',
     defaultValues: vacio(),
+    disabled: isPending,
   })
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setError,
-    formState,
-    setValue,
-    control,
-  } = methods
+  const { register, handleSubmit, reset, setError, formState, setValue, control } = methods
 
   const [controlaStock, tipo] = useWatch({ control, name: ['controla_stock', 'tipo'] })
   const origenes = crudos.filter((c) => c.id !== producto?.id)
@@ -88,19 +72,6 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
     reset(producto ? toFormValues(producto) : vacio())
   }, [open, producto, reset])
 
-  const pedirCierre = async () => {
-    if (formState.isDirty) {
-      const ok = await confirm({
-        title: '¿Descartar cambios?',
-        message: 'Hay cambios sin guardar. ¿Descartarlos?',
-        confirmLabel: 'Descartar',
-        destructive: true,
-      })
-      if (!ok) return
-    }
-    onClose()
-  }
-
   const aplicarErroresDeServidor = (fieldErrors: Record<string, string>) => {
     for (const [campo, mensaje] of Object.entries(fieldErrors)) {
       // @ts-expect-error setError con path dinámico
@@ -108,141 +79,132 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
     }
   }
 
-  const onSubmit = handleSubmit((values) => {
+  const guardar = (values: ProductoFormValues) => {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setServerError(null)
     const formData = new FormData()
     if (producto) formData.set('id', producto.id)
     formData.set('payload', JSON.stringify(values))
 
     startTransition(async () => {
-      const result = await upsertProductoAction({ error: null, success: null }, formData)
-      if (result.error) {
-        setServerError(result.error)
-        if (result.fieldErrors) aplicarErroresDeServidor(result.fieldErrors)
-        return
+      try {
+        const result = await upsertProductoAction({ error: null, success: null }, formData)
+        if (result.error) {
+          setServerError(result.error)
+          if (result.fieldErrors) aplicarErroresDeServidor(result.fieldErrors)
+          return
+        }
+        notify.success(result.success ?? 'Producto guardado')
+        onClose()
+      } finally {
+        submittingRef.current = false
       }
-      notify.success(result.success ?? 'Guardado')
-      onClose()
     })
-  })
+  }
+
+  // `handleSubmit` se arma en el evento (no en el render) para que la ref
+  // solo se lea al enviar.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => handleSubmit(guardar)(e)
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
-      onClose={isPending ? undefined : pedirCierre}
-      maxWidth="sm"
-      fullWidth
-      fullScreen={fullScreen}
+      onClose={onClose}
+      size="sm"
+      title={producto ? 'Editar producto' : 'Nuevo producto'}
+      pending={isPending}
+      dirty={formState.isDirty}
+      error={serverError}
+      onSubmit={onSubmit}
+      primaryAction={
+        <Button type="submit" variant="contained" loading={isPending}>
+          {producto ? 'Actualizar producto' : 'Guardar producto'}
+        </Button>
+      }
     >
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate>
-          <DialogTitle>{producto ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
-
-          <DialogContent dividers>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <TextField
-                label="Nombre *"
-                {...register('nombre')}
-                error={!!formState.errors.nombre}
-                helperText={formState.errors.nombre?.message}
-                fullWidth
-              />
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+        <Box sx={{ display: 'grid', gap: 2 }}>
+          <TextField
+            label="Nombre *"
+            {...register('nombre')}
+            error={!!formState.errors.nombre}
+            helperText={formState.errors.nombre?.message}
+            fullWidth
+          />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              select
+              label="Tipo *"
+              {...register('tipo')}
+              fullWidth
+              error={!!formState.errors.tipo}
+              helperText={formState.errors.tipo?.message}
+            >
+              <MenuItem value="crudo">Crudo</MenuItem>
+              <MenuItem value="procesado">Procesado</MenuItem>
+            </TextField>
+            <TextField select label="Categoría" {...register('categoria')} fullWidth>
+              <MenuItem value="">Sin categoría</MenuItem>
+              {CATEGORIAS.map((c) => (
+                <MenuItem key={c} value={c}>
+                  {c.charAt(0).toUpperCase() + c.slice(1)}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+          {tipo === 'procesado' ? (
+            <Controller
+              control={control}
+              name="producto_origen_id"
+              render={({ field }) => (
                 <TextField
                   select
-                  label="Tipo *"
-                  {...register('tipo')}
+                  label="Se obtiene de *"
                   fullWidth
-                  error={!!formState.errors.tipo}
-                  helperText={formState.errors.tipo?.message}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={!!formState.errors.producto_origen_id}
+                  helperText={
+                    formState.errors.producto_origen_id?.message ??
+                    'Producto crudo que se limpia para obtener este procesado'
+                  }
                 >
-                  <MenuItem value="crudo">Crudo</MenuItem>
-                  <MenuItem value="procesado">Procesado</MenuItem>
-                </TextField>
-                <TextField
-                  select
-                  label="Categoría"
-                  {...register('categoria')}
-                  fullWidth
-                >
-                  <MenuItem value="">Sin categoría</MenuItem>
-                  {CATEGORIAS.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c.charAt(0).toUpperCase() + c.slice(1)}
+                  {origenes.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      No hay productos crudos
+                    </MenuItem>
+                  ) : null}
+                  {origenes.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.codigo ? `${c.codigo} · ${c.nombre}` : c.nombre}
+                      {c.activo ? '' : ' (inactivo)'}
                     </MenuItem>
                   ))}
                 </TextField>
-              </Box>
-              {tipo === 'procesado' ? (
-                <Controller
-                  control={control}
-                  name="producto_origen_id"
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label="Se obtiene de *"
-                      fullWidth
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      error={!!formState.errors.producto_origen_id}
-                      helperText={
-                        formState.errors.producto_origen_id?.message ??
-                        'Producto crudo que se limpia para obtener este procesado'
-                      }
-                    >
-                      {origenes.length === 0 ? (
-                        <MenuItem value="" disabled>
-                          No hay productos crudos
-                        </MenuItem>
-                      ) : null}
-                      {origenes.map((c) => (
-                        <MenuItem key={c.id} value={c.id}>
-                          {c.codigo ? `${c.codigo} · ${c.nombre}` : c.nombre}
-                          {c.activo ? '' : ' (inactivo)'}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              ) : null}
-              <TextField
-                label="Código"
-                {...register('codigo')}
-                error={!!formState.errors.codigo}
-                helperText={formState.errors.codigo?.message}
-                fullWidth
-                placeholder="Ej. CUR-001"
+              )}
+            />
+          ) : null}
+          <TextField
+            label="Código"
+            {...register('codigo')}
+            error={!!formState.errors.codigo}
+            helperText={formState.errors.codigo?.message}
+            fullWidth
+            placeholder="Ej. CUR-001"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={controlaStock}
+                onChange={(e) => setValue('controla_stock', e.target.checked)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={controlaStock}
-                    onChange={(e) => setValue('controla_stock', e.target.checked)}
-                  />
-                }
-                label="Controla stock"
-              />
-
-              {serverError ? <Alert severity="error">{serverError}</Alert> : null}
-            </Box>
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={pedirCierre} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isPending}
-              startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
-            >
-              Guardar
-            </Button>
-          </DialogActions>
+            }
+            label="Controla stock"
+          />
         </Box>
       </FormProvider>
-    </Dialog>
+    </AppDialog>
   )
 }

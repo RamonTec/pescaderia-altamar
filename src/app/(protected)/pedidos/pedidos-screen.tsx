@@ -93,6 +93,7 @@ export function PedidosScreen({
         pedido={entregando}
         configTasas={configTasas}
         diasCreditoDefault={diasCreditoDefault}
+        productos={productos}
         onClose={() => setEntregando(null)}
       />
     </>

@@ -89,6 +89,8 @@ export async function crearPedidoAction(
           producto_id: i.producto_id,
           peso_kg: i.peso_kg,
           precio_usd_kg: i.precio_usd_kg,
+          // 07-lotes: lotes elegidos a mano; sin ellos, la base asigna PEPS.
+          asignaciones: i.asignaciones,
         })),
       })
       aviso = resultado.aviso
@@ -106,6 +108,7 @@ export async function crearPedidoAction(
     }
     revalidatePath('/pedidos')
     revalidatePath('/cobros')
+    if (v.entrega_inmediata) revalidatePath('/inventario', 'layout')
     return {
       error: null,
       success: v.entrega_inmediata ? 'Venta registrada' : 'Pedido creado',
@@ -146,6 +149,7 @@ export async function entregarPedidoAction(
     })
     revalidatePath('/pedidos')
     revalidatePath('/cobros')
+    revalidatePath('/inventario', 'layout')
     return {
       error: null,
       success: 'Pedido entregado y facturado',

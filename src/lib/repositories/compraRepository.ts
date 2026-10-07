@@ -1,40 +1,60 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   CompraDetalle,
+  CompraRegistrada,
   CompraResumen,
   ICompraRepository,
 } from './interfaces'
 import type { Compra, CompraItem, PagoProveedor, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
 
-/**
- * Implementación Supabase del repositorio de compras.
- * Las escrituras van por RPC (0012) para que compra + items + movimientos, o
- * pago + actualización de saldo, ocurran en una sola transacción.
- * Los items se leen de `compra_items_view` (0003): el costo llega `null` al operador.
- */
-
 const SELECT_RESUMEN = '*, proveedor:proveedores(id, nombre, rif_ci, bloqueado)'
+const SELECT_INNER = '*, proveedor:proveedores!inner(id, nombre, rif_ci, bloqueado)'
 
 export function makeCompraRepository(db: SupabaseClient = createClient()): ICompraRepository {
   return {
-    async create(compra, items, movimientos) {
+    async create(compra, items) {
       const { data, error } = await db.rpc('registrar_compra', {
         p_compra: compra,
         p_items: items,
-        p_movimientos: movimientos,
       })
       if (error) throw error
-      return data as string
+      const r = data as CompraRegistrada
+      return {
+        compra_id: r.compra_id,
+        lotes: (r.lotes ?? []).map((l) => ({ ...l, peso_kg: Number(l.peso_kg) })),
+      }
     },
-    async list() {
-      const { data, error } = await db
+    async list(filtros) {
+      const start = filtros.page * filtros.pageSize
+      const end = start + filtros.pageSize - 1
+
+      const query = db
         .from('compras')
-        .select(SELECT_RESUMEN)
+        .select(filtros.q ? SELECT_INNER : SELECT_RESUMEN, { count: 'exact' })
+
+      if (filtros.estado && filtros.estado !== 'todas') {
+        query.eq('estado', filtros.estado)
+      }
+
+      if (filtros.q) {
+        // filter by proveedor nombre or rif_ci
+        query.or(`nombre.ilike.%${filtros.q}%,rif_ci.ilike.%${filtros.q}%`, {
+          foreignTable: 'proveedores',
+        })
+      }
+
+      const { data, count, error } = await query
         .order('fecha', { ascending: false })
         .order('created_at', { ascending: false })
+        .range(start, end)
+
       if (error) throw error
-      return data as unknown as CompraResumen[]
+
+      return {
+        rows: data as unknown as CompraResumen[],
+        total: count ?? 0,
+      }
     },
     async getById(id) {
       const { data: compra, error } = await db

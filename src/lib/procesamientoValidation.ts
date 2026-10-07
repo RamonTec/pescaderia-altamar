@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Validación de un lote de procesamiento (04-inventario, /SPEC.md §4.3).
+ * Validación de una línea de procesamiento (04-inventario, /SPEC.md §4.3):
+ * se procesa un lote crudo elegido por el operador (07-lotes).
  * Igual que en compras: los pesos aceptan `null` de entrada (`NumberField`
  * vacío) y salen como `number`.
  */
@@ -19,6 +20,8 @@ export const procesamientoFormSchema = z
   .object({
     fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
     producto_origen_id: z.string().uuid('Selecciona el producto crudo'),
+    /** Lote crudo del que se saca (07-lotes): un lote crudo da un lote procesado. */
+    lote_origen_id: z.string().uuid('Elige el lote de origen'),
     peso_entrada_kg: peso('Peso de entrada requerido'),
     producto_destino_id: z.string().uuid('Selecciona el producto procesado'),
     peso_salida_kg: peso('Peso de salida requerido'),

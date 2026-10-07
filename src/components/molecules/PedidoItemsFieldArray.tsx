@@ -23,24 +23,41 @@ export interface PedidoItemsFieldArrayProps {
   productos: Producto[]
   /** "Peso estimado" (pedido) vs "Peso real" (venta directa). */
   etiquetaPeso: string
+  /**
+   * Contenido extra bajo cada línea (07-lotes: los lotes de la venta directa,
+   * `LotesLineaVenta`). Recibe el índice y el id estable de la fila.
+   */
+  renderLinea?: (index: number, filaId: string) => React.ReactNode
+  /** Se llama al quitar una línea (id estable de la fila). */
+  onQuitar?: (filaId: string) => void
 }
 
 export const pedidoItemVacio = (): PedidoFormInput['items'][number] => ({
   producto_id: '',
   peso_kg: null,
   precio_usd_kg: null,
+  asignaciones: undefined,
 })
 
 /**
  * Items de un pedido/venta: producto, peso (estimado o real) y precio/kg en USD.
- * Muestra el importe de cada línea.
+ * Muestra el importe de cada línea. Cambiar el producto o el peso descarta
+ * los lotes elegidos a mano (la línea vuelve a PEPS, 07-lotes).
  */
-export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFieldArrayProps) {
+export function PedidoItemsFieldArray({
+  productos,
+  etiquetaPeso,
+  renderLinea,
+  onQuitar,
+}: PedidoItemsFieldArrayProps) {
   const confirm = useConfirm()
   const {
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<PedidoFormInput>()
+  const volverAPeps = (index: number) =>
+    setValue(`items.${index}.asignaciones`, undefined, { shouldDirty: true })
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const items = useWatch({ control, name: 'items' })
 
@@ -56,6 +73,7 @@ export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFi
       })
       if (!ok) return
     }
+    onQuitar?.(fields[index].id)
     remove(index)
   }
 
@@ -101,7 +119,10 @@ export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFi
                       fullWidth
                       size="small"
                       value={f.value}
-                      onChange={f.onChange}
+                      onChange={(e) => {
+                        f.onChange(e)
+                        volverAPeps(index)
+                      }}
                       onBlur={f.onBlur}
                       error={!!errorItem?.producto_id}
                       helperText={errorItem?.producto_id?.message}
@@ -127,7 +148,10 @@ export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFi
                       decimals={3}
                       suffix="kg"
                       value={f.value}
-                      onChange={f.onChange}
+                      onChange={(v) => {
+                        f.onChange(v)
+                        volverAPeps(index)
+                      }}
                       onBlur={f.onBlur}
                       error={!!errorItem?.peso_kg}
                       helperText={errorItem?.peso_kg?.message}
@@ -165,6 +189,7 @@ export function PedidoItemsFieldArray({ productos, etiquetaPeso }: PedidoItemsFi
                 </IconButton>
               </Grid>
             </Grid>
+            {renderLinea?.(index, field.id)}
             {importe != null ? (
               <Typography
                 variant="body2"

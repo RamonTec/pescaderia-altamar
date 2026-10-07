@@ -7,25 +7,33 @@ import type {
   ConfigNegocio,
   DocumentoCliente,
   DocumentoProveedor,
+  DevolucionLote,
+  EstadoLote,
   Factura,
   FacturaItem,
+  Lote,
+  LoteCreado,
   MetodoPagoProveedor,
-  Movimiento,
+  MotivoPerdida,
   NotaCredito,
   NotaCreditoItem,
   Pago,
   PagoProveedor,
   Pedido,
   PedidoItem,
+  PerdidaLote,
   Procesamiento,
   ProcesoItem,
+  ProcesoLote,
   Producto,
   Proveedor,
   RecordatorioCobro,
   RepresentanteLegal,
   RepresentanteProveedor,
+  SugerenciaLotes,
   TipoDocumentoCliente,
   TipoDocumentoProveedor,
+  VentaLote,
 } from '@/types/domain'
 
 /**
@@ -110,13 +118,6 @@ export interface IDocumentoProveedorRepository {
   delete(id: string): Promise<void>
 }
 
-/** Movimiento listo para insertar; lo construye `crearMovimiento` (movimientoService). */
-export type MovimientoNuevo = Omit<Movimiento, 'id' | 'fecha'>
-
-export interface IMovimientoRepository {
-  create(movimiento: MovimientoNuevo): Promise<void>
-}
-
 /** Compra con el nombre del proveedor, para listados. */
 export interface CompraResumen extends Compra {
   proveedor: Pick<Proveedor, 'id' | 'nombre' | 'rif_ci' | 'bloqueado'>
@@ -130,10 +131,33 @@ export interface CompraDetalle extends CompraResumen {
 export type CompraItemNuevo = Pick<CompraItem, 'producto_id' | 'peso_kg'> & { costo_usd_kg: number }
 export type PagoProveedorNuevo = Omit<PagoProveedor, 'id'>
 
+/** Resultado de `registrar_compra`: la compra y los lotes creados (sin costos). */
+export interface CompraRegistrada {
+  compra_id: string
+  lotes: LoteCreado[]
+}
+
+export interface FiltrosCompras {
+  estado?: Compra['estado'] | 'todas' | null
+  /** Búsqueda genérica (por ej. nombre de proveedor). */
+  q?: string
+  /** Página 0-based. */
+  page: number
+  pageSize: number
+}
+
+export interface PaginaCompras {
+  rows: CompraResumen[]
+  total: number
+}
+
 export interface ICompraRepository {
-  /** Inserta compra + items + movimientos en una sola transacción (RPC `registrar_compra`). */
-  create(compra: Compra, items: CompraItemNuevo[], movimientos: MovimientoNuevo[]): Promise<string>
-  list(): Promise<CompraResumen[]>
+  /**
+   * Inserta compra + items + un lote y un movimiento `compra` por item en una
+   * sola transacción (RPC `registrar_compra`, 07-lotes).
+   */
+  create(compra: Compra, items: CompraItemNuevo[]): Promise<CompraRegistrada>
+  list(filtros: FiltrosCompras): Promise<PaginaCompras>
   getById(id: string): Promise<CompraDetalle | null>
   /** Compras con saldo (`estado = 'abierta'`) de un proveedor. */
   listAbiertasByProveedor(
@@ -164,7 +188,19 @@ export interface IPedidoRepository {
   listByCliente(clienteId: string): Promise<Pedido[]>
 }
 
-export type FacturaItemNuevo = Pick<FacturaItem, 'producto_id' | 'peso_kg' | 'precio_usd_kg' | 'costo_usd_kg'>
+/**
+ * Línea a facturar. Sin costo: lo calcula la RPC desde los lotes (07-lotes,
+ * hallazgo 1). `asignaciones` es la elección del vendedor; sin ella, la RPC
+ * asigna PEPS.
+ */
+export type FacturaItemNuevo = Pick<FacturaItem, 'producto_id' | 'peso_kg' | 'precio_usd_kg'> & {
+  asignaciones?: Pick<AsignacionLoteNueva, 'lote_id' | 'peso_kg'>[]
+}
+
+export interface AsignacionLoteNueva {
+  lote_id: string
+  peso_kg: number
+}
 
 export interface FacturaResumen extends Factura {
   cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci'>
@@ -205,11 +241,13 @@ export interface PesosRealesItem {
 }
 
 export interface IFacturaRepository {
-  /** Inserta factura + items + movimientos (y cierra el pedido) en una transacción (RPC `registrar_factura`). */
+  /**
+   * Inserta factura + items + asignación por lote + movimientos `venta` (y
+   * cierra el pedido) en una transacción (RPC `registrar_factura`, 07-lotes).
+   */
   create(
     factura: FacturaNueva,
     items: FacturaItemNuevo[],
-    movimientos: MovimientoNuevo[],
     pedidoId?: string,
     pesosReales?: PesosRealesItem[]
   ): Promise<string>
@@ -277,18 +315,25 @@ export interface ProcesamientoResumen extends Procesamiento {
   proceso_items: ProcesoItemDetalle[]
 }
 
-/** Lote a procesar: el costo lo calcula la base (RPC `registrar_procesamiento`). */
+/** Línea a procesar: el costo lo calcula la base desde el lote (RPC `registrar_procesamiento`). */
 export type ProcesoItemNuevo = Pick<
   ProcesoItem,
-  'producto_origen_id' | 'peso_entrada_kg' | 'producto_destino_id' | 'peso_salida_kg'
+  'lote_origen_id' | 'producto_origen_id' | 'peso_entrada_kg' | 'producto_destino_id' | 'peso_salida_kg'
 >
+
+/** Resultado de `registrar_procesamiento`: los lotes procesados creados (sin costos). */
+export interface ProcesamientoRegistrado {
+  procesamiento_id: string
+  lotes: LoteCreado[]
+}
 
 export interface IProcesamientoRepository {
   /**
-   * Inserta procesamiento + lotes + movimientos `proceso_out`/`proceso_in` en
-   * una sola transacción, con el costo promedio vigente del origen.
+   * Inserta procesamiento + líneas + lote procesado + movimientos
+   * `proceso_out`/`proceso_in` en una sola transacción, con el costo del lote
+   * de origen (07-lotes).
    */
-  create(procesamiento: Procesamiento, items: ProcesoItemNuevo[]): Promise<string>
+  create(procesamiento: Procesamiento, items: ProcesoItemNuevo[]): Promise<ProcesamientoRegistrado>
   list(): Promise<ProcesamientoResumen[]>
 }
 
@@ -343,4 +388,75 @@ export interface IRecordatorioRepository {
   /** Último recordatorio no fallido del cliente. */
   ultimoPorCliente(clienteId: string): Promise<RecordatorioCobro | null>
   getById(id: string): Promise<RecordatorioCobro | null>
+}
+
+/* ========================= LOTES (07) ========================= */
+
+export interface FiltrosLotes {
+  estado?: EstadoLote | null
+  productoId?: string | null
+  proveedorId?: string | null
+  /** Búsqueda por código (contiene, sin distinguir mayúsculas). */
+  codigo?: string
+  /** Página 0-based. */
+  page: number
+  pageSize: number
+}
+
+export interface PaginaLotes {
+  rows: Lote[]
+  total: number
+}
+
+export interface PerdidaNueva {
+  lote_id: string
+  peso_kg: number
+  motivo: Exclude<MotivoPerdida, 'cierre'>
+  detalle: string | null
+  fecha?: string
+}
+
+/** Lo que le pasó a los lotes de un árbol (sin el árbol). */
+export interface MovimientosArbolLote {
+  procesos: ProcesoLote[]
+  ventas: VentaLote[]
+  perdidas: PerdidaLote[]
+  devoluciones: DevolucionLote[]
+}
+
+/** Lotes generados por una compra o un procesamiento, para listados. */
+export type LoteDeOrigen = Pick<
+  Lote,
+  | 'id'
+  | 'codigo'
+  | 'compra_id'
+  | 'procesamiento_id'
+  | 'proceso_item_id'
+  | 'lote_padre_id'
+  | 'lote_padre_codigo'
+  | 'producto_nombre'
+  | 'peso_inicial_kg'
+  | 'estado'
+>
+
+export interface ILoteRepository {
+  /** Lotes `abierto` con stock de un producto, en orden PEPS (fecha de ingreso, código). */
+  listAbiertos(productoId: string): Promise<Lote[]>
+  /** Todos los lotes `abierto` (valorización y pestaña Productos). */
+  listAbiertosTodos(): Promise<Lote[]>
+  /** Página de lotes con filtros (paginación en servidor). */
+  list(filtros: FiltrosLotes): Promise<PaginaLotes>
+  getById(id: string): Promise<Lote | null>
+  /** El lote y sus lotes procesados hijos. */
+  getArbol(loteId: string): Promise<Lote[]>
+  /** Procesamientos, ventas, pérdidas y devoluciones de los lotes dados. */
+  getMovimientosArbol(lotes: Lote[]): Promise<MovimientosArbolLote>
+  /** Lotes creados por unas compras o unos procesamientos (chips de los listados). */
+  listByOrigen(origen: { compraIds?: string[]; procesamientoIds?: string[] }): Promise<LoteDeOrigen[]>
+  /** Asignación PEPS propuesta (RPC `sugerir_lotes`, sin costos). */
+  sugerir(productoId: string, pesoKg: number): Promise<SugerenciaLotes>
+  /** Pérdida + movimiento `perdida` (RPC `registrar_perdida`). */
+  registrarPerdida(perdida: PerdidaNueva): Promise<string>
+  /** Baja del remanente (motivo `cierre`) y estado `cerrado` (RPC `cerrar_lote`). */
+  cerrar(loteId: string, detalle: string | null, pesoEsperadoKg: number | null): Promise<{ peso_baja_kg: number }>
 }

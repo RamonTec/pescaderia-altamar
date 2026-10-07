@@ -9,18 +9,18 @@ import { createClient } from '@/lib/supabase/client'
 
 /**
  * Implementación Supabase del repositorio de facturas.
- * La escritura va por RPC (0014); los items se leen de `factura_items_view`
+ * La escritura va por RPC (`registrar_factura`, 07-lotes: asigna lotes y
+ * calcula el costo en la base); los items se leen de `factura_items_view`
  * (0003): el costo llega `null` al operador.
  */
 const SELECT_RESUMEN = '*, cliente:clientes(id, nombre, rif_ci)'
 
 export function makeFacturaRepository(db: SupabaseClient = createClient()): IFacturaRepository {
   return {
-    async create(factura, items, movimientos, pedidoId, pesosReales) {
+    async create(factura, items, pedidoId, pesosReales) {
       const { data, error } = await db.rpc('registrar_factura', {
         p_factura: factura,
         p_items: items,
-        p_movimientos: movimientos,
         p_pedido_id: pedidoId ?? null,
         p_pesos_reales: pesosReales ?? null,
       })

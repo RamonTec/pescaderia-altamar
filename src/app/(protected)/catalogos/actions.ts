@@ -33,6 +33,12 @@ export interface UpsertProductoState extends ActionState {
   id?: string | null
 }
 
+/** Estado de las acciones de fila (desactivar/activar), como `ClienteActionState`. */
+export interface ProductoActionState {
+  error: string | null
+  success: string | null
+}
+
 export async function upsertProductoAction(
   _prev: UpsertProductoState,
   formData: FormData
@@ -110,9 +116,9 @@ export async function upsertProductoAction(
 }
 
 export async function desactivarProductoAction(
-  _prev: ActionState,
+  _prev: ProductoActionState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<ProductoActionState> {
   if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
   if (!(await requireAdmin())) {
     return { error: 'Solo un administrador puede desactivar productos', success: null }
@@ -130,9 +136,9 @@ export async function desactivarProductoAction(
 }
 
 export async function activarProductoAction(
-  _prev: ActionState,
+  _prev: ProductoActionState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<ProductoActionState> {
   if (!(await requireAuth())) return { error: 'Sin sesión', success: null }
   if (!(await requireAdmin())) {
     return { error: 'Solo un administrador puede activar productos', success: null }
@@ -181,6 +187,7 @@ export async function updateConfigAction(
       iva_pct: safe.data.iva_pct,
       fuente_tasa_default: safe.data.fuente_tasa_default,
       umbral_stock_bajo_kg: safe.data.umbral_stock_bajo_kg,
+      dias_alerta_lote: safe.data.dias_alerta_lote,
       umbral_desviacion_tasa_pct: safe.data.umbral_desviacion_tasa_pct,
       dias_credito_default: safe.data.dias_credito_default,
       dias_aviso_por_vencer: safe.data.dias_aviso_por_vencer,
@@ -195,5 +202,6 @@ export async function updateConfigAction(
   revalidatePath('/catalogos')
   revalidatePath('/clientes', 'layout')
   revalidatePath('/cobros')
+  revalidatePath('/inventario', 'layout')
   return { error: null, success: 'Configuración guardada' }
 }

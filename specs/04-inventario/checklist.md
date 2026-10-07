@@ -21,6 +21,7 @@
 
 ## Inventario
 *(2026-10-07: la pantalla `/inventario` se construye en `07-lotes`; estos ítems se marcan al cerrar ese módulo.)*
+*(2026-10-07, ejecutor de 07-lotes: implementada — pestaña Productos con kg, lotes, costo promedio informativo y valor USD/Bs a la tasa vigente solo para admin, chip "Stock bajo". Sin marcar: falta aplicar las migraciones de 07 y verificar con sesión real de admin y de operador; el historial de movimientos por producto (tarea 19) lo reemplaza la trazabilidad por lote en `/inventario/lotes/[id]`.)*
 - [ ] La tabla de stock muestra kg, costo promedio y valor (USD y Bs) por producto, usando la tasa vigente.
 - [ ] Un usuario `operador` ve kg en stock pero no ve costo ni valor (verificado con sesión real de operador, no solo asumido).
 - [ ] Productos bajo el umbral de stock configurado se distinguen visualmente.

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Pedido } from '@/types/domain'
+import type { AsignacionLote, Pedido } from '@/types/domain'
 import type { PedidoItemNuevo } from '@/lib/repositories/interfaces'
 import type { EntradaTasaOperacion } from './tasaService'
 import { makePedidoRepository } from '@/lib/repositories/pedidoRepository'
@@ -12,7 +12,9 @@ import { crearFactura, InvoiceError } from './invoiceService'
  * - `crearPedido`: guarda cliente + items con peso estimado, sin tocar stock.
  * - `entregarPedido`: captura el peso real por item y genera la factura con
  *   esos kg (no el estimado), marcando el pedido como `facturado`. La tasa
- *   se resuelve para la **fecha de entrega** (08-tasas).
+ *   se resuelve para la **fecha de entrega** (08-tasas). El pedido no
+ *   reserva lotes: se asignan al entregar (PEPS o los que elija el vendedor,
+ *   07-lotes); los errores de lote vuelven marcados en el peso de la línea.
  */
 
 export interface CrearPedidoInput {
@@ -26,7 +28,7 @@ export interface EntregarPedidoInput {
   pedido_id: string
   condicion: 'contado' | 'credito'
   fecha: string
-  pesos_reales: { pedido_item_id: string; peso_kg: number }[]
+  pesos_reales: { pedido_item_id: string; peso_kg: number; asignaciones?: AsignacionLote[] }[]
   forzar_limite?: boolean
   /** Días de crédito de la factura (09); sin valor, los del cliente o el default. */
   dias_credito?: number | null
@@ -73,6 +75,7 @@ export async function entregarPedido(
       producto_id: item.producto_id,
       peso_kg: real.peso_kg,
       precio_usd_kg: item.precio_usd_kg,
+      asignaciones: real.asignaciones,
     }
   })
 
@@ -83,19 +86,34 @@ export async function entregarPedido(
     tasa_fuente: null,
   }
 
-  const resultado = await crearFactura(
-    {
-      cliente_id: pedido.cliente_id,
-      pedido_id: pedido.id,
-      items,
-      condicion: input.condicion,
-      fecha: input.fecha,
-      forzar_limite: input.forzar_limite,
-      dias_credito: input.dias_credito,
-      pesos_reales: input.pesos_reales,
-      tasa,
-    },
-    client
-  )
+  let resultado
+  try {
+    resultado = await crearFactura(
+      {
+        cliente_id: pedido.cliente_id,
+        pedido_id: pedido.id,
+        items,
+        condicion: input.condicion,
+        fecha: input.fecha,
+        forzar_limite: input.forzar_limite,
+        dias_credito: input.dias_credito,
+        pesos_reales: input.pesos_reales.map((p) => ({
+          pedido_item_id: p.pedido_item_id,
+          peso_kg: p.peso_kg,
+        })),
+        tasa,
+      },
+      client
+    )
+  } catch (e) {
+    // `items.N.*` de la factura → `pesos_reales.M.*` del formulario de entrega.
+    const m = e instanceof InvoiceError ? /^items\.(\d+)\.(.+)$/.exec(e.campo ?? '') : null
+    if (m && e instanceof InvoiceError) {
+      const pedidoItem = pedido.items[Number(m[1])]
+      const indice = input.pesos_reales.findIndex((p) => p.pedido_item_id === pedidoItem?.id)
+      if (indice >= 0) throw new InvoiceError(e.message, `pesos_reales.${indice}.${m[2]}`)
+    }
+    throw e
+  }
   return { factura_id: resultado.factura_id, aviso: resultado.aviso }
 }

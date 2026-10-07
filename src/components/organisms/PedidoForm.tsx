@@ -23,6 +23,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { PedidoItemsFieldArray, pedidoItemVacio } from '@/components/molecules/PedidoItemsFieldArray'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
+import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
 import {
   pedirConfirmacionTasaManual,
   TasaSelector,
@@ -111,6 +112,16 @@ export function PedidoForm({
   // Referencial vigente que el `TasaSelector` reporta (08-tasas): se usa
   // para la confirmación del umbral al enviar.
   const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
+
+  // 07-lotes: líneas de la venta directa sin stock suficiente en lotes (no
+  // se puede emitir). Clave = id estable de la fila del field array.
+  const [sinStock, setSinStock] = React.useState<Record<string, boolean>>({})
+  const marcarSuficiencia = React.useCallback((filaId: string, suficiente: boolean) => {
+    setSinStock((prev) =>
+      !!prev[filaId] === !suficiente ? prev : { ...prev, [filaId]: !suficiente }
+    )
+  }, [])
+  const hayFaltante = entregaInmediata && Object.values(sinStock).some(Boolean)
 
   const totalUsd = (items ?? []).reduce(
     (s, i) => s + (i.peso_kg != null && i.precio_usd_kg != null ? i.peso_kg * i.precio_usd_kg : 0),
@@ -362,6 +373,31 @@ export function PedidoForm({
               <PedidoItemsFieldArray
                 productos={productos}
                 etiquetaPeso={entregaInmediata ? 'Peso real' : 'Peso estimado'}
+                onQuitar={(filaId) => marcarSuficiencia(filaId, true)}
+                renderLinea={
+                  entregaInmediata
+                    ? (index, filaId) => {
+                        const item = items?.[index]
+                        return (
+                          <LotesLineaVenta
+                            productoId={item?.producto_id}
+                            pesoKg={item?.peso_kg}
+                            controlaStock={
+                              productos.find((p) => p.id === item?.producto_id)?.controla_stock ??
+                              false
+                            }
+                            asignaciones={item?.asignaciones}
+                            onAsignacionesChange={(a) =>
+                              setValue(`items.${index}.asignaciones`, a, { shouldDirty: true })
+                            }
+                            error={formState.errors.items?.[index]?.asignaciones?.message}
+                            disabled={isPending}
+                            onSuficiencia={(ok) => marcarSuficiencia(filaId, ok)}
+                          />
+                        )
+                      }
+                    : undefined
+                }
               />
 
               {entregaInmediata ? (
@@ -405,6 +441,13 @@ export function PedidoForm({
                 </Alert>
               ) : null}
 
+              {hayFaltante ? (
+                <Alert severity="warning">
+                  Hay productos sin stock suficiente en lotes: ajusta el peso o quita la línea para
+                  registrar la venta.
+                </Alert>
+              ) : null}
+
               {serverError ? <Alert severity="error">{serverError}</Alert> : null}
             </Box>
           </DialogContent>
@@ -416,7 +459,7 @@ export function PedidoForm({
             <Button
               type="submit"
               variant="contained"
-              disabled={isPending || productos.length === 0}
+              disabled={isPending || productos.length === 0 || hayFaltante}
               startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
             >
               {entregaInmediata ? 'Registrar venta' : 'Crear pedido'}

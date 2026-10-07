@@ -1,12 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { IProcesamientoRepository, ProcesamientoResumen } from './interfaces'
+import type {
+  IProcesamientoRepository,
+  ProcesamientoRegistrado,
+  ProcesamientoResumen,
+} from './interfaces'
 import { createClient } from '@/lib/supabase/client'
 
 /**
  * Implementación Supabase del repositorio de procesamientos.
- * La escritura va por RPC (0013): procesamiento + lotes + movimientos en una
- * sola transacción, con el costo del origen calculado en la base (el operador
- * no puede leerlo, ver 0003).
+ * La escritura va por RPC: procesamiento + líneas + lote procesado +
+ * movimientos en una sola transacción, con el costo del lote de origen
+ * calculado en la base (el operador no puede leerlo; 07-lotes).
  */
 
 const SELECT_RESUMEN = `*, proceso_items(*,
@@ -23,7 +27,11 @@ export function makeProcesamientoRepository(
         p_items: items,
       })
       if (error) throw error
-      return data as string
+      const r = data as ProcesamientoRegistrado
+      return {
+        procesamiento_id: r.procesamiento_id,
+        lotes: (r.lotes ?? []).map((l) => ({ ...l, peso_kg: Number(l.peso_kg) })),
+      }
     },
     async list() {
       const { data, error } = await db

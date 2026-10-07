@@ -7,6 +7,12 @@ import { CompraError, crearCompra, registrarPagoProveedor } from '@/lib/services
 import { compraFormSchema, pagoProveedorFormSchema } from '@/lib/compraValidation'
 import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError, type ActionState } from '@/lib/actionState'
+import type { LoteCreado } from '@/types/domain'
+
+/** Resultado de registrar una compra: los lotes creados, para rotular (07-lotes). */
+export interface CompraActionState extends ActionState {
+  lotes?: LoteCreado[]
+}
 
 function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {}
@@ -40,7 +46,7 @@ function errorDeDominio(e: unknown): ActionState {
 export async function crearCompraAction(
   _prev: ActionState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<CompraActionState> {
   if (!(await getSession())) return { error: 'Sin sesión', success: null }
 
   const safe = compraFormSchema.safeParse(leerPayload(formData))
@@ -53,12 +59,14 @@ export async function crearCompraAction(
   }
 
   try {
-    const { aviso } = await crearCompra(safe.data)
+    const { aviso, lotes } = await crearCompra(safe.data)
     revalidatePath('/compras')
+    revalidatePath('/inventario', 'layout')
     revalidatePath(`/proveedores/${safe.data.proveedor_id}`)
     return {
       error: null,
       success: 'Compra registrada',
+      lotes,
       info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
     }
   } catch (e) {

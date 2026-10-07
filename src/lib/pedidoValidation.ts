@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { camposTasaOpcionales, validarTasa } from './tasaValidation'
+import { asignacionesLoteSchema, validarAsignacion } from './loteValidation'
 
 /**
  * Validación de pedidos y venta directa (05-ventas).
@@ -37,11 +38,23 @@ export const diasCreditoSchema = z
   .nullable()
   .optional()
 
-export const pedidoItemFormSchema = z.object({
-  producto_id: z.string().uuid('Selecciona un producto'),
-  peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
-  precio_usd_kg: numero('Precio requerido', z.number().min(0, 'El precio no puede ser negativo')),
-})
+/**
+ * Lotes elegidos a mano para una línea de venta (07-lotes). Vacío o ausente
+ * = la base asigna PEPS al registrar. Si viene, debe sumar el peso de la
+ * línea y no exceder el disponible de cada lote.
+ */
+const asignacionesOpcionales = asignacionesLoteSchema.optional()
+
+export const pedidoItemFormSchema = z
+  .object({
+    producto_id: z.string().uuid('Selecciona un producto'),
+    peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
+    precio_usd_kg: numero('Precio requerido', z.number().min(0, 'El precio no puede ser negativo')),
+    asignaciones: asignacionesOpcionales,
+  })
+  .superRefine((v, ctx) => {
+    if (v.asignaciones?.length) validarAsignacion(v.asignaciones, v.peso_kg, ctx, ['asignaciones'])
+  })
 
 export const pedidoFormSchema = z
   .object({
@@ -84,10 +97,17 @@ export const entregaPedidoSchema = z
     ...camposTasaOpcionales,
     pesos_reales: z
       .array(
-        z.object({
-          pedido_item_id: z.string().uuid(),
-          peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
-        })
+        z
+          .object({
+            pedido_item_id: z.string().uuid(),
+            peso_kg: numero('Peso requerido', z.number().positive('El peso debe ser mayor a 0')),
+            asignaciones: asignacionesOpcionales,
+          })
+          .superRefine((v, ctx) => {
+            if (v.asignaciones?.length) {
+              validarAsignacion(v.asignaciones, v.peso_kg, ctx, ['asignaciones'])
+            }
+          })
       )
       .min(1, 'Captura el peso real de al menos un item'),
   })

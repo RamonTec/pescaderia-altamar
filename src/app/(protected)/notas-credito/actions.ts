@@ -73,6 +73,7 @@ export async function emitirNotaCreditoAction(
   revalidatePath('/notas-credito')
   revalidatePath('/cobros')
   revalidatePath('/clientes', 'layout')
+  revalidatePath('/inventario', 'layout')
   return { error: null, success: 'Nota de crédito emitida' }
 }
 
@@ -97,5 +98,6 @@ export async function anularNotaCreditoAction(
   revalidatePath('/notas-credito')
   revalidatePath('/cobros')
   revalidatePath('/clientes', 'layout')
+  revalidatePath('/inventario', 'layout')
   return { error: null, success: 'Nota de crédito anulada' }
 }

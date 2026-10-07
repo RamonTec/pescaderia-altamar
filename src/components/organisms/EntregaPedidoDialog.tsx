@@ -21,6 +21,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
+import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
 import {
   pedirConfirmacionTasaManual,
   TasaSelector,
@@ -31,6 +32,7 @@ import { entregaPedidoSchema, type EntregaPedidoInput, type EntregaPedidoValues 
 import { fechaHoy, formatFecha, formatKg, formatUsd } from '@/lib/format'
 import type { AdvertenciaLimiteCredito } from '@/lib/services/invoiceService'
 import type { PedidoDetalle } from '@/lib/repositories/interfaces'
+import type { Producto } from '@/types/domain'
 import { entregarPedidoAction } from '@/app/(protected)/pedidos/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
@@ -41,6 +43,8 @@ export interface EntregaPedidoDialogProps {
   configTasas: TasaSelectorConfig
   /** Días de crédito del negocio para clientes sin días propios (09). */
   diasCreditoDefault: number
+  /** Productos (para saber cuáles controlan stock y usan lotes, 07-lotes). */
+  productos: Producto[]
   onClose: () => void
 }
 
@@ -68,6 +72,7 @@ export function EntregaPedidoDialog({
   pedido,
   configTasas,
   diasCreditoDefault,
+  productos,
   onClose,
 }: EntregaPedidoDialogProps) {
   const notify = useNotify()
@@ -97,15 +102,25 @@ export function EntregaPedidoDialog({
           pesos_reales: pedido.items.map((i) => ({
             pedido_item_id: i.id,
             peso_kg: null,
+            asignaciones: undefined,
           })),
         }
       : undefined,
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
-  const [fecha, condicion, diasCredito] = useWatch({
+  const [fecha, condicion, diasCredito, pesosReales] = useWatch({
     control,
-    name: ['fecha', 'condicion', 'dias_credito'],
+    name: ['fecha', 'condicion', 'dias_credito', 'pesos_reales'],
   })
+
+  // 07-lotes: líneas sin stock suficiente en lotes (no se puede facturar).
+  const [sinStock, setSinStock] = React.useState<Record<string, boolean>>({})
+  const marcarSuficiencia = React.useCallback((itemId: string, suficiente: boolean) => {
+    setSinStock((prev) =>
+      !!prev[itemId] === !suficiente ? prev : { ...prev, [itemId]: !suficiente }
+    )
+  }, [])
+  const hayFaltante = Object.values(sinStock).some(Boolean)
 
   // Referencial vigente que el `TasaSelector` reporta (08-tasas).
   const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
@@ -248,12 +263,30 @@ export function EntregaPedidoDialog({
                         decimals={3}
                         suffix="kg"
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(v) => {
+                          field.onChange(v)
+                          // Otro peso: la línea vuelve a PEPS (07-lotes).
+                          setValue(`pesos_reales.${index}.asignaciones`, undefined)
+                        }}
                         onBlur={field.onBlur}
                         error={!!formState.errors.pesos_reales?.[index]?.peso_kg}
                         helperText={formState.errors.pesos_reales?.[index]?.peso_kg?.message}
                       />
                     )}
+                  />
+                  <LotesLineaVenta
+                    productoId={item.producto_id}
+                    pesoKg={pesosReales?.[index]?.peso_kg}
+                    controlaStock={
+                      productos.find((p) => p.id === item.producto_id)?.controla_stock ?? true
+                    }
+                    asignaciones={pesosReales?.[index]?.asignaciones}
+                    onAsignacionesChange={(a) =>
+                      setValue(`pesos_reales.${index}.asignaciones`, a, { shouldDirty: true })
+                    }
+                    error={formState.errors.pesos_reales?.[index]?.asignaciones?.message}
+                    disabled={isPending}
+                    onSuficiencia={(ok) => marcarSuficiencia(item.id, ok)}
                   />
                 </Box>
               ))}
@@ -266,6 +299,12 @@ export function EntregaPedidoDialog({
               titulo="Tasa de la factura"
             />
 
+            {hayFaltante ? (
+              <Alert severity="warning">
+                Hay productos sin stock suficiente en lotes: no se puede facturar la entrega.
+              </Alert>
+            ) : null}
+
             {serverError ? <Alert severity="error">{serverError}</Alert> : null}
           </Box>
         </DialogContent>
@@ -277,7 +316,7 @@ export function EntregaPedidoDialog({
           <Button
             type="submit"
             variant="contained"
-            disabled={isPending}
+            disabled={isPending || hayFaltante}
             startIcon={isPending ? <CircularProgress size={16} color="inherit" /> : null}
           >
             Entregar y facturar

@@ -75,7 +75,14 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     ProveedorForm en AppDialog md conservando el Stepper; sin CarteraIndicador,
     que espera al futuro módulo de cuentas por pagar)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
+12-refactor-visual-catalogos → depende de 00 Fase 2a, 04-inventario y 10/11 (hechos)
+   (Fase 2b de 00 aplicada a /catalogos, patrón 10/11: ProductosTable en
+    AppDataGrid con búsqueda normalizada de códigos y filtro chips en ?estado=,
+    tab Productos/Configuración persistente en ?tab=, ProductoForm en
+    AppDialog sm y patrón de botones en carga en ConfigNegocioForm; sin ficha
+    de producto — lista + diálogo)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -97,6 +104,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Acabado visual (2026-10-07, pedido del usuario)**: estándares de calidad para loaders (global con el logo de Altamar), botones en carga, paginación, tablas, modales, responsive y tipografía. Se documenta en `00-estandares-ui/spec.md` la identidad "Peñero" (aprobada el 2026-10-06), que reemplaza la regla vieja de "Geist, no cambiar". Fase 2 en `00-estandares-ui/tasks.md`.
 - **Refactor visual de clientes (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se empieza por clientes como módulo propio, `10-refactor-visual-clientes`, con su historia de usuario, tareas y checklist. No cambia datos ni reglas de negocio. Sí mueve al servidor la carga de la ficha (misma tarea que la 20 de `09`, sin la cartera) y agrega o extiende componentes compartidos (`FichaHeader`, búsqueda normalizable y fila abrible con teclado en `AppDataGrid`, `StatusChips` `soft`, `BloqueoDialog` en `AppDialog`). Se anotó en `00-estandares-ui/tasks.md` (Fase 2b) y en `09-cuentas-por-cobrar/tasks.md`.
 - **Refactor visual de proveedores (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a `03-proveedores` como módulo propio, `11-refactor-visual-proveedores`, replicando el patrón de `10-refactor-visual-clientes`. No cambia datos ni reglas de negocio. Incluye: columnas secundarias del listado visibles en `md+` (corrige el bug que las ocultaba siempre), saldo pendiente con datos reales en listado y ficha (cifra protagonista `h5`), ficha con carga 100% en servidor + `[id]/error.tsx`, `ProveedorForm` en `AppDialog md` conservando el Stepper de 3 pasos, `useProveedorAcciones` tipado (fuera `as never`/`as any`) y limpieza transversal. `CarteraIndicador` de 09 queda **fuera** (el dominio CxP no existe; es del futuro módulo de cuentas por pagar). Se anota en `00-estandares-ui/tasks.md` (Fase 2b).
+- **Refactor visual de catálogos (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a la pantalla `/catalogos` de `04-inventario` como módulo propio, `12-refactor-visual-catalogos`, replicando el patrón de 10/11. No cambia datos ni reglas de negocio. Incluye: `ProductosTable` en `AppDataGrid` (modo cliente, búsqueda normalizada "cur001"↔"CUR-001", chips Activos/Todos en `?estado=`), tab Productos/Configuración persistente en `?tab=` (hoy se perdía al navegar fuera), `ProductoForm` en `AppDialog sm` y el patrón de `Button loading` + `useForm({ disabled })` en `ConfigNegocioForm`. Sin ficha de producto (catálogo = lista + diálogo). Se anota en `00-estandares-ui/tasks.md` (Fase 2b).
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

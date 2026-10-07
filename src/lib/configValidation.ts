@@ -16,6 +16,13 @@ export const configFormSchema = z.object({
     .number()
     .min(0, 'El umbral no puede ser negativo')
     .nullable(),
+  // 07-lotes: un lote abierto con más días que estos se marca "antiguo".
+  dias_alerta_lote: z
+    .number()
+    .int('Usa un número entero de días')
+    .min(1, 'Mínimo 1 día')
+    .max(365, 'Máximo 365 días')
+    .nullable(),
   umbral_desviacion_tasa_pct: z
     .number({ message: 'Umbral requerido' })
     .min(0, 'El umbral no puede ser negativo')

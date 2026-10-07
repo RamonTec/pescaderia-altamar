@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import { NumberField } from '@/components/atoms/NumberField'
+import { LoteAutocomplete } from '@/components/molecules/LoteAutocomplete'
 import {
   procesamientoFormSchema,
   type ProcesamientoFormInput,
@@ -27,7 +28,7 @@ import {
 } from '@/lib/procesamientoValidation'
 import { costoDestino } from '@/lib/services/costingService'
 import { fechaHoy, formatKg, formatUsd } from '@/lib/format'
-import type { Producto } from '@/types/domain'
+import type { Lote, LoteCreado, Producto } from '@/types/domain'
 import { crearProcesamientoAction } from '@/app/(protected)/procesamiento/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
@@ -40,11 +41,10 @@ const pctFormatter = new Intl.NumberFormat('es-VE', {
   maximumFractionDigits: 1,
 })
 
-/** Producto crudo con su stock; `costo_usd_kg` llega `null` al operador. */
+/** Producto crudo con su stock (Σ de sus lotes abiertos). */
 export interface CrudoConStock {
   producto: Producto
   stock_kg: number
-  costo_usd_kg: number | null
 }
 
 export interface ProcesamientoFormProps {
@@ -54,10 +54,20 @@ export interface ProcesamientoFormProps {
   crudos: CrudoConStock[]
   /** Procesados activos; cada uno indica su crudo en `producto_origen_id`. */
   procesados: Producto[]
+  /**
+   * Lotes abiertos con stock de los crudos, en orden PEPS (07-lotes).
+   * `costo_usd_kg` llega `null` al operador.
+   */
+  lotes: Lote[]
+  /** `config_negocio.dias_alerta_lote`. */
+  diasAlertaLote: number | null
+  /** Procesamiento registrado: el lote procesado creado, para rotular. */
+  onCreated?: (lotes: LoteCreado[]) => void
 }
 
 const VACIO: Omit<ProcesamientoFormInput, 'fecha'> = {
   producto_origen_id: '',
+  lote_origen_id: '',
   peso_entrada_kg: null,
   producto_destino_id: '',
   peso_salida_kg: null,
@@ -67,12 +77,22 @@ const VACIO: Omit<ProcesamientoFormInput, 'fecha'> = {
 const etiqueta = (p: Producto) => (p.codigo ? `${p.codigo} · ${p.nombre}` : p.nombre)
 
 /**
- * Registro de un lote de limpieza: crudo pesado a la entrada → procesado
- * pesado a la salida. Merma y rendimiento se calculan en vivo; el costo
- * resultante del kg procesado solo se muestra si se conoce el costo del crudo
- * (admin). Montar con un `key` que cambie al abrir.
+ * Registro de una limpieza por lote (07-lotes): crudo → lote crudo elegido
+ * (se preselecciona el más antiguo) pesado a la entrada → procesado pesado a
+ * la salida, que nace como un lote nuevo ligado a su padre. Merma y
+ * rendimiento se calculan en vivo; el costo resultante del kg procesado solo
+ * se muestra si se conoce el costo del lote (admin). Montar con un `key` que
+ * cambie al abrir.
  */
-export function ProcesamientoForm({ open, onClose, crudos, procesados }: ProcesamientoFormProps) {
+export function ProcesamientoForm({
+  open,
+  onClose,
+  crudos,
+  procesados,
+  lotes,
+  diasAlertaLote,
+  onCreated,
+}: ProcesamientoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -91,32 +111,37 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
   })
   const { errors } = formState
 
-  const [origenId, entrada, salida] = useWatch({
+  const [origenId, loteId, entrada, salida] = useWatch({
     control,
-    name: ['producto_origen_id', 'peso_entrada_kg', 'peso_salida_kg'],
+    name: ['producto_origen_id', 'lote_origen_id', 'peso_entrada_kg', 'peso_salida_kg'],
   })
   const origen = crudos.find((c) => c.producto.id === origenId) ?? null
   const destinos = origen ? procesados.filter((p) => p.producto_origen_id === origen.producto.id) : []
-  /** Lo que hay en stock es lo que normalmente se limpia: se precarga y se puede editar. */
-  const pesoSugerido = origen && origen.stock_kg > 0 ? origen.stock_kg : null
+  const lotesDeOrigen = origen ? lotes.filter((l) => l.producto_id === origen.producto.id) : []
+  const lote = lotesDeOrigen.find((l) => l.id === loteId) ?? null
+  /** Lo que queda en el lote es lo que normalmente se limpia: se precarga y se puede editar. */
+  const pesoSugerido = lote && lote.stock_kg > 0 ? lote.stock_kg : null
 
-  const elegirOrigen = (id: string) => {
-    const nuevo = crudos.find((c) => c.producto.id === id) ?? null
-    const suyos = nuevo ? procesados.filter((p) => p.producto_origen_id === id) : []
+  const elegirLote = (nuevo: Lote | null) => {
+    setValue('lote_origen_id', nuevo?.id ?? '', { shouldDirty: true })
     setValue('peso_entrada_kg', nuevo && nuevo.stock_kg > 0 ? nuevo.stock_kg : null, {
       shouldDirty: true,
     })
+  }
+
+  const elegirOrigen = (id: string) => {
+    const suyos = procesados.filter((p) => p.producto_origen_id === id)
+    // PEPS: se preselecciona el lote más antiguo (llegan ordenados).
+    elegirLote(lotes.find((l) => l.producto_id === id) ?? null)
     // Con un solo procesado posible se elige solo; si no, se vuelve a pedir.
     setValue('producto_destino_id', suyos.length === 1 ? suyos[0].id : '', { shouldDirty: true })
   }
 
   const pesosValidos = entrada != null && entrada > 0 && salida != null && salida > 0
   const salidaExcede = pesosValidos && salida > entrada
-  const calculo = pesosValidos
-    ? costoDestino(entrada, origen?.costo_usd_kg ?? 0, salida)
-    : null
-  const excedeStock =
-    origen != null && origen.producto.controla_stock && entrada != null && entrada > origen.stock_kg
+  const costoLote = lote?.costo_usd_kg ?? null
+  const calculo = pesosValidos ? costoDestino(entrada, costoLote ?? 0, salida) : null
+  const excedeStock = lote != null && entrada != null && entrada > lote.stock_kg + 0.0005
 
   const pedirCierre = async () => {
     if (formState.isDirty) {
@@ -147,6 +172,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
       }
       notify.success(result.success ?? 'Procesamiento registrado')
       onClose()
+      onCreated?.(result.lotes ?? [])
     })
   })
 
@@ -185,7 +211,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
             <Box sx={{ display: 'grid', gap: 2 }}>
               <Typography variant="h6">Entrada (crudo)</Typography>
               <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
-                <Grid size={{ xs: 12, sm: 7 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Controller
                     control={control}
                     name="producto_origen_id"
@@ -203,7 +229,11 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                         error={!!errors.producto_origen_id}
                         helperText={
                           errors.producto_origen_id?.message ??
-                          (origen ? `En stock: ${formatKg(origen.stock_kg)}` : undefined)
+                          (origen
+                            ? `En stock: ${formatKg(origen.stock_kg)} en ${lotesDeOrigen.length} ${
+                                lotesDeOrigen.length === 1 ? 'lote' : 'lotes'
+                              }`
+                            : undefined)
                         }
                       >
                         {crudos.map((c) => (
@@ -222,7 +252,32 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                     )}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 5 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Controller
+                    control={control}
+                    name="lote_origen_id"
+                    render={({ field }) => (
+                      <LoteAutocomplete
+                        lotes={lotesDeOrigen}
+                        value={field.value || null}
+                        onChange={elegirLote}
+                        onBlur={field.onBlur}
+                        diasAlertaLote={diasAlertaLote}
+                        disabled={!origen}
+                        error={!!errors.lote_origen_id || (!!origen && lotesDeOrigen.length === 0)}
+                        helperText={
+                          errors.lote_origen_id?.message ??
+                          (!origen
+                            ? 'Primero elige el crudo'
+                            : lotesDeOrigen.length === 0
+                              ? 'No hay lotes con stock de este crudo'
+                              : undefined)
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Controller
                     control={control}
                     name="peso_entrada_kg"
@@ -238,7 +293,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                         error={!!errors.peso_entrada_kg || excedeStock}
                         helperText={
                           errors.peso_entrada_kg?.message ??
-                          (excedeStock ? 'Supera el stock disponible' : undefined)
+                          (excedeStock ? `El lote solo tiene ${formatKg(lote?.stock_kg ?? 0)}` : undefined)
                         }
                       />
                     )}
@@ -252,7 +307,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                         setValue('peso_entrada_kg', pesoSugerido, { shouldDirty: true })
                       }
                     >
-                      Usar todo el stock
+                      Usar todo el lote ({formatKg(pesoSugerido)})
                     </Link>
                   ) : null}
                 </Grid>
@@ -353,7 +408,7 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
                 value={calculo && !salidaExcede ? pctFormatter.format(calculo.rendimiento) : '—'}
                 destacado
               />
-              {origen?.costo_usd_kg != null ? (
+              {costoLote != null ? (
                 <Resumen
                   label="Costo/kg procesado"
                   value={
@@ -364,11 +419,10 @@ export function ProcesamientoForm({ open, onClose, crudos, procesados }: Procesa
               ) : null}
             </Box>
 
-            {origen?.costo_usd_kg != null && calculo && !salidaExcede ? (
+            {costoLote != null && lote && calculo && !salidaExcede ? (
               <Typography variant="caption" color="text.secondary">
-                El costo del crudo ({formatUsd(calculo.costo_total_usd)} a{' '}
-                {formatUsd(origen.costo_usd_kg)}/kg) pasa completo al procesado. Se aplica el costo
-                promedio vigente al momento de guardar.
+                El costo del lote {lote.codigo} ({formatUsd(calculo.costo_total_usd)} a{' '}
+                {formatUsd(costoLote)}/kg) pasa completo al lote procesado.
               </Typography>
             ) : null}
 
