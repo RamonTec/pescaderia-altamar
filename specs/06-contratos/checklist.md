@@ -1,4 +1,4 @@
-# Checklist — 05-contratos
+# Checklist — 06-contratos
 
 - [ ] Tabla `contratos` creada con sus checks (`tipo`, `estado`, exactamente una referencia según tipo).
 - [ ] Bucket de Storage `contratos` existe y es privado (no accesible por URL pública directa).

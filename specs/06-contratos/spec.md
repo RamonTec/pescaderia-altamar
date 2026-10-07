@@ -1,16 +1,16 @@
-# 05 — Contratos (documentos de acuerdo de crédito)
+# 06 — Contratos (documentos de acuerdo de crédito)
 
 ## Contexto
 
 Módulo nuevo, no estaba en `/SPEC.md` original. Surge de la necesidad de **trazabilidad formal** de compra/venta a crédito frente a la volatilidad cambiaria: cuando el negocio fía (a un cliente) o le fían (un proveedor), conviene dejar un documento firmable que registre monto en USD, tasa de referencia al pactar, y cómo se calculará la ganancia/pérdida cambiaria en cada abono — no un contrato legal complejo, sino un **comprobante de acuerdo de crédito** imprimible/descargable.
 
-Este módulo no reemplaza la factura interna (`04-ventas`) ni la cuenta por pagar (`03-inventario`); genera un documento derivado de una de esas dos, pensado para que el cliente o proveedor lo firme en papel o lo reciba por WhatsApp/correo como respaldo.
+Este módulo no reemplaza la factura interna (`05-ventas`) ni la cuenta por pagar (`04-inventario`); genera un documento derivado de una de esas dos, pensado para que el cliente o proveedor lo firme en papel o lo reciba por WhatsApp/correo como respaldo.
 
 ## Alcance
 
 ### Tipos de contrato (MVP: 2)
-- `venta_credito`: generado a partir de una `factura` con `condicion = 'credito'` (de `04-ventas`). Incluye cliente, items (producto, kg, precio), total en USD, tasa de referencia, y la cláusula de cómo se calcula la ganancia cambiaria en cada abono (texto fijo basado en la fórmula de `/SPEC.md` §4.5).
-- `compra_credito`: generado a partir de una `compra` con `condicion = 'credito'` (de `03-inventario`). Análogo, con proveedor.
+- `venta_credito`: generado a partir de una `factura` con `condicion = 'credito'` (de `05-ventas`). Incluye cliente, items (producto, kg, precio), total en USD, tasa de referencia, y la cláusula de cómo se calcula la ganancia cambiaria en cada abono (texto fijo basado en la fórmula de `/SPEC.md` §4.5).
+- `compra_credito`: generado a partir de una `compra` con `condicion = 'credito'` (de `04-inventario`). Análogo, con los datos del proveedor tomados de `03-proveedores`.
 
 ### Esquema de datos
 
@@ -38,7 +38,7 @@ Constraint: exactamente uno de `factura_id`/`compra_id` no nulo según `tipo` (c
 
 ### Pantalla `/contratos`
 - Listado: tipo, contraparte (cliente o proveedor, resuelto según `tipo`), fecha, estado, acciones (ver/descargar PDF, cambiar estado, anular).
-- Botón "generar contrato" accesible **desde la ficha de una factura a crédito** (en `04-ventas`) y **desde la ficha de una compra a crédito** (en `03-inventario`) — no solo desde `/contratos` a secas, para que el flujo natural sea "esta venta es a crédito → genero el contrato ahí mismo". `/contratos` queda como bitácora central de todos los generados.
+- Botón "generar contrato" accesible **desde la ficha de una factura a crédito** (en `05-ventas`) y **desde la ficha de una compra a crédito** (en `04-inventario`) — no solo desde `/contratos` a secas, para que el flujo natural sea "esta venta es a crédito → genero el contrato ahí mismo". `/contratos` queda como bitácora central de todos los generados.
 
 ## Patrones
 - **Factory**: `ContratoTemplateFactory` que, dado el `tipo`, devuelve el componente de plantilla correcto — evita `if/else` repetido en el servicio de generación.

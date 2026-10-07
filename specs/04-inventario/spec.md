@@ -1,4 +1,4 @@
-# 03 — Inventario (catálogo, compras, procesamiento, stock)
+# 04 — Inventario (catálogo de productos, compras, procesamiento, stock)
 
 ## Contexto
 
@@ -6,24 +6,27 @@ Este módulo agrupa todo lo que mueve el stock físico, descrito en `/SPEC.md` �
 
 Se agrupa en un solo módulo porque comparten el mismo dominio de datos (stock por producto) y dependen entre sí: Compras y Procesamiento son los que *generan* movimientos; Inventario es la *vista* de ese ledger.
 
+Depende de: `00-estandares-ui`, `01-auth`, y `03-proveedores` (las compras seleccionan un proveedor ya existente; el CRUD de proveedores **ya no vive aquí**, ver ese módulo).
+
 ## Alcance
 
-### 3.1 Catálogo (`/catalogos`)
+### 4.1 Catálogo de productos (`/catalogos`)
 - CRUD de `productos` (tipo crudo/procesado, categoría, controla_stock, activo) — `IProductoRepository` ya existe.
-- CRUD de `proveedores` — `IProveedorRepository` ya existe.
 - Configuración: IVA por defecto (16%), fuente de tasa preferida (bcv/paralela) — nuevo, no tiene tabla aún (ver tarea de migración).
-- **Clientes ya no vive aquí** (ver `02-clientes`).
+- **Clientes no vive aquí** (ver `02-clientes`). **Proveedores no vive aquí** (ver `03-proveedores`) — esta pantalla queda solo para productos + configuración.
 
-### 3.2 Compras (`/compras`)
-- Flujo de `/SPEC.md` §4.2: proveedor + fecha + condición (contado/crédito) + moneda + tasa del día (snapshot, tomada de `RateService`/`getTasaViva`, con opción de override manual) + items (producto crudo, peso_kg, costo_usd_kg).
+### 4.2 Compras (`/compras`)
+- Flujo de `/SPEC.md` §4.2: selecciona un proveedor existente (de `03-proveedores`) + fecha + condición (contado/crédito) + moneda + tasa del día (snapshot, tomada de `RateService`/`getTasaViva`, con opción de override manual) + items (producto crudo, peso_kg, costo_usd_kg).
+- Antes de registrar una compra a crédito, verificar `proveedores.bloqueado` (de `03-proveedores`) — si está bloqueado, no se permite nueva compra a crédito (ver esa misma regla aplicada a clientes en `05-ventas`).
 - Al guardar una compra: crear fila en `compras`, sus `compra_items`, y **un movimiento de tipo `compra` por item** en la tabla `movimientos` (esto es lo que falta: hoy no hay ningún código que escriba en `movimientos`).
-- Si `condicion = 'contado'`, `pagado_usd = subtotal_usd` al crear. Si `credito`, queda abierta para registrar `pagos_proveedores` después (eso puede vivir aquí o esperar a 04-ventas si se decide compartir la pantalla de cobros/pagos para ambos sentidos — **decisión a tomar por el equipo al llegar a esta tarea**, por defecto: pagos a proveedores se gestionan aquí mismo, no en `/cobros`).
+- Si `condicion = 'contado'`, `pagado_usd = subtotal_usd` al crear. Si `credito`, queda abierta para registrar `pagos_proveedores` después. Pagos a proveedores se gestionan aquí mismo (no en `/cobros`, que es solo para cuentas por cobrar de clientes en `05-ventas`).
+- `ProveedorBalanceService.getSaldoPendiente(proveedorId)` (análogo a `ClienteBalanceService` de `05-ventas`): suma `Σ(compras.subtotal_usd − compras.pagado_usd)` de compras `abierta` de ese proveedor. Este módulo lo implementa y expone; `03-proveedores` lo consume en la ficha de proveedor (mismo patrón que `02-clientes`/`05-ventas`).
 
-### 3.3 Procesamiento (`/procesamiento`)
+### 4.3 Procesamiento (`/procesamiento`)
 - Flujo de `/SPEC.md` §4.3: selecciona producto origen (crudo) + peso_entrada_kg, producto destino (procesado) + peso_salida_kg. Usa `costoDestino()` (ya implementada) para calcular `costo_total_usd`, `costo_kg_destino`, `merma_kg`, `rendimiento`.
 - Al guardar: fila en `procesamientos` + `proceso_items`, y **dos movimientos**: `proceso_out` (resta stock del producto origen) y `proceso_in` (suma stock al producto destino, con el nuevo costo).
 
-### 3.4 Inventario / stock (`/inventario`)
+### 4.4 Inventario / stock (`/inventario`)
 - Tabla de stock actual por producto usando `getInventarioValorizado()` (ya existe, solo falta conectarla a la UI): kg en stock, costo promedio, valor USD y valor Bs (a la tasa vigente).
 - Historial de movimientos por producto (tabla `movimientos`, de solo lectura aquí).
 - Alertas simples de stock bajo (umbral configurable por producto o global — MVP: umbral global en la config de catálogo).
