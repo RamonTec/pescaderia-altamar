@@ -53,6 +53,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **KYC/antifraude en clientes**: el negocio necesita identificar representante legal, cédula/RIF y documentos adjuntos de cada cliente (persona natural o jurídica) para protegerse ante estafas e impagos. Se agregó a `02-clientes/spec.md` (tabla `representantes_legales`, `documentos_cliente`, flag `bloqueado`).
 - **Estándares de UI/UX**: se agregó `00-estandares-ui` como módulo transversal para fijar de una vez decisiones de modo oscuro, responsive, loaders, formularios, etc. — evita que cada módulo (y cada agente que lo ejecute) las reinvente, ahorrando tokens y manteniendo consistencia visual entre pantallas.
 - **Módulo de proveedores**: se separó `03-proveedores` de `04-inventario` (antes el CRUD de proveedores vivía dentro de `/catalogos`). Mismo principio que `02-clientes`: control de datos de contacto/pago, documento de RIF y bloqueo por proveedor no confiable, con su propio saldo pendiente (`proveedorBalanceService` en `04-inventario`).
+- **Proveedores: KYC completo y métodos de pago (2026-10-06)**: igual que en clientes, los proveedores jurídicos llevan representantes legales con su cédula, y se suma el acta constitutiva a los documentos. En lugar de una sola cuenta bancaria, cada proveedor puede tener varios métodos de pago (transferencia, Pago Móvil, Zelle). La documentación incompleta es solo un indicador visual y no bloquea compras. Detalle en `03-proveedores/spec.md`.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

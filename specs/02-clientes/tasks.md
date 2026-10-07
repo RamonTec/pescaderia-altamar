@@ -35,3 +35,5 @@ Depende de: `00-estandares-ui` (NumberField, ConfirmDialog, NotificationProvider
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "05-ventas necesita `clientes.limite_credito_usd` y `clientes.bloqueado` para validar antes de vender a crédito — agregado el <fecha>")_
+- **03-proveedores (2026-10-06)**: `DocumentoUpload`, `RepresentantesLegalesFieldArray` y el manejo de errores de `clientes/actions.ts` se generalizan (`DocumentoStore`, tipado genérico, `lib/actionState.ts`). Clientes debe seguir funcionando igual; se verifica en la tarea 31 de `03-proveedores`.
+- **03-proveedores (2026-10-06), recomendado**: (a) trigger `clientes_guard_bloqueo` igual a `proveedores_guard_bloqueo` (hoy un operador puede cambiar `bloqueado` saltándose el servicio, porque la RLS es `using (true)`); (b) crear el bucket `documentos-clientes` y sus políticas por migración (como `0010_documentos_proveedor.sql`) en vez del paso manual pendiente.

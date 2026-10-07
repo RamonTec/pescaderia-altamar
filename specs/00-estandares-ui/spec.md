@@ -117,8 +117,12 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `ConfirmDialog` | `molecules` | Confirmación de acción destructiva |
 | `AppShell` | `templates` | Ya existe — se actualiza para responsive (ver arriba) |
 | `NotificationProvider` | `organisms` | Toasts de éxito/error, vía `useNotify()` |
+| `DocumentoUpload` | `molecules` | Subir/ver/reemplazar documentos vía adaptador `DocumentoStore` (drag&drop, validación, compresión, reemplazo real) |
+| `RepresentantesLegalesFieldArray` | `molecules` | Lista editable de representantes legales (tipado genérico, filas con `Collapse`) |
+| `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast |
+| `StatusChips` | `molecules` | Chips de bloqueado / doc. incompleta / inactivo con tooltip |
 
-Además de los anteriores: `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage).
+Además de los anteriores: `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage), `lib/validationMessages.ts` (mensajes de validación compartidos), `lib/actionState.ts` (`ActionState` + `toActionError`), `lib/documentoStore.ts` (`DocumentoStore` para `DocumentoUpload`), `lib/bancosVe.ts` (catálogo de bancos y utilidades de cuenta).
 
 Cada módulo que cree un componente genérico nuevo (no específico de su dominio) debe agregarlo a esta tabla como parte de su propia tarea, para que el siguiente módulo lo encuentre.
 

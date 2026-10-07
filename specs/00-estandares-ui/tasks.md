@@ -63,6 +63,7 @@ No depende de otro módulo. Se ejecuta primero (o en paralelo muy temprano con `
 
 ## Componentes agregados después de la primera pasada
 - _(los módulos 01-05 anotan aquí cualquier componente genérico nuevo que creen, con fecha y motivo, y lo agregan también a la tabla de `spec.md`)_
+- **2026-10-06 (03-proveedores)**: `lib/validationMessages.ts` (cierra tarea 22), `lib/actionState.ts`, `lib/documentoStore.ts`, `lib/bancosVe.ts`, generalización de `DocumentoUpload` (adaptador `DocumentoStore`) y de `RepresentantesLegalesFieldArray` (tipado genérico + `Collapse`, cierra tarea 26), y `CopyableText` / `StatusChips` en `molecules`. Todos agregados a la tabla de `spec.md`.
 
 ## Nota de implementación (2026-10-06)
 
