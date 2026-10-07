@@ -69,8 +69,14 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     ficha con FichaHeader y carga en servidor, BloqueoDialog en AppDialog;
     deja en los componentes base lo que el resto de la Fase 2b reusa)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
-(10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader.)
+11-refactor-visual-proveedores → depende de 00 Fase 2a, 03-proveedores y 10 (hechos)
+   (Fase 2b de 00 aplicada a proveedores, patrón 10: listado en AppDataGrid
+    con saldo pendiente real, ficha con FichaHeader y carga 100% en servidor,
+    ProveedorForm en AppDialog md conservando el Stepper; sin CarteraIndicador,
+    que espera al futuro módulo de cuentas por pagar)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
+(10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
 
@@ -90,6 +96,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Cuentas por cobrar y recordatorios (2026-10-07, pedido del cliente)**: columna con el estado de las facturas en el listado de clientes, sección de facturas en la ficha y recordatorios por **WhatsApp y correo** (canal confirmado por el usuario). Agrega el vencimiento de facturas, que no existía. Confirmado el 2026-10-07: los días de crédito varían por cliente y se indican en cada factura al emitirla; los recordatorios los envía solo el admin por ahora (no hay operadores). Nuevo módulo `09-cuentas-por-cobrar`. Siguiente paso previsto para "Cobros y pagos": cuentas por pagar a proveedores reutilizando `lib/cartera` (ver la spec de 09).
 - **Acabado visual (2026-10-07, pedido del usuario)**: estándares de calidad para loaders (global con el logo de Altamar), botones en carga, paginación, tablas, modales, responsive y tipografía. Se documenta en `00-estandares-ui/spec.md` la identidad "Peñero" (aprobada el 2026-10-06), que reemplaza la regla vieja de "Geist, no cambiar". Fase 2 en `00-estandares-ui/tasks.md`.
 - **Refactor visual de clientes (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se empieza por clientes como módulo propio, `10-refactor-visual-clientes`, con su historia de usuario, tareas y checklist. No cambia datos ni reglas de negocio. Sí mueve al servidor la carga de la ficha (misma tarea que la 20 de `09`, sin la cartera) y agrega o extiende componentes compartidos (`FichaHeader`, búsqueda normalizable y fila abrible con teclado en `AppDataGrid`, `StatusChips` `soft`, `BloqueoDialog` en `AppDialog`). Se anotó en `00-estandares-ui/tasks.md` (Fase 2b) y en `09-cuentas-por-cobrar/tasks.md`.
+- **Refactor visual de proveedores (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a `03-proveedores` como módulo propio, `11-refactor-visual-proveedores`, replicando el patrón de `10-refactor-visual-clientes`. No cambia datos ni reglas de negocio. Incluye: columnas secundarias del listado visibles en `md+` (corrige el bug que las ocultaba siempre), saldo pendiente con datos reales en listado y ficha (cifra protagonista `h5`), ficha con carga 100% en servidor + `[id]/error.tsx`, `ProveedorForm` en `AppDialog md` conservando el Stepper de 3 pasos, `useProveedorAcciones` tipado (fuera `as never`/`as any`) y limpieza transversal. `CarteraIndicador` de 09 queda **fuera** (el dominio CxP no existe; es del futuro módulo de cuentas por pagar). Se anota en `00-estandares-ui/tasks.md` (Fase 2b).
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 
