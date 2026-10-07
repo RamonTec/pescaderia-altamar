@@ -40,7 +40,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
   const confirm = useConfirm()
   const {
     control,
-    formState: { errors },
+    formState: { errors, disabled },
   } = useFormContext<CompraFormInput>()
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const items = useWatch({ control, name: 'items' })
@@ -66,9 +66,13 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6">Productos recibidos</Typography>
-        <Button size="small" startIcon={<AddIcon />} onClick={() => append(itemVacio())}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -4 }}>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          disabled={disabled}
+          onClick={() => append(itemVacio())}
+        >
           Agregar
         </Button>
       </Box>
@@ -107,6 +111,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
                               value={f.value}
                               onChange={f.onChange}
                               onBlur={f.onBlur}
+                              disabled={disabled}
                               error={!!errorItem?.producto_id}
                               helperText={errorItem?.producto_id?.message}
                             >
@@ -133,6 +138,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
                               value={f.value}
                               onChange={f.onChange}
                               onBlur={f.onBlur}
+                              disabled={disabled}
                               error={!!errorItem?.peso_kg}
                               helperText={errorItem?.peso_kg?.message}
                             />
@@ -153,6 +159,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
                               value={f.value}
                               onChange={f.onChange}
                               onBlur={f.onBlur}
+                              disabled={disabled}
                               error={!!errorItem?.costo_kg}
                               helperText={errorItem?.costo_kg?.message}
                             />
@@ -163,7 +170,7 @@ export function CompraItemsFieldArray({ productos }: CompraItemsFieldArrayProps)
                         <IconButton
                           aria-label="Quitar producto"
                           onClick={() => quitar(index)}
-                          disabled={fields.length === 1}
+                          disabled={disabled || fields.length === 1}
                         >
                           <DeleteOutlinedIcon fontSize="small" />
                         </IconButton>

@@ -39,8 +39,12 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
 05-ventas      → depende de 00-estandares-ui, 01-auth, 02-clientes, 04-inventario
    (pedidos/POS, facturación, notas de crédito, cobros/pagos, ganancia cambiaria)
 
-06-contratos   → depende de 02-clientes, 03-proveedores y 05-ventas
-   (genera documento a partir de una factura/compra a crédito ya existente)
+06-contratos   → depende de 02-clientes, 03-proveedores, 04-inventario y 05-ventas;
+                 usa 07, 08, 09, 10/11/12 y 00 Fase 2 (todos hechos)
+   (PDF de acuerdo de crédito a partir de una factura/compra a crédito,
+    generado desde el menú ⋮ de /cobros, /compras y las fichas de cliente y
+    proveedor; /contratos como bitácora; solo admin; datos del negocio en
+    config_negocio. Spec reescrita el 2026-10-07)
 
 07-lotes       → depende de 04-inventario y 05-ventas (ya implementados)
    (lotes físicos por recepción, costo por lote, PEPS en ventas, pérdidas,
@@ -82,7 +86,7 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     AppDialog sm y patrón de botones en carga en ConfigNegocioForm; sin ficha
     de producto — lista + diálogo)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -105,6 +109,14 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Refactor visual de clientes (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se empieza por clientes como módulo propio, `10-refactor-visual-clientes`, con su historia de usuario, tareas y checklist. No cambia datos ni reglas de negocio. Sí mueve al servidor la carga de la ficha (misma tarea que la 20 de `09`, sin la cartera) y agrega o extiende componentes compartidos (`FichaHeader`, búsqueda normalizable y fila abrible con teclado en `AppDataGrid`, `StatusChips` `soft`, `BloqueoDialog` en `AppDialog`). Se anotó en `00-estandares-ui/tasks.md` (Fase 2b) y en `09-cuentas-por-cobrar/tasks.md`.
 - **Refactor visual de proveedores (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a `03-proveedores` como módulo propio, `11-refactor-visual-proveedores`, replicando el patrón de `10-refactor-visual-clientes`. No cambia datos ni reglas de negocio. Incluye: columnas secundarias del listado visibles en `md+` (corrige el bug que las ocultaba siempre), saldo pendiente con datos reales en listado y ficha (cifra protagonista `h5`), ficha con carga 100% en servidor + `[id]/error.tsx`, `ProveedorForm` en `AppDialog md` conservando el Stepper de 3 pasos, `useProveedorAcciones` tipado (fuera `as never`/`as any`) y limpieza transversal. `CarteraIndicador` de 09 queda **fuera** (el dominio CxP no existe; es del futuro módulo de cuentas por pagar). Se anota en `00-estandares-ui/tasks.md` (Fase 2b).
 - **Refactor visual de catálogos (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a la pantalla `/catalogos` de `04-inventario` como módulo propio, `12-refactor-visual-catalogos`, replicando el patrón de 10/11. No cambia datos ni reglas de negocio. Incluye: `ProductosTable` en `AppDataGrid` (modo cliente, búsqueda normalizada "cur001"↔"CUR-001", chips Activos/Todos en `?estado=`), tab Productos/Configuración persistente en `?tab=` (hoy se perdía al navegar fuera), `ProductoForm` en `AppDialog sm` y el patrón de `Button loading` + `useForm({ disabled })` en `ConfigNegocioForm`. Sin ficha de producto (catálogo = lista + diálogo). Se anota en `00-estandares-ui/tasks.md` (Fase 2b).
+- **Refactor visual de compras (2026-10-07, pedido del usuario)**: la Fase 2b de `00-estandares-ui` se aplica a la pantalla de `/compras` en `13-refactor-visual-compras`. Asegura que los formularios (`CompraForm`, `PagoProveedorDialog`) usen `useForm({ disabled: isPending })` para prevenir envíos dobles, desactiva la adición de items de `CompraItemsFieldArray` durante la petición, y agrupa visualmente los campos usando `FormSection`. No cambia datos ni reglas de negocio.
+- **Contratos actualizados al código real (2026-10-07, pedido del usuario)**: la spec de `06-contratos` (del 2026-10-06) estaba desactualizada. Suponía fichas de factura y de compra que no existen, usaba los números de migración `0007`/`0008`, que ya están ocupados, y no recogía la procedencia de la tasa (08), el vencimiento (09), los lotes (07) ni la UI de la Fase 2. Se reescribieron `spec.md`, `tasks.md` y `checklist.md`. Decisiones cerradas por el usuario:
+  - **Sin fichas nuevas**: el contrato se genera desde el menú `⋮` de `/cobros`, la ficha de cliente, `/compras` y la ficha de proveedor, y `/contratos` queda como bitácora.
+  - **Solo admin**: RLS por `es_admin()` en la tabla y en el bucket, y el ítem de menú `adminOnly`.
+  - **Datos del negocio para el encabezado**: razón social, RIF, dirección y teléfono pasan a ser columnas nuevas de `config_negocio`, editables en `ConfigNegocioForm`.
+  - **Días de crédito al generar**: el contrato guarda sus propios `dias_credito` y `fecha_vencimiento` (vacíos y obligatorios en compras; precargados desde la factura y editables, sin modificar la factura).
+
+  Además: bucket `contratos` creado en la migración, un solo contrato activo por origen (índice único parcial), los anulados no generan contrato y el PDF es snapshot sin recalcular. Cambia el esquema de `04-inventario` (`config_negocio`): anotado como tarea agregada en `04-inventario/tasks.md`.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

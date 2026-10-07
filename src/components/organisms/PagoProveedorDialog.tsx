@@ -90,6 +90,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
     resolver: zodResolver(pagoProveedorFormSchema),
     mode: 'onSubmit',
     defaultValues: vacio(compra?.id ?? ''),
+    disabled: isPending,
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
@@ -204,6 +205,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
                     exclusive
                     size="small"
                     value={field.value}
+                    disabled={formState.disabled}
                     onChange={(_, next: 'usd' | 'bs' | null) => {
                       if (!next) return
                       field.onChange(next)
@@ -224,6 +226,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
                 type="date"
                 fullWidth
                 size="small"
+                disabled={formState.disabled}
                 {...register('fecha')}
                 error={!!formState.errors.fecha}
                 helperText={formState.errors.fecha?.message}
@@ -242,6 +245,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
                     size="small"
                     value={field.value}
                     onChange={field.onChange}
+                    disabled={formState.disabled}
                     error={!!formState.errors.metodo}
                     helperText={formState.errors.metodo?.message}
                   >
@@ -276,6 +280,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
+                    disabled={formState.disabled}
                     error={!!formState.errors.monto || excede}
                     helperText={
                       formState.errors.monto?.message ??
@@ -284,7 +289,7 @@ export function PagoProveedorDialog({ compra, configTasas, onClose }: PagoProvee
                   />
                 )}
               />
-              <Link component="button" type="button" variant="caption" onClick={pagarSaldo}>
+              <Link component="button" type="button" variant="caption" disabled={formState.disabled} onClick={pagarSaldo}>
                 Pagar el saldo completo
               </Link>
             </Grid>
