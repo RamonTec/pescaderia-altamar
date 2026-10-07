@@ -19,7 +19,7 @@ export async function signIn(
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
-    return { error: 'Credenciales inválidas' }
+    return { error: 'El email o la contraseña no coinciden. Revísalos e intenta de nuevo.' }
   }
   return { error: null }
 }

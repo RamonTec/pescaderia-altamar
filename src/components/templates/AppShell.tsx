@@ -32,7 +32,7 @@ import CleaningServicesIcon from '@mui/icons-material/CleaningServices'
 import PaymentsIcon from '@mui/icons-material/Payments'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import { createClient } from '@/lib/supabase/client'
-import { signOutAction } from '@/app/login/actions'
+import { signOutAction } from '@/app/(auth)/login/actions'
 import { ColorModeToggle } from '@/components/atoms/ColorModeToggle'
 
 const NAV_WIDTH = 240
@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Toolbar>
         <ScaleIcon color="primary" sx={{ mr: 1.5 }} />
         <Typography variant="h6" noWrap component="div">
-          Pescadería
+          Altamar Sea Food
         </Typography>
       </Toolbar>
       <List>

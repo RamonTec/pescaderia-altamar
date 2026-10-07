@@ -12,7 +12,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
-import { actualizarPasswordAction } from '@/app/actualizar-password/actions'
+import { actualizarPasswordAction } from '@/app/(auth)/actualizar-password/actions'
 
 const schema = z
   .object({

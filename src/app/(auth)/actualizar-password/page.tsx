@@ -1,4 +1,3 @@
-import Box from '@mui/material/Box'
 import { ActualizarPasswordForm } from '@/components/organisms/ActualizarPasswordForm'
 import { exchangeCodeForSession } from '@/lib/services/authService'
 
@@ -13,18 +12,6 @@ export default async function ActualizarPasswordPage({
     await exchangeCodeForSession(code)
   }
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3,
-        bgcolor: 'background.default',
-      }}
-    >
-      <ActualizarPasswordForm />
-    </Box>
-  )
+  return <ActualizarPasswordForm />
+
 }
