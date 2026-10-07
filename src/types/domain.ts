@@ -35,6 +35,13 @@ export interface Producto {
   activo: boolean
 }
 
+export interface ConfigNegocio {
+  id: number
+  iva_pct: number
+  fuente_tasa_default: 'bcv' | 'paralela'
+  umbral_stock_bajo_kg: number | null
+}
+
 export type TipoPersona = 'natural' | 'juridica'
 export type TipoDocumentoCliente = 'cedula' | 'rif' | 'otro'
 

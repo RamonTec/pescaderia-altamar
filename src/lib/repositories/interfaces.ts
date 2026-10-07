@@ -1,6 +1,7 @@
 import type {
   Cliente,
   ClienteInput,
+  ConfigNegocio,
   DocumentoCliente,
   DocumentoProveedor,
   MetodoPagoProveedor,
@@ -23,6 +24,11 @@ export interface IProductoRepository {
   create(data: Omit<Producto, 'id'>): Promise<Producto>
   update(id: string, data: Partial<Producto>): Promise<Producto>
   delete(id: string): Promise<void>
+}
+
+export interface IConfigNegocioRepository {
+  get(): Promise<ConfigNegocio | null>
+  update(data: Partial<Omit<ConfigNegocio, 'id'>>): Promise<ConfigNegocio>
 }
 
 export interface IClienteRepository {
