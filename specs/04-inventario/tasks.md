@@ -34,6 +34,18 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
 14. **Componentes**: `components/organisms/ProcesamientoForm.tsx` (producto origen + peso entrada, producto destino + peso salida, muestra merma/rendimiento calculados en vivo), `ProcesamientosTable.tsx`.
 15. **`src/app/procesamiento/page.tsx`**.
 
+> **Notas de ejecución de Procesamiento (2026-10-06, Claude Code):**
+> - Migración agregada `0013_procesamiento_registro.sql`: RPC `registrar_procesamiento` (procesamiento + lote + movimientos `proceso_out`/`proceso_in` en una transacción) y función interna `stock_y_costo_producto` (no expuesta a `authenticated`).
+> - Tarea 13, desvío: **el costo transferido lo calcula la RPC**, no el servicio. El operador registra procesamientos y no puede leer costos (`movimientos_view`, 0003), así que el servicio no conoce el costo del crudo con su sesión. La RPC es `security definer`, lee el ledger base, aplica la misma fórmula que `costoDestino()` y no devuelve el costo. `stock_y_costo_producto` replica `acumularMovimientos()` de `costingService.ts`: cambiar uno obliga a cambiar el otro. `costoDestino()` se usa en la UI (merma, rendimiento y, solo admin, costo/kg resultante).
+> - Stock: no se puede procesar más kg del que hay (si `controla_stock`). El servicio avisa antes y la RPC lo revalida bajo `pg_advisory_xact_lock('stock:<producto>')`. **`05-ventas` debe tomar el mismo lock** al descontar stock.
+> - Un lote por procesamiento en la UI (un crudo → un procesado); el repositorio y la RPC aceptan varios.
+> - `costingService`: nuevas `acumularMovimientos()` (función pura compartida) y `getStocks(db)` (stock de todos los productos en una lectura paginada del ledger; sirve también para la tarea 16).
+> - Pantalla en `src/app/(protected)/procesamiento/`.
+>
+> **Ajuste tras revisión con el usuario (2026-10-06):**
+> - Peso de entrada: se **precarga con el stock disponible** del crudo elegido (editable, con "Usar todo el stock"). Se descartó procesar por compra/lote: reabriría el costeo por promedio ponderado de `/SPEC.md` §1.
+> - Relación crudo → procesado: migración `0014_producto_origen.sql` agrega `productos.producto_origen_id` (un procesado sale de un solo crudo; un crudo puede tener varios procesados). Check `productos_origen_segun_tipo` (`not valid`: los procesados existentes sin asignar se completan en Catálogos), trigger `productos_guard_origen` y `registrar_procesamiento` reemplazada para rechazar un destino que no corresponda al origen. Catálogos pide "Se obtiene de" al crear/editar un procesado; Procesamiento solo ofrece los procesados del crudo elegido.
+
 ## Inventario / stock
 
 16. **`src/app/inventario/page.tsx`**: conecta `getInventarioValorizado()` (ya existe en `costingService.ts`) a una tabla; obtiene `bsPorUsd` vigente con `getTasaViva()`.

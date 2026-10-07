@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useTransition } from 'react'
-import { useForm, useWatch, FormProvider } from 'react-hook-form'
+import { Controller, useForm, useWatch, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -27,6 +27,8 @@ import { useConfirm } from '@/lib/useConfirm'
 export interface ProductoFormProps {
   open: boolean
   producto: Producto | null
+  /** Crudos que pueden ser origen de un procesado. */
+  crudos: Producto[]
   onClose: () => void
 }
 
@@ -39,6 +41,7 @@ function vacio(): ProductoFormValues {
     categoria: '',
     codigo: '',
     controla_stock: true,
+    producto_origen_id: '',
   }
 }
 
@@ -49,10 +52,11 @@ function toFormValues(p: Producto): ProductoFormValues {
     categoria: p.categoria ?? '',
     codigo: p.codigo ?? '',
     controla_stock: p.controla_stock,
+    producto_origen_id: p.producto_origen_id ?? '',
   }
 }
 
-export function ProductoForm({ open, producto, onClose }: ProductoFormProps) {
+export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const theme = useTheme()
@@ -76,7 +80,8 @@ export function ProductoForm({ open, producto, onClose }: ProductoFormProps) {
     control,
   } = methods
 
-  const controlaStock = useWatch({ control, name: 'controla_stock' })
+  const [controlaStock, tipo] = useWatch({ control, name: ['controla_stock', 'tipo'] })
+  const origenes = crudos.filter((c) => c.id !== producto?.id)
 
   React.useEffect(() => {
     if (!open) return
@@ -148,6 +153,8 @@ export function ProductoForm({ open, producto, onClose }: ProductoFormProps) {
                   label="Tipo *"
                   {...register('tipo')}
                   fullWidth
+                  error={!!formState.errors.tipo}
+                  helperText={formState.errors.tipo?.message}
                 >
                   <MenuItem value="crudo">Crudo</MenuItem>
                   <MenuItem value="procesado">Procesado</MenuItem>
@@ -166,6 +173,39 @@ export function ProductoForm({ open, producto, onClose }: ProductoFormProps) {
                   ))}
                 </TextField>
               </Box>
+              {tipo === 'procesado' ? (
+                <Controller
+                  control={control}
+                  name="producto_origen_id"
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Se obtiene de *"
+                      fullWidth
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={!!formState.errors.producto_origen_id}
+                      helperText={
+                        formState.errors.producto_origen_id?.message ??
+                        'Producto crudo que se limpia para obtener este procesado'
+                      }
+                    >
+                      {origenes.length === 0 ? (
+                        <MenuItem value="" disabled>
+                          No hay productos crudos
+                        </MenuItem>
+                      ) : null}
+                      {origenes.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.codigo ? `${c.codigo} · ${c.nombre}` : c.nombre}
+                          {c.activo ? '' : ' (inactivo)'}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              ) : null}
               <TextField
                 label="Código"
                 {...register('codigo')}

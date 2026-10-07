@@ -33,6 +33,8 @@ export interface Producto {
   categoria: string | null
   controla_stock: boolean
   activo: boolean
+  /** Crudo del que se obtiene un procesado (0014); `null` en los crudos. */
+  producto_origen_id: string | null
 }
 
 export interface ConfigNegocio {
@@ -169,6 +171,23 @@ export interface PagoProveedor {
   tasa_pago: number
   metodo: MetodoPago
   ganancia_cambiaria_bs: number
+}
+
+export interface Procesamiento {
+  id: string
+  fecha: string
+  notas: string | null
+}
+
+export interface ProcesoItem {
+  id: string
+  procesamiento_id: string
+  producto_origen_id: string
+  peso_entrada_kg: number
+  producto_destino_id: string
+  peso_salida_kg: number
+  /** Costo del origen transferido completo al destino (/SPEC.md §4.3). */
+  costo_total_usd: number
 }
 
 export interface Factura {

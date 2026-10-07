@@ -9,6 +9,8 @@ import type {
   MetodoPagoProveedor,
   Movimiento,
   PagoProveedor,
+  Procesamiento,
+  ProcesoItem,
   Producto,
   Proveedor,
   RepresentanteLegal,
@@ -130,4 +132,31 @@ export interface ICompraRepository {
   ): Promise<Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]>
   /** Inserta el pago y actualiza `pagado_usd`/`estado` (RPC `registrar_pago_proveedor`). */
   registrarPago(pago: PagoProveedorNuevo): Promise<string>
+}
+
+type ProductoRef = Pick<Producto, 'id' | 'nombre' | 'codigo'>
+
+export interface ProcesoItemDetalle extends ProcesoItem {
+  origen: ProductoRef
+  destino: ProductoRef
+}
+
+export interface ProcesamientoResumen extends Procesamiento {
+  created_at: string
+  proceso_items: ProcesoItemDetalle[]
+}
+
+/** Lote a procesar: el costo lo calcula la base (RPC `registrar_procesamiento`). */
+export type ProcesoItemNuevo = Pick<
+  ProcesoItem,
+  'producto_origen_id' | 'peso_entrada_kg' | 'producto_destino_id' | 'peso_salida_kg'
+>
+
+export interface IProcesamientoRepository {
+  /**
+   * Inserta procesamiento + lotes + movimientos `proceso_out`/`proceso_in` en
+   * una sola transacción, con el costo promedio vigente del origen.
+   */
+  create(procesamiento: Procesamiento, items: ProcesoItemNuevo[]): Promise<string>
+  list(): Promise<ProcesamientoResumen[]>
 }

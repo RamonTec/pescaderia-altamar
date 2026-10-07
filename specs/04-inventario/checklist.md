@@ -15,9 +15,9 @@
 - [ ] El costo ponderado tras una segunda compra del mismo producto coincide con la fórmula de `/SPEC.md` §4.1 (verificado a mano, ver tarea 22 de `tasks.md`).
 
 ## Procesamiento
-- [ ] Procesar un lote baja el stock del producto origen y sube el del producto destino con el costo correcto (fórmula de transferencia total de costo).
-- [ ] `merma_kg` y `rendimiento` se muestran y coinciden con los pesos ingresados.
-- [ ] No se puede registrar `peso_salida_kg > peso_entrada_kg` (constraint de BD + validación en UI con mensaje claro).
+- [ ] Procesar un lote baja el stock del producto origen y sube el del producto destino con el costo correcto (fórmula de transferencia total de costo). *(implementado: RPC `registrar_procesamiento` en `0013`; falta aplicar `0013` y verificar con la tarea 21)*
+- [ ] `merma_kg` y `rendimiento` se muestran y coinciden con los pesos ingresados. *(implementado: en vivo en `ProcesamientoForm` y en `ProcesamientosTable`; falta verificación manual)*
+- [ ] No se puede registrar `peso_salida_kg > peso_entrada_kg` (constraint de BD + validación en UI con mensaje claro). *(implementado: aviso en vivo + zod `superRefine` + servicio + constraint `salida_menor_entrada` mapeado al campo; falta verificación manual)*
 
 ## Inventario
 - [ ] La tabla de stock muestra kg, costo promedio y valor (USD y Bs) por producto, usando la tasa vigente.
@@ -33,7 +33,12 @@
 
 ## Pendientes / deuda técnica
 - [ ] _(anotar aquí cualquier ítem diferido con motivo y fecha)_
-- [ ] **(2026-10-06) Aplicar `0012_compras_registro.sql`** en el proyecto Supabase real (SQL Editor). Sin esta migración, registrar compras y pagos falla porque las RPC no existen.
+- [x] **(2026-10-06) Aplicar `0012_compras_registro.sql`** en el proyecto Supabase real (SQL Editor). Sin esta migración, registrar compras y pagos falla porque las RPC no existen.
 - [ ] (2026-10-06) `compras.subtotal_usd`/`pagado_usd` siguen legibles para el operador vía PostgREST (RLS `read_all` de `0001`). La UI no se los envía, pero la protección en la base queda pendiente (vista o columnas separadas, mismo enfoque que `0003`).
 - [ ] (2026-10-06) Sin anulación de compras: `estado = 'anulada'` existe en el esquema, pero revertir los movimientos de stock y los pagos no está en el alcance de las tareas 5–11.
+- [x] **(2026-10-06) Aplicar `0017_fix_stock_y_costo_producto.sql`** (aplicada como "0015"; renombrada para no chocar con `0015_facturas_secuencia.sql` de `05-ventas`): `stock_y_costo_producto` de `0013` fallaba con 42702 (OUT `costo_usd_kg` ambiguo con la columna) y ningún procesamiento se podía registrar.
+- [x] **(2026-10-06) Aplicar `0013_procesamiento_registro.sql` y luego `0014_producto_origen.sql`** en el proyecto Supabase real (después de `0012`). Sin ellas, registrar procesamientos falla y Catálogos no puede guardar productos (columna `producto_origen_id`).
+- [ ] (2026-10-06) Tras aplicar `0014`, asignar "Se obtiene de" a los procesados que no sean los demo (en Catálogos aparecen como "Sin crudo asignado"); hasta entonces no se pueden elegir como salida. Luego se puede validar el check con `alter table productos validate constraint productos_origen_segun_tipo`.
+- [ ] (2026-10-06) `proceso_items.costo_total_usd` sigue legible para el operador vía PostgREST (RLS `read_all` de `0001`). La página no se lo envía; misma deuda que `compras.subtotal_usd`.
+- [ ] (2026-10-06) Sin anulación de procesamientos (revertir `proceso_out`/`proceso_in`): fuera del alcance de las tareas 12–15.
 - [ ] (2026-10-06) El listado de `/proveedores` sigue con la columna "Saldo pendiente" en `—` (oculta por defecto); solo la ficha consume `proveedorBalanceService`.

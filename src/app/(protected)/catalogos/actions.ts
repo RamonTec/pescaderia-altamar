@@ -64,6 +64,7 @@ export async function upsertProductoAction(
   const input = safe.data
   const codigo = input.codigo.trim() ? input.codigo.trim().toUpperCase() : null
   const categoria = input.categoria.trim() ? input.categoria.trim() : null
+  const productoOrigenId = input.tipo === 'procesado' ? input.producto_origen_id : null
 
   const db = await createClient()
   const repo = makeProductoRepository(db)
@@ -76,6 +77,7 @@ export async function upsertProductoAction(
         codigo,
         categoria,
         controla_stock: input.controla_stock,
+        producto_origen_id: productoOrigenId,
       })
     } else {
       const creado = await repo.create({
@@ -85,16 +87,25 @@ export async function upsertProductoAction(
         categoria,
         controla_stock: input.controla_stock,
         activo: true,
+        producto_origen_id: productoOrigenId,
       })
       revalidatePath('/catalogos')
+      revalidatePath('/procesamiento')
       return { error: null, success: 'Producto creado', id: creado.id }
     }
   } catch (e) {
+    // Reglas del trigger `productos_guard_origen` (0014).
+    const pg = e as { code?: string; hint?: string; message?: string }
+    if (pg.code === 'P0001' && pg.message) {
+      const campo = pg.hint === 'crudo_con_procesados' ? 'tipo' : 'producto_origen_id'
+      return { error: pg.message, success: null, fieldErrors: { [campo]: pg.message } }
+    }
     const { error, fieldErrors } = toActionError(e, { mapaCampos: MAPA_CAMPOS })
     return { error, success: null, fieldErrors }
   }
 
   revalidatePath('/catalogos')
+  revalidatePath('/procesamiento')
   return { error: null, success: 'Producto actualizado', id }
 }
 

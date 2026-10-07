@@ -63,6 +63,7 @@ export function CatalogosScreen({
           key={open ? (editing?.id ?? 'nuevo') : 'cerrado'}
           open={open}
           producto={editing}
+          crudos={productos.filter((p) => p.tipo === 'crudo')}
           onClose={() => {
             setOpen(false)
             setEditing(null)

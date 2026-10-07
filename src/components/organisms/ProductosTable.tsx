@@ -7,6 +7,7 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Switch from '@mui/material/Switch'
+import Typography from '@mui/material/Typography'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import { DataGrid, type GridColDef, GridToolbarQuickFilter } from '@mui/x-data-grid'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -70,8 +71,31 @@ export function ProductosTable({ productos, esAdmin, onEdit }: ProductosTablePro
     run(activarProductoAction, p.id)
   }
 
+  const nombrePorId = React.useMemo(
+    () => new Map(productos.map((p) => [p.id, p.nombre])),
+    [productos]
+  )
+
   const columns: GridColDef[] = [
-    { field: 'nombre', headerName: 'Nombre', flex: 1.5, minWidth: 180 },
+    {
+      field: 'nombre',
+      headerName: 'Nombre',
+      flex: 1.5,
+      minWidth: 180,
+      renderCell: (params) => {
+        const p = params.row as Producto
+        if (p.tipo !== 'procesado') return p.nombre
+        const origen = p.producto_origen_id ? nombrePorId.get(p.producto_origen_id) : null
+        return (
+          <Box>
+            <Typography variant="body2">{p.nombre}</Typography>
+            <Typography variant="caption" color={origen ? 'text.secondary' : 'warning.main'}>
+              {origen ? `de ${origen}` : 'Sin crudo asignado'}
+            </Typography>
+          </Box>
+        )
+      },
+    },
     {
       field: 'codigo',
       headerName: 'Código',
