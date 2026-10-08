@@ -86,6 +86,8 @@ lotes              (codigo, producto_id, origen compra|proceso|inicial, compra_i
 factura_item_lotes (factura_item_id, lote_id, peso_kg, costo_usd_kg)
 perdidas_lote      (lote_id, fecha, peso_kg, motivo, detalle, usuario_id)
 recordatorios_cobro (cliente_id, canal whatsapp|email, destinatario, asunto?, mensaje, estado generado|enviado|fallido, enviado_por) + recordatorio_facturas
+contratos          (numero, tipo venta_credito|compra_credito, factura_id?, compra_id?, fecha, dias_credito, fecha_vencimiento, estado generado|enviado|firmado|anulado, url_storage, notas, generado_por, estado_cambiado_por/_at)  -- 06-contratos; PDF inmutable en bucket privado `contratos`; solo admin
+config_negocio     (singleton: iva_pct, fuente_tasa_default, umbrales, dias_credito_default, ..., nombre_comercial, razon_social, rif, direccion, telefono)  -- los 4 últimos: encabezado de contratos (06)
 usuarios           (via Supabase Auth; rol admin|operador)
 ```
 

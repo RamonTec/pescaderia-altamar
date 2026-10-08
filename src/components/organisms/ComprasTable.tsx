@@ -33,9 +33,11 @@ export interface ComprasTableProps {
   esAdmin: boolean
   onPagar: (compra: CompraFila) => void
   onNueva: () => void
+  /** Acciones extra del `⋮` (06-contratos: generar / ver contrato), solo admin. */
+  accionesExtra?: (row: CompraFila) => RowAction[]
 }
 
-export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva }: ComprasTableProps) {
+export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accionesExtra }: ComprasTableProps) {
   const columns: GridColDef<CompraFila>[] = React.useMemo(() => [
     colFecha('fecha', 'Fecha', { width: 120 }),
      {
@@ -99,18 +101,19 @@ export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva }: Comp
             valueGetter: (_v, row) => Number(row.subtotal_usd) - Number(row.pagado_usd),
           }),
           colAcciones((row) => {
-            const actions = []
+            const actions: RowAction[] = []
             if (row.estado === 'abierta') {
               actions.push({
                 label: 'Registrar pago',
                 onClick: () => onPagar(row),
               })
             }
+            if (accionesExtra) actions.push(...accionesExtra(row))
             return actions
           }, { rowLabel: (row) => `compra a ${row.proveedor?.nombre}` }),
         ] satisfies GridColDef<CompraFila>[])
       : []),
-  ], [esAdmin, onPagar])
+  ], [esAdmin, onPagar, accionesExtra])
 
   return (
     <AppDataGrid<CompraFila>

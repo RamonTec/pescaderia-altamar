@@ -413,7 +413,7 @@ export async function listar(filtros: FiltrosContratos): Promise<PaginaContratos
     estado: filtros.estado,
     q: filtros.q,
     page: Math.max(0, filtros.pagina - 1),
-    pageSize: PAGE_SIZE_CONTRATOS,
+    pageSize: filtros.limite ?? PAGE_SIZE_CONTRATOS,
   })
 }
 
@@ -431,12 +431,6 @@ export async function cambiarEstado(id: string, estado: EstadoContrato): Promise
   } catch (e) {
     throw traducirErrorBase(e)
   }
-}
-
-/** Contrato por id (para revalidar la ficha de la contraparte tras un cambio). */
-export async function obtener(id: string): Promise<Contrato | null> {
-  const { contratos } = await contexto()
-  return contratos.getById(id)
 }
 
 /** URL firmada al vuelo (TTL 60 s); nunca se guarda. `null` si el contrato no existe. */

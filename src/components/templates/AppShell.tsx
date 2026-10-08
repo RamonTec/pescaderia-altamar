@@ -95,6 +95,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: <PointOfSaleOutlinedIcon />,
   },
   { href: '/cobros', label: 'Cobros y pagos', icon: <PaymentsOutlinedIcon /> },
+  // 06-contratos: bitácora de contratos, solo admin.
+  {
+    href: '/contratos',
+    label: 'Contratos',
+    icon: <DescriptionOutlinedIcon />,
+    adminOnly: true,
+  },
   {
     href: '/tasas',
     label: 'Tasas de cambio',

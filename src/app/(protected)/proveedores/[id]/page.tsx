@@ -7,6 +7,7 @@ import { makeDocumentoProveedorRepository } from '@/lib/repositories/documentoPr
 import { createClient } from '@/lib/supabase/server'
 import { getSaldoPendiente } from '@/lib/services/proveedorBalanceService'
 import { requireAdmin } from '@/lib/services/authService'
+import { elegibilidadCompras } from '@/lib/services/contratoService'
 import type { Compra } from '@/types/domain'
 
 /** Compra del historial de la ficha (el total real de una compra es `subtotal_usd`). */
@@ -70,6 +71,13 @@ export default async function ProveedorFichaPage({
     })
   )
 
+  // 06-contratos: elegibilidad de contrato de las compras del historial, en
+  // lote (solo admin). Necesita los ids: va después del Promise.all.
+  const contratos =
+    esAdmin && compras.length > 0
+      ? Object.fromEntries(await elegibilidadCompras(compras.map((c) => c.id)))
+      : {}
+
   return (
     <ProveedorFicha
       proveedor={proveedor}
@@ -80,6 +88,7 @@ export default async function ProveedorFichaPage({
       documentos={documentos}
       docUrls={docUrls}
       compras={compras}
+      contratos={contratos}
     />
   )
 }

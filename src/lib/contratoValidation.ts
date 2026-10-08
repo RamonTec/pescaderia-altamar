@@ -91,6 +91,12 @@ export const FILTROS_ESTADO_CONTRATO = [
 /** Params de `/contratos`. Valores inválidos caen en el default (no rompen la página). */
 export const filtrosContratosSchema = z.object({
   pagina: z.coerce.number().int().min(1).catch(1).default(1),
+  /** Tamaño de página elegido en la tabla (25/50/100). */
+  limite: z.coerce
+    .number()
+    .refine((n) => n === 25 || n === 50 || n === 100)
+    .catch(25)
+    .default(25),
   tipo: z.enum(['venta', 'compra']).optional().catch(undefined),
   estado: z.enum(FILTROS_ESTADO_CONTRATO).catch('activos').default('activos'),
   q: z

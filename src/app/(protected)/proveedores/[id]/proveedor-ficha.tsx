@@ -23,10 +23,12 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { FichaDato, FichaDatos, FichaSeccion } from '@/components/molecules/FichaSeccion'
 import { FichaHeader } from '@/components/molecules/FichaHeader'
 import type { RowAction } from '@/components/molecules/RowActionsMenu'
+import { RowActionsMenu } from '@/components/molecules/RowActionsMenu'
 import { StatusChips } from '@/components/molecules/StatusChips'
 import { AppDataGrid } from '@/components/organisms/AppDataGrid'
 import {
   EstadoChip,
+  colAcciones,
   colEstado,
   colFecha,
   colMonto,
@@ -38,6 +40,7 @@ import { formatUsd } from '@/lib/format'
 import type {
   CondicionPago,
   DocumentoProveedor,
+  ElegibilidadContrato,
   EstadoDocumental,
   EstadoDoc,
   MetodoPagoProveedor,
@@ -47,6 +50,8 @@ import type {
 } from '@/types/domain'
 import { useProveedorAcciones, type DatosEdicionProveedor } from '../useProveedorAcciones'
 import type { CompraFicha } from './page'
+import { useContratoAcciones } from '@/app/(protected)/contratos/useContratoAcciones'
+import { fechaCorta } from '@/lib/contratos/textos'
 
 const LABEL_METODO: Record<MetodoPagoProveedor['tipo'], string> = {
   transferencia: 'Transferencia',
@@ -91,6 +96,7 @@ export function ProveedorFicha({
   documentos,
   docUrls,
   compras,
+  contratos = {},
 }: {
   proveedor: Proveedor
   saldo: number
@@ -101,11 +107,41 @@ export function ProveedorFicha({
   /** URL firmada por id de documento (para "Ver" en pestaña nueva). */
   docUrls: Record<string, string>
   compras: CompraFicha[]
+  /** 06-contratos: elegibilidad de contrato por compra (solo admin). */
+  contratos?: Record<string, ElegibilidadContrato>
 }) {
   const router = useRouter()
   const theme = useTheme()
   const refrescar = React.useCallback(() => router.refresh(), [router])
   const { acciones, dialogos, estaPendiente } = useProveedorAcciones({ onCambio: refrescar })
+  const contratoAcciones = useContratoAcciones()
+  const { accionesDeOrigen } = contratoAcciones
+  const accionesCompra = React.useCallback(
+    (c: CompraFicha): RowAction[] =>
+      accionesDeOrigen(
+        {
+          tipo: 'compra_credito',
+          id: c.id,
+          fecha: String(c.fecha).slice(0, 10),
+          etiqueta: `Compra del ${fechaCorta(String(c.fecha))} · ${proveedor.nombre}`,
+        },
+        contratos[c.id]
+      ),
+    [accionesDeOrigen, contratos, proveedor.nombre]
+  )
+  // `⋮` del historial solo para el admin (las opciones de contrato son suyas).
+  const columnasCompras = React.useMemo(
+    () =>
+      esAdmin
+        ? [
+            ...COLUMNAS_COMPRAS,
+            colAcciones<CompraFicha>(accionesCompra, {
+              rowLabel: (c) => `compra del ${fechaCorta(String(c.fecha))}`,
+            }),
+          ]
+        : COLUMNAS_COMPRAS,
+    [esAdmin, accionesCompra]
+  )
 
   const documentacion: EstadoDocumental = evaluarDocumentacion(proveedor, representantes, documentos)
   const pendiente = estaPendiente(proveedor.id)
@@ -387,16 +423,26 @@ export function ProveedorFicha({
                   tableId="proveedor-compras"
                   label="Compras del proveedor"
                   rows={compras}
-                  columns={COLUMNAS_COMPRAS}
+                  columns={columnasCompras}
                   searchable={false}
                   pageParam="pcompras"
                   embedded
                   emptyState={{ title: 'Aún no hay compras' }}
-                  mobileCard={(c) => ({
-                    primary: `Compra del ${c.fecha}`,
-                    amount: formatUsd(c.subtotal_usd),
-                    status: <EstadoChip {...ESTADO_COMPRA[c.estado]} />,
-                  })}
+                  mobileCard={(c) => {
+                    const accionesFila = esAdmin ? accionesCompra(c) : []
+                    return {
+                      primary: `Compra del ${c.fecha}`,
+                      amount: formatUsd(c.subtotal_usd),
+                      status: <EstadoChip {...ESTADO_COMPRA[c.estado]} />,
+                      actions:
+                        accionesFila.length > 0 ? (
+                          <RowActionsMenu
+                            label={`Acciones de la compra del ${fechaCorta(String(c.fecha))}`}
+                            actions={accionesFila}
+                          />
+                        ) : undefined,
+                    }
+                  }}
                 />
               )}
             </FichaSeccion>
@@ -459,6 +505,7 @@ export function ProveedorFicha({
         </Box>
 
         {dialogos}
+        {esAdmin ? contratoAcciones.dialogos : null}
       </Box>
     </Fade>
   )

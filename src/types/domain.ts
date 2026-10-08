@@ -95,6 +95,11 @@ export interface ConfigNegocio {
   email_respuesta: string | null
   /** Días desde el ingreso a partir de los cuales un lote abierto es "antiguo" (07-lotes). */
   dias_alerta_lote: number | null
+  /** Datos del negocio para el encabezado de los contratos (06-contratos). */
+  razon_social: string | null
+  rif: string | null
+  direccion: string | null
+  telefono: string | null
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -530,4 +535,108 @@ export interface ResultadoLote {
   mermaKg: number
   /** `Σ salida / Σ entrada` de sus procesamientos; `null` si no se procesó. */
   rendimiento: number | null
+}
+
+/* ==================== Contratos (06) ==================== */
+
+export type TipoContrato = 'venta_credito' | 'compra_credito'
+export type EstadoContrato = 'generado' | 'enviado' | 'firmado' | 'anulado'
+
+/** Fila de `contratos`. El PDF es inmutable; `url_storage` es la ruta en el bucket. */
+export interface Contrato {
+  id: string
+  numero: number
+  tipo: TipoContrato
+  factura_id: string | null
+  compra_id: string | null
+  /** Fecha de emisión (Caracas). */
+  fecha: string
+  dias_credito: number
+  /** Fecha del origen + `dias_credito`; la deriva el trigger y no se recalcula. */
+  fecha_vencimiento: string
+  estado: EstadoContrato
+  url_storage: string
+  notas: string | null
+  generado_por: string
+  estado_cambiado_por: string | null
+  estado_cambiado_at: string | null
+  created_at: string
+}
+
+/** Fila de `contratos_listado_view`. */
+export interface ContratoListado extends Contrato {
+  contraparte_id: string | null
+  contraparte_nombre: string | null
+  contraparte_rif_ci: string | null
+  documento_fecha: string | null
+  /** `facturas.numero`; `null` en compras. */
+  documento_numero: number | null
+  monto_usd: number | null
+  /** El documento de origen se anuló después de generar el contrato. */
+  origen_anulado: boolean
+}
+
+export interface ParteContrato {
+  nombre: string
+  tipo_persona: TipoPersona
+  rif_ci: string
+  direccion: string | null
+  telefono: string | null
+  representantes: Pick<RepresentanteLegal, 'nombre' | 'cedula' | 'cargo'>[]
+}
+
+export interface ItemContrato {
+  codigo: string | null
+  producto: string
+  peso_kg: number
+  /** Precio (venta) o costo (compra) USD/kg guardado en el origen. */
+  precio_usd_kg: number
+  subtotal_usd: number
+}
+
+/** Todo lo que necesita una plantilla de contrato; sin consultas ni recálculos de tasa. */
+export interface DatosContratoPdf {
+  tipo: TipoContrato
+  numero: number
+  fecha_emision: string
+  dias_credito: number
+  fecha_vencimiento: string
+  notas: string | null
+  negocio: {
+    nombre_comercial: string | null
+    razon_social: string
+    rif: string
+    direccion: string
+    telefono: string
+  }
+  contraparte: ParteContrato
+  documento: {
+    /** "F-000123" en ventas; `null` en compras (no tienen número). */
+    numero: string | null
+    fecha: string
+    /** Primeros 8 caracteres del id (referencia de la compra). */
+    referencia: string
+    /** Moneda pactada (solo compras). */
+    moneda: Moneda | null
+  }
+  items: ItemContrato[]
+  totales: {
+    subtotal_usd: number
+    /** Solo venta. */
+    iva_pct: number | null
+    iva_usd: number | null
+    total_usd: number
+    pagado_usd: number
+    /** Σ notas de crédito emitidas (solo venta; 0 en compras). */
+    creditos_usd: number
+    saldo_usd: number
+  }
+  tasa: TasaOperacion
+}
+
+export interface ElegibilidadContrato {
+  puedeGenerar: boolean
+  /** Por qué no se puede generar (p. ej. "Documento anulado"). */
+  motivo?: string
+  contratoActivo?: { id: string; numero: number; estado: EstadoContrato }
 }
