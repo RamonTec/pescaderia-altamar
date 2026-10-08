@@ -6,7 +6,7 @@ import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 import { useNavigationPending } from '@/components/atoms/NavigationProgress'
 
-export type PageLoaderVariant = 'table' | 'form' | 'ficha'
+export type PageLoaderVariant = 'table' | 'form' | 'ficha' | 'dashboard'
 
 const ROW_COUNT = 6
 
@@ -63,10 +63,35 @@ function FichaLoader() {
   )
 }
 
+/** Dashboard (15): título, fila de KPIs (1/2/4 columnas) y dos bloques de gráficos. */
+function DashboardLoader() {
+  return (
+    <Box sx={{ display: 'grid', gap: 3, width: '100%' }}>
+      <Skeleton variant="text" width={220} height={44} />
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+        }}
+      >
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} variant="rounded" height={104} />
+        ))}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+        <Skeleton variant="rounded" height={280} />
+        <Skeleton variant="rounded" height={280} />
+      </Box>
+    </Box>
+  )
+}
+
 const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
   table: TableLoader,
   form: FormLoader,
   ficha: FichaLoader,
+  dashboard: DashboardLoader,
 }
 
 export function PageLoader({

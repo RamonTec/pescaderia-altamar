@@ -26,6 +26,37 @@ const tasaCortaFormatter = new Intl.NumberFormat('es-VE', {
   maximumFractionDigits: 2,
 })
 
+const pctFormatter = new Intl.NumberFormat('es-VE', {
+  style: 'percent',
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+})
+
+const enteroFormatter = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 })
+
+/** Fracción → porcentaje con 1 decimal: `0.7` → `70,0 %` (15-dashboard). */
+export function formatPct(n: number): string {
+  return pctFormatter.format(n)
+}
+
+/** Conteos con separador de miles: `1234` → `1.234` (15-dashboard). */
+export function formatEntero(n: number): string {
+  return enteroFormatter.format(n)
+}
+
+/** USD compacto para ejes de gráficas: `$12.5k` (15-dashboard). */
+export function formatUsdCorto(n: number): string {
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000) return `${n < 0 ? '-' : ''}$${(abs / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `${n < 0 ? '-' : ''}$${(abs / 1_000).toFixed(1)}k`
+  return formatUsd(n).replace(/\.00$/, '')
+}
+
+/** Kilos compactos para ejes: `1.250 kg` sin decimales (15-dashboard). */
+export function formatKgCorto(n: number): string {
+  return `${enteroFormatter.format(n)} kg`
+}
+
 export function formatUsd(n: number): string {
   return usdFormatter.format(n)
 }

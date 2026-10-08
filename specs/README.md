@@ -86,7 +86,14 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     AppDialog sm y patrón de botones en carga en ConfigNegocioForm; sin ficha
     de producto — lista + diálogo)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos.
+15-dashboard   → depende de 04-inventario, 05-ventas, 06-contratos, 07-lotes,
+                 08-tasas y 09-cuentas-por-cobrar (todos hechos); usa 00 Fase 2
+   (pantalla 7 de /SPEC.md §7: fila de KPIs del día + analítica por período
+    con selector de rango; cálculos en RPC `dashboard_*` protegidas con
+    es_admin(), sin tablas nuevas; el operador ve solo lo operativo.
+    Spec del 2026-10-08; decisiones D1–D7 cerradas el mismo día)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (último: lee datos de todos los módulos).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -117,6 +124,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - **Días de crédito al generar**: el contrato guarda sus propios `dias_credito` y `fecha_vencimiento` (vacíos y obligatorios en compras; precargados desde la factura y editables, sin modificar la factura).
 
   Además: bucket `contratos` creado en la migración, un solo contrato activo por origen (índice único parcial), los anulados no generan contrato y el PDF es snapshot sin recalcular. Cambia el esquema de `04-inventario` (`config_negocio`): anotado como tarea agregada en `04-inventario/tasks.md`.
+- **Dashboard ampliado (2026-10-08, pedido del usuario)**: la pantalla 7 de `/SPEC.md` §7 (tasa del día, ventas/margen del día, CxC/CxP, alertas de stock) se amplía con una sección analítica por período: ventas por mes en USD y kg, merma por procesos, margen bruto USD separado del resultado cambiario Bs, volumen en kg, productos con salida y CxC/CxP. Se suman 14 indicadores aprobados por el usuario: antigüedad de lotes, valor del inventario USD/Bs, pérdidas por motivo, margen por producto, spread precio/costo, rendimiento por proveedor, aging y top deudores, flujo de caja proyectado a 7/30 días, exposición cambiaria, contado vs crédito y métodos de pago, Pareto y clientes inactivos, ticket promedio, pedidos de hoy y mañana, y contratos sin firmar. Los cálculos van en RPC protegidas con `es_admin()`, sin tablas nuevas, y el operador ve solo lo operativo. Nuevo módulo `15-dashboard`. **No cambia el esquema de otros módulos**: el usuario aprobó el 2026-10-08 las decisiones D1–D7 tal como se propusieron. Con D2, el vencimiento de cuentas por pagar sale del contrato de compra o de `compras.fecha + dias_credito_default`, sin tocar `compras`. Con D1 se agrega `@mui/x-charts`, que amplía el stack de `/SPEC.md` §3 sin reabrir ninguna decisión.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

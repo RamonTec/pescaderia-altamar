@@ -3,21 +3,31 @@ import type {
   Cliente,
   ClienteInput,
   CondicionPago,
+  ClienteInactivo,
   Compra,
   CompraItem,
   ConfigNegocio,
   Contrato,
   ContratoListado,
+  ContratoPendienteFirma,
+  DashboardOperativo,
+  Deudor,
   DocumentoCliente,
   DocumentoProveedor,
   DevolucionLote,
   EstadoContrato,
   EstadoDoc,
   EstadoLote,
+  ExposicionCambiaria,
   Factura,
   FacturaItem,
+  FilaFlujo,
+  FilaMezclaVentas,
+  FilaTopCliente,
+  KpisDia,
   Lote,
   LoteCreado,
+  MermaProceso,
   MetodoPagoProveedor,
   MotivoPerdida,
   NotaCredito,
@@ -27,19 +37,28 @@ import type {
   Pedido,
   PedidoItem,
   PerdidaLote,
+  PerdidaPorMotivo,
   Procesamiento,
   ProcesoItem,
   ProcesoLote,
   Producto,
+  ProductoSalida,
   Proveedor,
+  PuntoSpread,
+  RangoFechas,
   RecordatorioCobro,
   RepresentanteLegal,
+  RendimientoProveedor,
   RepresentanteProveedor,
+  ResultadoCambiario,
   SugerenciaLotes,
   TipoContrato,
   TipoDocumentoCliente,
   TipoDocumentoProveedor,
+  TramoAging,
+  TramoAntiguedad,
   VentaLote,
+  VentaMensual,
 } from '@/types/domain'
 
 /**
@@ -545,4 +564,43 @@ export interface IContratoArchivoRepository {
   subir(ruta: string, bytes: Uint8Array): Promise<void>
   eliminar(ruta: string): Promise<void>
   urlFirmada(ruta: string, ttlSegundos: number, nombreDescarga?: string): Promise<string>
+}
+
+/* ==================== Dashboard (15) ==================== */
+
+/** Fila de `dashboard_valor_inventario()` (sin Bs: la conversión es del servicio). */
+export interface FilaValorInventario {
+  producto_id: string
+  producto_nombre: string
+  lotes: number
+  stock_kg: number
+  valor_usd: number
+}
+
+/**
+ * Solo llamadas a las RPC `dashboard_*` y conversión `numeric` → `number`.
+ * Las de importes fallan con `42501` si el usuario no es admin; el servicio
+ * no las invoca para el operador.
+ */
+export interface IDashboardRepository {
+  operativo(): Promise<DashboardOperativo>
+  antiguedadLotes(): Promise<TramoAntiguedad[]>
+  /** Sin `margen_pct` ni `inventario_bs`: los completa el servicio. */
+  kpisDia(): Promise<Omit<KpisDia, 'margen_pct' | 'inventario_bs'>>
+  ventasMensuales(rango: RangoFechas): Promise<VentaMensual[]>
+  productosSalida(rango: RangoFechas): Promise<ProductoSalida[]>
+  spreadPrecioCosto(rango: RangoFechas, productoId: string | null): Promise<PuntoSpread[]>
+  mezclaVentas(rango: RangoFechas): Promise<FilaMezclaVentas[]>
+  topClientes(rango: RangoFechas, limite: number): Promise<FilaTopCliente[]>
+  clientesInactivos(dias: number): Promise<ClienteInactivo[]>
+  resultadoCambiario(rango: RangoFechas): Promise<ResultadoCambiario>
+  mermaProcesos(rango: RangoFechas): Promise<MermaProceso[]>
+  rendimientoProveedor(rango: RangoFechas): Promise<RendimientoProveedor[]>
+  perdidasMotivo(rango: RangoFechas): Promise<PerdidaPorMotivo[]>
+  valorInventario(): Promise<FilaValorInventario[]>
+  agingCartera(): Promise<TramoAging[]>
+  topDeudores(limite: number): Promise<Deudor[]>
+  flujoProyectado(dias: number): Promise<FilaFlujo[]>
+  exposicionCambiaria(): Promise<ExposicionCambiaria>
+  contratosSinFirmar(): Promise<ContratoPendienteFirma[]>
 }

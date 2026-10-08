@@ -42,6 +42,15 @@ import {
   colMonto,
 } from '@/components/organisms/appDataGridColumns'
 import { BrandLoader } from '@/components/organisms/BrandLoader'
+import { useTheme } from '@mui/material/styles'
+import { BarChart } from '@mui/x-charts/BarChart'
+import { KpiCard } from '@/components/molecules/KpiCard'
+import { ChartCard } from '@/components/molecules/ChartCard'
+import { ChartLegendTable } from '@/components/molecules/ChartLegendTable'
+import { RangoFechasSelector } from '@/components/molecules/RangoFechasSelector'
+import { coloresGrafico } from '@/lib/dashboard/chartColors'
+import { rangoDesdePreset } from '@/lib/dashboard/rangos'
+import { fechaHoy, formatKg } from '@/lib/format'
 import { formatUsd } from '@/lib/format'
 import { useGlobalLoader } from '@/lib/useGlobalLoader'
 import { useNotify } from '@/lib/useNotify'
@@ -615,6 +624,63 @@ function FormulariosSection() {
   )
 }
 
+const VENTAS_DEMO = [
+  { mes: 'May', usd: 4200, kg: 610 },
+  { mes: 'Jun', usd: 5100, kg: 702 },
+  { mes: 'Jul', usd: 4800, kg: 655 },
+  { mes: 'Ago', usd: 6300, kg: 880 },
+  { mes: 'Sep', usd: 5900, kg: 812 },
+  { mes: 'Oct', usd: 2100, kg: 290 },
+]
+
+/** Molecules del dashboard (15) y una gráfica de prueba de `@mui/x-charts` (D1). */
+function DashboardSection() {
+  const theme = useTheme()
+  const colores = coloresGrafico(theme)
+  const hoy = fechaHoy()
+  return (
+    <Section
+      title="Dashboard: indicadores y gráficas"
+      description="KpiCard (cifra h5 tabular, acento de estado, enlace opcional), ChartCard con sus estados, ChartLegendTable como alternativa accesible y RangoFechasSelector (escribe ?desde/?hasta; en xs, Select + diálogo). Colores de las gráficas solo desde theme.palette."
+    >
+      <RangoFechasSelector rango={rangoDesdePreset('mes_en_curso', hoy)} hoy={hoy} />
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <KpiCard title="Ventas del día" value={formatUsd(1280.5)} secondary={`${formatKg(212.4)} · 6 facturas`} />
+        <KpiCard title="CxC vencida" value={formatUsd(840)} secondary="3 clientes con vencidas" tone="error" href="/cobros" />
+        <KpiCard title="Stock bajo" value="2 productos" secondary="Umbral 20,000 kg" tone="warning" />
+        <KpiCard title="Cargando" loading />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <ChartCard title="Ventas por mes (prueba)" help="Barras con colores del theme; revisa claro y oscuro.">
+          <BarChart
+            height={240}
+            dataset={VENTAS_DEMO}
+            xAxis={[{ scaleType: 'band', dataKey: 'mes' }]}
+            yAxis={[{ valueFormatter: (v: number) => formatUsd(v), width: 72 }]}
+            series={[{ dataKey: 'usd', label: 'Ventas USD', color: colores.usd, valueFormatter: (v) => formatUsd(v ?? 0) }]}
+            aria-label="Gráfica de prueba: ventas por mes en USD"
+          />
+          <ChartLegendTable
+            caption="Ventas por mes"
+            rows={VENTAS_DEMO}
+            getRowKey={(r) => r.mes}
+            columns={[
+              { key: 'mes', label: 'Mes', render: (r) => r.mes },
+              { key: 'usd', label: 'Ventas', align: 'right', render: (r) => formatUsd(r.usd) },
+              { key: 'kg', label: 'Kilos', align: 'right', render: (r) => formatKg(r.kg) },
+            ]}
+          />
+        </ChartCard>
+        <div className="grid gap-4">
+          <ChartCard title="Sin datos" empty emptyDescription="EmptyState compact dentro de la tarjeta." />
+          <ChartCard title="Con error" error="No se pudo cargar la merma por procesos." />
+          <ChartCard title="Cargando" loading skeletonHeight={80} />
+        </div>
+      </div>
+    </Section>
+  )
+}
+
 export function EstandaresScreen() {
   const notify = useNotify()
   return (
@@ -642,6 +708,7 @@ export function EstandaresScreen() {
         <TablasSection />
         <DialogosSection />
         <FormulariosSection />
+        <DashboardSection />
       </div>
     </>
   )

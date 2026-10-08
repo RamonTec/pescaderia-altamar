@@ -640,3 +640,389 @@ export interface ElegibilidadContrato {
   motivo?: string
   contratoActivo?: { id: string; numero: number; estado: EstadoContrato }
 }
+
+/* ==================== Dashboard (15) ==================== */
+
+/** Rango de fechas `YYYY-MM-DD`, inclusive en ambos extremos. */
+export interface RangoFechas {
+  desde: string
+  hasta: string
+}
+
+export type PresetRango =
+  | 'hoy'
+  | 'ultimos_7'
+  | 'mes_en_curso'
+  | 'mes_anterior'
+  | 'ultimos_90'
+  | 'anio_en_curso'
+  | 'personalizado'
+
+/** Días del flujo de caja proyectado (C3). */
+export type DiasFlujo = 7 | 30
+
+/** Resultado de un bloque: el error de uno no tumba los demás. */
+export type BloqueDashboard<T> = { ok: true; data: T } | { ok: false; error: string }
+
+/** `dashboard_kpis_dia()` (admin) + conversión a Bs del servicio. */
+export interface KpisDia {
+  hoy: string
+  ventas_usd: number
+  ventas_kg: number
+  facturas: number
+  costo_usd: number
+  margen_usd: number
+  /** margen / ventas; `null` sin ventas. */
+  margen_pct: number | null
+  cxc_saldo_usd: number
+  cxc_vencido_usd: number
+  cxc_facturas: number
+  cxc_clientes_vencidos: number
+  cxp_saldo_usd: number
+  cxp_vencido_usd: number
+  cxp_compras: number
+  inventario_usd: number
+  inventario_kg: number
+  /** Valor del inventario en Bs a la tasa vigente de `fuente_tasa_default`; `null` sin tasa. */
+  inventario_bs: number | null
+}
+
+export type GrupoPedidoProximo = 'atrasado' | 'hoy' | 'manana'
+
+/** Pedido `pendiente` con entrega hasta mañana (D3 del alcance). */
+export interface PedidoProximo {
+  pedido_id: string
+  cliente_id: string
+  cliente_nombre: string
+  fecha_entrega: string
+  grupo: GrupoPedidoProximo
+  items: number
+  kg_estimados: number
+  /** Σ peso estimado × precio; `null` para el operador. */
+  usd_estimado: number | null
+}
+
+export interface ProductoStockBajo {
+  producto_id: string
+  producto_nombre: string
+  stock_kg: number
+}
+
+export interface LoteAntiguo {
+  lote_id: string
+  codigo: string
+  producto_id: string
+  producto_nombre: string
+  fecha_ingreso: string
+  dias: number
+  stock_kg: number
+}
+
+/** `dashboard_operativo()` (cualquier autenticado): sin costos. */
+export interface DashboardOperativo {
+  hoy: string
+  /** `null` = sin umbral configurado: la alerta de stock no aplica. */
+  umbral_stock_bajo_kg: number | null
+  /** `null` = sin `dias_alerta_lote`: la alerta de lotes antiguos no aplica. */
+  dias_alerta_lote: number | null
+  pedidos: PedidoProximo[]
+  stock_bajo: ProductoStockBajo[]
+  lotes_antiguos: LoteAntiguo[]
+}
+
+export type TramoAntiguedadId = '0-2' | '3-5' | '>5'
+
+/** `dashboard_antiguedad_lotes()`: tramos fijos de días en cava (D3). */
+export interface TramoAntiguedad {
+  tramo: TramoAntiguedadId
+  orden: number
+  lotes: number
+  kg: number
+  /** `null` para el operador. */
+  usd: number | null
+}
+
+/** `dashboard_ventas_mensuales()` (D6: 12 meses hasta el mes de `hasta`). */
+export interface VentaMensual {
+  /** Primer día del mes, `YYYY-MM-01`. */
+  mes: string
+  ventas_usd: number
+  kg: number
+  facturas: number
+}
+
+/** `dashboard_productos_salida()`: volumen (B2) y margen por producto (B3). */
+export interface ProductoSalida {
+  producto_id: string
+  producto_nombre: string
+  kg: number
+  ventas_usd: number
+  facturas: number
+  precio_medio_usd_kg: number | null
+  costo_usd: number
+  margen_usd: number
+  margen_pct: number | null
+}
+
+/** `dashboard_resultado_cambiario()` (B4, D5). En Bs; nunca se suma al margen USD. */
+export interface ResultadoCambiario {
+  cobros_bs: number
+  cobros: number
+  pagos_proveedores_bs: number
+  pagos_proveedores: number
+  /** cobros − pagos a proveedores. */
+  neto_bs: number
+}
+
+export type GranularidadSpread = 'semana' | 'mes'
+
+/** `dashboard_spread_precio_costo()` (B5). Valores `null` en períodos sin ventas. */
+export interface PuntoSpread {
+  /** Lunes de la semana ISO o primer día del mes. */
+  periodo: string
+  granularidad: GranularidadSpread
+  kg: number
+  precio_medio_usd_kg: number | null
+  costo_medio_usd_kg: number | null
+  spread_usd_kg: number | null
+}
+
+/** `dashboard_merma_procesos()` (B6), por producto de origen. */
+export interface MermaProceso {
+  producto_id: string
+  producto_nombre: string
+  procesos: number
+  kg_entrada: number
+  kg_salida: number
+  merma_kg: number
+  merma_pct: number | null
+  rendimiento: number | null
+  costo_merma_usd: number
+}
+
+/** `dashboard_rendimiento_proveedor()` (B7). */
+export interface RendimientoProveedor {
+  /** `null` = lotes sin proveedor (iniciales). */
+  proveedor_id: string | null
+  proveedor_nombre: string | null
+  producto_id: string
+  producto_nombre: string
+  procesos: number
+  kg_entrada: number
+  kg_salida: number
+  rendimiento: number | null
+  merma_pct: number | null
+  costo_kg_crudo_usd: number | null
+  costo_kg_limpio_usd: number | null
+}
+
+/** `dashboard_perdidas_motivo()` (B8): los cinco motivos siempre presentes. */
+export interface PerdidaPorMotivo {
+  motivo: MotivoPerdida
+  registros: number
+  kg: number
+  usd: number
+}
+
+/** Fila cruda de `dashboard_mezcla_ventas()`. */
+export interface FilaMezclaVentas {
+  grupo: 'total' | 'condicion' | 'metodo' | 'moneda'
+  clave: string
+  usd: number
+  cantidad: number
+  kg: number | null
+}
+
+export interface ParteMezcla<K extends string> {
+  clave: K
+  usd: number
+  cantidad: number
+  /** usd / total del grupo; `null` si el total es 0. */
+  pct: number | null
+}
+
+/** B9 + B10 + B11 armados por el servicio. */
+export interface MezclaVentas {
+  ventas_usd: number
+  facturas: number
+  kg: number
+  /** Ventas / n.º de facturas; `null` sin facturas. */
+  ticket_promedio_usd: number | null
+  kg_por_factura: number | null
+  condicion: ParteMezcla<CondicionPago>[]
+  metodos: ParteMezcla<MetodoPago>[]
+  monedas: ParteMezcla<Moneda>[]
+}
+
+/** Fila cruda de `dashboard_top_clientes()`. */
+export interface FilaTopCliente {
+  cliente_id: string
+  cliente_nombre: string
+  ventas_usd: number
+  facturas: number
+  total_periodo_usd: number
+  clientes_periodo: number
+}
+
+/** Cliente en el Pareto (B12). `cliente_id` `null` = "Resto". */
+export interface ClienteRanking {
+  cliente_id: string | null
+  cliente_nombre: string
+  ventas_usd: number
+  facturas: number | null
+  pct: number
+  pct_acumulado: number
+  /** Dentro del grupo que suma hasta el 80 % (incluye al que cruza el corte). */
+  dentro_80: boolean
+}
+
+export interface TopClientesPareto {
+  clientes: ClienteRanking[]
+  total_usd: number
+  clientes_periodo: number
+  /** Índice del cliente que cruza el 80 %; `null` si no hay ventas. */
+  indice_corte_80: number | null
+}
+
+export type TramoAgingId = 'por_vencer' | '1-15' | '16-30' | '>30'
+
+/** `dashboard_aging_cartera()` (C1). */
+export interface TramoAging {
+  tramo: TramoAgingId
+  orden: number
+  saldo_usd: number
+  facturas: number
+}
+
+/** `dashboard_top_deudores()` (C2). */
+export interface Deudor {
+  cliente_id: string
+  cliente_nombre: string
+  saldo_usd: number
+  vencido_usd: number
+  facturas: number
+  vencida_mas_antigua_dias: number | null
+}
+
+/** Fila cruda de `dashboard_flujo_proyectado()`. */
+export interface FilaFlujo {
+  tipo: 'dia' | 'vencido'
+  fecha: string | null
+  cobros_usd: number
+  pagos_usd: number
+}
+
+/** Día del flujo proyectado (C3) con el acumulado neto del servicio. */
+export interface FlujoDia {
+  fecha: string
+  cobros_usd: number
+  pagos_usd: number
+  neto_usd: number
+  acumulado_usd: number
+}
+
+export interface FlujoProyectado {
+  dias: DiasFlujo
+  serie: FlujoDia[]
+  /** Ya vencido, no repartido en días. */
+  vencido_cobros_usd: number
+  vencido_pagos_usd: number
+}
+
+/** `dashboard_exposicion_cambiaria()` (C4, D7). Importes en Bs, informativos. */
+export interface ExposicionCambiaria {
+  saldo_usd: number
+  fuente: 'bcv' | 'paralela'
+  tasa_bcv: number | null
+  tasa_bcv_fecha: string | null
+  tasa_paralela: number | null
+  tasa_paralela_fecha: string | null
+  brecha_pct: number | null
+  brecha_bs: number | null
+  latente_bs: number | null
+}
+
+/** `dashboard_clientes_inactivos()` (C5). */
+export interface ClienteInactivo {
+  cliente_id: string
+  cliente_nombre: string
+  ultima_compra: string
+  dias: number
+  ventas_90d_usd: number
+}
+
+/** `dashboard_contratos_sin_firmar()` (agregado 14). */
+export interface ContratoPendienteFirma {
+  contrato_id: string
+  numero: number
+  tipo: TipoContrato
+  estado: Extract<EstadoContrato, 'generado' | 'enviado'>
+  contraparte_nombre: string | null
+  fecha: string
+  fecha_vencimiento: string
+  dias_desde_generado: number
+}
+
+/** `dashboard_valor_inventario()`: valor por producto (D2 del alcance). */
+export interface ValorInventarioProducto {
+  /** `null` = "Resto" (agrupado por el servicio). */
+  producto_id: string | null
+  producto_nombre: string
+  lotes: number
+  stock_kg: number
+  valor_usd: number
+  valor_bs: number | null
+}
+
+/** Tasas de hoy para la tarjeta del día (A). */
+export interface TasasDelDia {
+  bcv: TasaVigente | null
+  paralela: TasaVigente | null
+  /** EUR BCV, solo referencia. */
+  eur: TasaVigente | null
+  /** Fuente con la que se convierte a Bs (`config_negocio.fuente_tasa_default`). */
+  fuente_default: 'bcv' | 'paralela'
+}
+
+/** Bloque operativo (cualquier rol): pedidos, alertas y antigüedad de lotes. */
+export interface DashboardOperativoBloques {
+  operativo: BloqueDashboard<DashboardOperativo>
+  antiguedad: BloqueDashboard<TramoAntiguedad[]>
+}
+
+/** Sección analítica por período (B, admin). */
+export interface DashboardAnalitica {
+  rango: RangoFechas
+  granularidad_spread: GranularidadSpread
+  producto_spread: string | null
+  ventas_mensuales: BloqueDashboard<VentaMensual[]>
+  productos: BloqueDashboard<ProductoSalida[]>
+  resultado_cambiario: BloqueDashboard<ResultadoCambiario>
+  spread: BloqueDashboard<PuntoSpread[]>
+  merma: BloqueDashboard<MermaProceso[]>
+  rendimiento: BloqueDashboard<RendimientoProveedor[]>
+  perdidas: BloqueDashboard<PerdidaPorMotivo[]>
+  mezcla: BloqueDashboard<MezclaVentas>
+  top_clientes: BloqueDashboard<TopClientesPareto>
+}
+
+/** Cartera, flujo, riesgo, inventario valorizado y contratos (C + D, admin; foto a hoy). */
+export interface DashboardCartera {
+  aging: BloqueDashboard<TramoAging[]>
+  deudores: BloqueDashboard<Deudor[]>
+  flujo: BloqueDashboard<FlujoProyectado>
+  exposicion: BloqueDashboard<ExposicionCambiaria>
+  inactivos: BloqueDashboard<ClienteInactivo[]>
+  contratos: BloqueDashboard<ContratoPendienteFirma[]>
+  valor_inventario: BloqueDashboard<ValorInventarioProducto[]>
+}
+
+/** Resultado completo de `dashboardService.getDashboard`. Lo de admin es `undefined` para el operador. */
+export interface Dashboard {
+  rol: 'admin' | 'operador' | null
+  tasas: BloqueDashboard<TasasDelDia>
+  operativo: DashboardOperativoBloques
+  kpisDia?: BloqueDashboard<KpisDia>
+  analitica?: DashboardAnalitica
+  cartera?: DashboardCartera
+}
