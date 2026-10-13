@@ -68,6 +68,16 @@ Regla de avance: después de cada tarea deben pasar `npm run lint` y `npx tsc --
     - `/clientes` sigue funcionando (documentos y representantes) después de la Fase B.
 32. Recorrer `checklist.md` y marcarlo.
 
+## Fase F — Cambio de alcance: representante legal opcional (tarea agregada el 2026-10-13)
+
+Ver "Cambio de alcance (2026-10-13)" en `spec.md`. Sin migración. Tras cada tarea: `npm run lint` y `npx tsc --noEmit`.
+
+33. **`src/lib/proveedorValidation.ts`**: quitar del `.superRefine` de `proveedorFormSchema` la regla "jurídica exige ≥1 representante". Se conservan la validación por fila (`representanteSchema`), el preferido único y los métodos sin duplicar. Hecho: un jurídico sin representantes pasa `safeParse`, tanto en el form como en la server action.
+34. **`molecules/RepresentantesLegalesFieldArray.tsx`**: agregar la prop `opcional?: boolean` (por defecto `false`), que solo cambia el texto del estado vacío: "Sin representantes (opcional)." frente a "Sin representantes. Agrega al menos uno.". **`molecules/ProveedorIdentificacionFields.tsx`** la pasa en `true`. `ClienteForm` no se toca.
+35. **`proveedores/[id]/proveedor-ficha.tsx`**: el jurídico sin representantes pasa de `Alert` `warning` "Falta registrar…" a `Alert` `info` "Sin representantes legales registrados.", y se mantiene el botón "Agregar".
+36. **`src/lib/evaluarDocumentacion.ts`**: sin cambio de lógica (ya itera solo sobre los representantes existentes). Actualizar el JSDoc ("cédula de cada representante registrado, si los hay") y el de `evaluarDocumentacion` en `proveedorService.ts`.
+37. **Verificación**: lint, tsc y build. Recorrido manual: alta de un jurídico sin representantes de punta a punta (los 3 pasos), una fila de representante a medio llenar sigue dando error en su campo, la ficha muestra el `Alert` info, el chip "Doc. incompleta" no lista cédulas de representantes y `/clientes` jurídico sigue exigiendo representante.
+
 ## Tareas agregadas a otros módulos por este módulo (2026-10-06)
 
 - **02-clientes**: (a) adoptar `ActionState`/`toActionError` (tarea 7); (b) se recomienda un trigger equivalente a `proveedores_guard_bloqueo` sobre `clientes` y crear el bucket `documentos-clientes` por migración, igual que en la tarea 4. Anotado en `02-clientes/tasks.md`.

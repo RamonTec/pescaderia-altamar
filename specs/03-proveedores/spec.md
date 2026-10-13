@@ -10,11 +10,21 @@ El usuario pidió un módulo propio para tener control real de con quién compra
 
 | Tema | Decisión |
 |---|---|
-| Representantes legales | **Sí, igual que clientes**: un proveedor `juridica` exige al menos un representante (nombre, cédula, cargo, teléfono), cada uno con su foto de cédula. |
+| Representantes legales | **Opcionales** (actualizado el 2026-10-13, pedido del usuario; ver "Cambio de alcance" abajo). Un proveedor `juridica` puede registrar cero o más representantes (nombre, cédula, cargo, teléfono), cada uno con su foto de cédula. _Decisión original del 2026-10-06: "igual que clientes, jurídica exige al menos uno" — reemplazada._ |
 | Datos de pago | **Varios métodos por proveedor**: transferencia bancaria (cuenta de 20 dígitos), Pago Móvil y Zelle. Reemplaza la idea original de "una sola cuenta" (columnas `banco/numero_cuenta/titular_cuenta`), que se descarta. |
 | Documentación incompleta | **Solo indicador visual** ("Documentación incompleta" + lista de faltantes). No bloquea compras ni la activación. |
 | Bloqueo | Igual que clientes: solo `admin`, motivo obligatorio. Un proveedor bloqueado no recibe compras **a crédito** (la validación real ocurre en `04-inventario`). |
 | Ruta | `/proveedores` propia, separada de `/catalogos` (que queda solo para productos + configuración). |
+
+### Cambio de alcance (2026-10-13): representante legal opcional
+
+Pedido del usuario: en el alta (y la edición) de proveedor, registrar un representante legal deja de ser obligatorio, también para persona jurídica.
+
+- **Validación**: `proveedorFormSchema` ya no exige ≥1 representante en jurídica. Si se agrega una fila, sus campos se siguen validando con `representanteSchema` (nombre y cédula obligatorios dentro de la fila).
+- **Esquema**: sin migración. `representantes_proveedor` (0008) nunca tuvo constraint ni trigger que exigiera filas; la regla vivía solo en zod.
+- **Documentación requerida**: jurídica sin representantes **no** suma faltante (solo RIF + acta constitutiva); con representantes, sigue exigiéndose la cédula de cada uno.
+- **UI**: el estado vacío del paso 1 dice "Sin representantes (opcional)." y la ficha muestra un `Alert` `info` (no `warning`) "Sin representantes legales registrados." con botón "Agregar".
+- **Fuera de alcance**: `02-clientes` sigue exigiendo representante en jurídica (`clienteValidation.ts` y `clienteService.ts` no cambian).
 
 ## Modelo de datos
 
@@ -77,7 +87,7 @@ Bucket privado `documentos-proveedores`, **creado en la migración** (`insert in
 Función pura `evaluarDocumentacion(proveedor, representantes, documentos) → { completa: boolean, faltantes: string[] }` en `proveedorService.ts`:
 
 - **Natural**: cédula + RIF.
-- **Jurídica**: RIF + acta constitutiva + cédula de **cada** representante.
+- **Jurídica**: RIF + acta constitutiva + cédula de **cada** representante registrado (si no hay representantes, no se exige ninguna cédula — 2026-10-13).
 
 Solo alimenta el chip "Documentación incompleta" (listado y ficha) y la lista de faltantes. No bloquea nada.
 
@@ -129,7 +139,7 @@ Pequeño formulario propio (no `ConfirmDialog` genérico, porque lleva un campo)
 - Reusa `RIF_CI_REGEX`, `CEDULA_REGEX` y `representanteSchema` de `clienteValidation.ts` (no se redeclaran).
 - `TELEFONO_VE_REGEX` (`^0(2\d{2}|4(12|14|16|24|26|22))-?\d{7}$`), que se agrega a `clienteValidation.ts` para que clientes lo use también.
 - `metodoPagoSchema` = `z.discriminatedUnion('tipo', [...])`: transferencia (cuenta 20 dígitos + prefijo de banco conocido + titular + RIF/CI del titular), pago_movil (banco + teléfono móvil + RIF/CI), zelle (titular + email **o** teléfono, con `.refine`).
-- `proveedorFormSchema` con `.superRefine`: jurídica exige ≥1 representante; a lo sumo un método `preferido`; no hay métodos duplicados (misma cuenta o mismo teléfono de Pago Móvil dos veces).
+- `proveedorFormSchema` con `.superRefine`: ~~jurídica exige ≥1 representante~~ (eliminado el 2026-10-13: representantes opcionales); a lo sumo un método `preferido`; no hay métodos duplicados (misma cuenta o mismo teléfono de Pago Móvil dos veces).
 - `bloqueoSchema` (motivo ≥10 caracteres).
 
 **Server Actions**: cada action corre `proveedorFormSchema.safeParse` **antes** de llamar al servicio (regla de `00-estandares-ui`, desde el primer commit). El estado de la action incluye `fieldErrors?: Record<string, string>` y el formulario los aplica con `setError`. Así aparecen en su campo:
