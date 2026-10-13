@@ -84,19 +84,7 @@ export const proveedorFormSchema = z
     metodosPago: z.array(metodoPagoSchema),
   })
   .superRefine((data, ctx) => {
-    if (data.tipo_persona === 'juridica') {
-      const validos = data.representantes.filter(
-        (r) => r.nombre.trim() && r.cedula.trim()
-      )
-      if (validos.length === 0) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Un proveedor persona jurídica requiere al menos un representante legal',
-          path: ['representantes'],
-        })
-      }
-    }
-
+    // Representantes legales: opcionales también en jurídica (cambio 2026-10-13).
     const preferidos = data.metodosPago.filter((m) => m.preferido)
     if (preferidos.length > 1) {
       ctx.addIssue({

@@ -236,7 +236,8 @@ export async function desbloquear(id: string): Promise<Proveedor> {
 /**
  * Documentación requerida (indicador, no bloquea nada).
  *   - Natural: cédula + RIF.
- *   - Jurídica: RIF + acta constitutiva + cédula de cada representante.
+ *   - Jurídica: RIF + acta constitutiva + cédula de cada representante
+ *     registrado, si los hay (los representantes son opcionales).
  * Función pura, sin I/O.
  */
 export function evaluarDocumentacion(

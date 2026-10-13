@@ -166,7 +166,7 @@ export function ProveedorIdentificacionFields() {
 
       <Collapse in={tipoPersona === 'juridica'} timeout={theme.transitions.duration.standard}>
         <Box sx={{ mt: tipoPersona === 'juridica' ? 1 : 0 }}>
-          <RepresentantesLegalesFieldArray />
+          <RepresentantesLegalesFieldArray opcional />
         </Box>
       </Collapse>
     </Box>

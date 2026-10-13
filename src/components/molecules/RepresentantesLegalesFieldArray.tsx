@@ -23,9 +23,10 @@ interface FormValuesConRepresentantes {
  * Lista editable de representantes legales (solo visible si
  * tipo_persona === 'juridica'). Usa useFieldArray. Tipado genérico contra
  * `{ representantes: RepresentanteFormValues[] }`, de modo que sirve tanto
- * para clientes como para proveedores.
+ * para clientes como para proveedores. `opcional` solo cambia el texto del
+ * estado vacío (la obligatoriedad la decide el schema de cada form).
  */
-export function RepresentantesLegalesFieldArray() {
+export function RepresentantesLegalesFieldArray({ opcional = false }: { opcional?: boolean }) {
   const {
     register,
     control,
@@ -53,7 +54,7 @@ export function RepresentantesLegalesFieldArray() {
 
       {fields.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          Sin representantes. Agrega al menos uno.
+          {opcional ? 'Sin representantes (opcional).' : 'Sin representantes. Agrega al menos uno.'}
         </Typography>
       ) : (
         fields.map((field, index) => (

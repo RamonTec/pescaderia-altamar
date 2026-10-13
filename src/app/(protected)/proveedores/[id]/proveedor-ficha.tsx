@@ -309,7 +309,7 @@ export function ProveedorFicha({
               <FichaSeccion titulo="Representantes legales">
                 {representantes.length === 0 ? (
                   <Alert
-                    severity="warning"
+                    severity="info"
                     sx={{ maxWidth: '75ch' }}
                     action={
                       <Button color="inherit" size="small" onClick={() => editar(0)}>
@@ -317,7 +317,7 @@ export function ProveedorFicha({
                       </Button>
                     }
                   >
-                    Falta registrar al menos un representante legal.
+                    Sin representantes legales registrados.
                   </Alert>
                 ) : (
                   <Box

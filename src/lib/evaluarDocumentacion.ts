@@ -8,7 +8,8 @@ import type {
 /**
  * Documentación requerida (indicador, no bloquea nada).
  *   - Natural: cédula + RIF.
- *   - Jurídica: RIF + acta constitutiva + cédula de cada representante.
+ *   - Jurídica: RIF + acta constitutiva + cédula de cada representante
+ *     registrado, si los hay (los representantes son opcionales).
  * Función pura, sin I/O. Vive en un módulo propio para poder importarse
  * tanto desde el servicio (server) como desde la ficha (client).
  */
