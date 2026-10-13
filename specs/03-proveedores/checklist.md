@@ -10,7 +10,7 @@
 
 ## Validación de formularios
 - [x] Cada Server Action corre `safeParse` antes de llamar al servicio (verificado leyendo `proveedores/actions.ts`).
-- [x] Persona jurídica sin representante → error visible en el paso 1.
+- [x] Persona jurídica sin representante → error visible en el paso 1. *(Reemplazado el 2026-10-13: los representantes pasan a ser opcionales; ver sección "Cambio de alcance 2026-10-13".)*
 - [x] Transferencia: cuenta ≠ 20 dígitos o banco desconocido → error; el banco se detecta solo con una cuenta válida.
 - [x] Pago Móvil exige banco + teléfono móvil + RIF/CI; Zelle exige titular + email o teléfono.
 - [x] A lo sumo un método preferido; no se aceptan métodos duplicados.
@@ -46,6 +46,16 @@
 - [x] Componentes nuevos registrados en la tabla de `00-estandares-ui/spec.md`.
 - [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
 - [x] Si `04-inventario` ya existe: el saldo pendiente muestra un valor real, no `—`. *(2026-10-06: `proveedorService.getSaldoPendiente` delega en `proveedorBalanceService` de 04-inventario; requiere la migración `0012` aplicada para tener compras registradas)*
+
+## Cambio de alcance 2026-10-13: representante legal opcional
+- [x] Un jurídico sin representantes se guarda sin errores (en el form y en la server action). *(Comprobado con `proveedorFormSchema.safeParse`, el mismo schema que usan `zodResolver` y `actions.ts`; falta el recorrido manual en el navegador.)*
+- [x] Una fila de representante agregada pero incompleta sigue mostrando el error en su campo. *(Con `safeParse`, los errores caen en `representantes.0.nombre` y `representantes.0.cedula`.)*
+- [x] El estado vacío del paso 1 dice "Sin representantes (opcional)."; en `/clientes` sigue diciendo "Agrega al menos uno." *(Prop `opcional` solo en `ProveedorIdentificacionFields`.)*
+- [x] La ficha del jurídico sin representantes muestra el `Alert` `info` con el botón "Agregar". *(Implementado; falta la verificación visual en claro y oscuro.)*
+- [x] La documentación del jurídico sin representantes solo exige RIF y acta constitutiva; con representantes, también la cédula de cada uno. *(`evaluarDocumentacion` ya iteraba solo sobre los existentes; solo cambió el JSDoc.)*
+- [x] `/clientes` jurídico sigue exigiendo al menos un representante. *(`clienteValidation.ts` y `clienteService.ts` sin cambios.)*
+- [x] Sin migración nueva (confirmado: 0008 no tiene constraint); `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores. *(Lint: 0 errores; queda 1 warning previo en `NotaCreditoForm.tsx`, ajeno a este cambio.)*
+- [ ] Recorrido manual en el navegador: alta de un jurídico sin representantes en los 3 pasos y ficha resultante. *(Pendiente: requiere sesión en la app.)*
 
 ## Pendientes / deuda técnica
 - [x] Aplicar migraciones `0007`–`0010` en el proyecto Supabase real (SQL Editor / `db push`). _(Aplicadas; confirmado por el usuario el 2026-10-07.)_
