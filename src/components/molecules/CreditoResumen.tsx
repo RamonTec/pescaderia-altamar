@@ -21,8 +21,8 @@ const NUM = { fontVariantNumeric: 'tabular-nums' }
  */
 export function CreditoResumen({ limiteUsd, saldoUsd }: CreditoResumenProps) {
   const tieneCredito = limiteUsd != null && limiteUsd > 0
-  const uso = tieneCredito && saldoUsd != null ? Math.min(saldoUsd / limiteUsd, 1) : null
-  const disponible = tieneCredito && saldoUsd != null ? Math.max(limiteUsd - saldoUsd, 0) : null
+  const uso = tieneCredito && saldoUsd != null ? Math.min(Math.max(saldoUsd, 0) / limiteUsd, 1) : null
+  const disponible = tieneCredito && saldoUsd != null ? Math.max(limiteUsd - Math.max(saldoUsd, 0), 0) : null
   const barColor = uso != null && uso >= 1 ? 'brand.red' : 'brand.ochre'
 
   return (
@@ -83,8 +83,9 @@ export function CreditoResumen({ limiteUsd, saldoUsd }: CreditoResumenProps) {
               '& dd': { m: 0, typography: 'body2', ...NUM, textAlign: 'right' },
             }}
           >
-            <dt>Saldo pendiente</dt>
-            <dd>{saldoUsd != null ? formatUsd(saldoUsd) : 'Sin ventas aún'}</dd>
+            {/* 17: un saldo negativo es a favor del cliente (nota de crédito o corrección). */}
+            <dt>{saldoUsd != null && saldoUsd < 0 ? 'Saldo a favor' : 'Saldo pendiente'}</dt>
+            <dd>{saldoUsd != null ? formatUsd(Math.abs(saldoUsd)) : 'Sin ventas aún'}</dd>
             <dt>Límite</dt>
             <dd>{formatUsd(limiteUsd)}</dd>
           </Box>

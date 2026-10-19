@@ -17,6 +17,7 @@ import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
 import { CarteraResumenCards } from '@/components/molecules/CarteraResumenCards'
 import { CopyableText } from '@/components/molecules/CopyableText'
 import { CreditoResumen } from '@/components/molecules/CreditoResumen'
@@ -68,6 +69,9 @@ const COLUMNAS_PEDIDOS: GridColDef<Pedido>[] = [
   colEstado<Pedido>('estado', 'Estado', ESTADO_PEDIDO, { flex: 1 }),
 ]
 
+/** Ficha de la factura (17, solo admin). */
+const hrefFactura = (doc: DocumentoCartera) => `/facturas/${doc.id}`
+
 /**
  * Ficha del cliente. Todo llega por props desde `page.tsx` (servidor); aquí
  * solo se compone y se disparan las acciones (`useClienteAcciones`).
@@ -105,8 +109,14 @@ export function ClienteFicha({
   const contratoAcciones = useContratoAcciones()
   const { accionesDeOrigen } = contratoAcciones
   const accionesFactura = React.useCallback(
-    (doc: DocumentoCartera): RowAction[] =>
-      accionesDeOrigen(
+    (doc: DocumentoCartera): RowAction[] => [
+      // 17: ficha con la trazabilidad y la corrección de la factura (solo admin).
+      {
+        label: 'Ver detalle y trazabilidad',
+        icon: <ReceiptLongOutlinedIcon fontSize="small" />,
+        onClick: () => router.push(hrefFactura(doc)),
+      },
+      ...accionesDeOrigen(
         {
           tipo: 'venta_credito',
           id: doc.id,
@@ -116,7 +126,8 @@ export function ClienteFicha({
         },
         contratos[doc.id]
       ),
-    [accionesDeOrigen, contratos, cliente.nombre]
+    ],
+    [accionesDeOrigen, contratos, cliente.nombre, router]
   )
   // `key` nuevo en cada apertura: el diálogo vuelve a preparar el recordatorio.
   const [recordatorioKey, setRecordatorioKey] = React.useState<number | null>(null)
@@ -329,6 +340,7 @@ export function ClienteFicha({
                 pageParam="pfacturas"
                 embedded
                 renderAcciones={esAdmin ? accionesFactura : undefined}
+                getRowHref={esAdmin ? hrefFactura : undefined}
               />
               <Divider />
               <Typography variant="subtitle1" component="h3">

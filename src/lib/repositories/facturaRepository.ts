@@ -6,6 +6,7 @@ import type {
 } from './interfaces'
 import type { Factura, FacturaItem, NotaCredito, Pago, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
+import { mapearResultadoCorreccion, mapearTrazabilidad } from './trazabilidadFacturaMapper'
 
 /**
  * Implementación Supabase del repositorio de facturas.
@@ -91,6 +92,31 @@ export function makeFacturaRepository(db: SupabaseClient = createClient()): IFac
         .eq('estado', 'abierta')
       if (error) throw error
       return (data ?? []) as Pick<Factura, 'id' | 'total_usd' | 'pagado_usd'>[]
+    },
+    async listCerradasByCliente(clienteId) {
+      const { data, error } = await db
+        .from('facturas')
+        .select('id, total_usd, pagado_usd')
+        .eq('cliente_id', clienteId)
+        .eq('estado', 'pagada')
+      if (error) throw error
+      return (data ?? []) as Pick<Factura, 'id' | 'total_usd' | 'pagado_usd'>[]
+    },
+    // 17: trazabilidad y corrección, solo por RPC (security definer, solo admin).
+    async getTrazabilidad(id) {
+      const { data, error } = await db.rpc('trazabilidad_factura', { p_factura_id: id })
+      if (error) throw error
+      return mapearTrazabilidad(data)
+    },
+    async corregirLinea(input) {
+      const { data, error } = await db.rpc('corregir_linea_factura', {
+        p_factura_item_id: input.factura_item_id,
+        p_peso_kg: input.peso_kg,
+        p_precio_usd_kg: input.precio_usd_kg,
+        p_motivo: input.motivo,
+      })
+      if (error) throw error
+      return mapearResultadoCorreccion(data)
     },
   }
 }

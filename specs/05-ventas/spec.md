@@ -18,7 +18,7 @@ Depende de `00-estandares-ui`, `02-clientes` (para seleccionar cliente, validar 
 
 ### 4.2 Facturación (`InvoiceService`)
 - Numeración secuencial (`facturas.numero`, usar secuencia Postgres o `select max(numero)+1 for update` para evitar duplicados en concurrencia — preferir secuencia real).
-- Cálculo: `subtotal_usd = Σ(peso_kg × precio_usd_kg)`, `iva_usd = subtotal_usd × iva_pct/100` (tomar `iva_pct` de `config_negocio`, módulo 03), `total_usd = subtotal_usd + iva_usd`.
+- Cálculo: `subtotal_usd = Σ(peso_kg × precio_usd_kg)`, `iva_usd = subtotal_usd × iva_pct/100`, `total_usd = subtotal_usd + iva_usd`. `iva_pct` = el de `config_negocio` si la venta lleva IVA, o 0 si no: el interruptor se precarga con `clientes.aplica_iva` y se cambia solo para esa factura, según `18-iva-opcional`. *(Antes: `iva_pct` siempre de `config_negocio`; reemplazado el 2026-10-19.)*
 - Snapshot de `tasa_snapshot` (tasa del día al emitir) y `costo_usd_kg` por item (tomado del costo promedio vigente del producto, vía `costingService.getStockProducto`) — esto es lo que permite margen real por venta sin recalcular histórico (`/SPEC.md` §4.6).
 - Al emitir: descuenta stock llamando `movimientoService.registrarMovimiento('venta', ...)` (de `04-inventario`) por cada item, con `peso_kg` negativo.
 - Condición `contado`: factura nace con `pagado_usd = total_usd`. Condición `credito`: nace `abierta`.
@@ -32,11 +32,12 @@ Depende de `00-estandares-ui`, `02-clientes` (para seleccionar cliente, validar 
 ### 4.4 Notas de crédito
 
 - Se emite una nota de crédito **sobre una factura existente** (`factura_id`), nunca de forma independiente. Motivo obligatorio (texto libre: "producto en mal estado", "error de pesaje", "devolución parcial", etc.).
-- Puede ser **total** (anula el efecto de la factura completa) o **parcial** (afecta solo algunos items/cantidades). En ambos casos, **la factura original nunca se edita** (`/SPEC.md` principio de "nunca se recalcula historia") — la nota de crédito es un documento nuevo que resta.
+- Puede ser **total** (anula el efecto de la factura completa) o **parcial** (afecta solo algunos items/cantidades). En ambos casos la nota de crédito es un documento nuevo que resta, y la factura no se toca. Los **errores de captura** (peso o precio/kg mal anotados en una línea) se corrigen editando la factura, solo el admin, con historial y motivo, según `17-trazabilidad-y-correccion-facturas`. *(Antes: "la factura original nunca se edita"; reemplazado el 2026-10-19.)*
 - Nueva tabla `public.notas_credito`: `id, factura_id (references facturas), fecha, motivo, subtotal_usd, iva_usd, total_usd, estado (emitida|anulada)`. Nueva tabla `public.nota_credito_items`: `nota_credito_id, factura_item_id (references factura_items), peso_kg, precio_usd_kg` (el peso devuelto, puede ser menor o igual al de la factura original).
 - **Efecto en inventario**: si el producto devuelto vuelve a stock vendible (no siempre aplica — ej. pescado ya entregado y consumido no vuelve), se registra un movimiento vía `movimientoService.registrarMovimiento('ajuste', productoId, pesoKg_positivo, costo_usd_kg_del_momento_de_la_venta, notaCreditoId)`. Si el producto no vuelve a stock (devolución por mal estado, se descarta), **no** se registra movimiento de ingreso — solo queda el ajuste contable. Esta decisión (vuelve o no a stock) se captura como un campo `afecta_inventario boolean` en `nota_credito_items`, decidido al emitir la nota.
 - **Efecto en saldo del cliente**: `clienteBalanceService.getSaldoPendiente` resta `Σ(notas_credito.total_usd)` en estado `emitida` del total adeudado por ese cliente. Si la factura ya estaba pagada y se emite una nota de crédito, el resultado es un saldo a favor del cliente (puede quedar negativo o gestionarse como crédito para su próxima compra — **MVP: se muestra el saldo a favor, no se automatiza su aplicación a una venta futura**, eso queda como mejora posterior).
 - Numeración: igual criterio que `facturas.numero` (secuencia propia, `notas_credito_numero_seq`).
+- **IVA de la nota**: siempre al `iva_pct` vigente de su factura (lo fija un trigger al emitir). Si el admin activa o quita el IVA de la factura, las notas emitidas recalculan su IVA y su total al mismo %, según `18-iva-opcional`. *(Antes: la nota conservaba el IVA con que se emitió; reemplazado el 2026-10-19.)*
 
 ## Patrones (`/SPEC.md` §6)
 - **Repository**: `PedidoRepository`, `FacturaRepository`, `PagoRepository`.

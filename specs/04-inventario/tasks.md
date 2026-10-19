@@ -74,3 +74,7 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
   - `proceso_items` suma `precio_referencia_usd_kg` (snapshot) e índice único `(procesamiento_id, producto_destino_id)`. Su `peso_entrada_kg` pasa a ser prorrateo por kg, y `costo_total_usd`, costo asignado a la salida.
   - Lectura por `procesamientos_view` / `proceso_items_view` (costo `null` si no admin), con `revoke select` de las tablas base y sin políticas `write_all` de insert. Esto cierra la deuda del checklist de este módulo del 2026-10-06 sobre `proceso_items.costo_total_usd`.
   - Las migraciones son `20261019000000`–`20261019000200` de ese módulo.
+- **17-trazabilidad-y-correccion-facturas (2026-10-19)**: cambia el esquema de este módulo:
+  - `movimientos_tipo_check` suma `correccion_venta`, el movimiento de stock cuando el admin corrige el peso de una línea de factura.
+  - `config_negocio` suma `tolerancia_precio_ref_pct` (0–100, default 0), editable en `ConfigNegocioForm` en una `FormSection` "Señales de facturas" y validada en `configFormSchema`.
+  - Migración `20261019100000_correccion_facturas_esquema.sql` de ese módulo. Las RLS de `config_negocio` no cambian.

@@ -20,6 +20,11 @@ export type TipoMovimiento =
   | 'ajuste'
   /** Pérdida o cierre de un lote fuera del procesamiento (07-lotes). */
   | 'perdida'
+  /**
+   * Kg movidos por la corrección del peso de una línea de factura (17):
+   * `ref_id` = `factura_correcciones.id`. Positivo vuelve al lote, negativo sale.
+   */
+  | 'correccion_venta'
 
 export type MonedaTasa = 'USD' | 'EUR'
 export type OrigenTasa = 'bcv_scraping' | 'dolarapi' | 'manual'
@@ -106,6 +111,11 @@ export interface ConfigNegocio {
   rif: string | null
   direccion: string | null
   telefono: string | null
+  /**
+   * Tolerancia % simétrica frente al precio de referencia para las señales
+   * "Por debajo" y "Cobro mayor" de una factura (17). 0 = marca cualquier diferencia.
+   */
+  tolerancia_precio_ref_pct: number
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -608,6 +618,13 @@ export interface ContratoListado extends Contrato {
   monto_usd: number | null
   /** El documento de origen se anuló después de generar el contrato. */
   origen_anulado: boolean
+  /** Última corrección de la factura de origen (17); `null` sin correcciones o en compras. */
+  ultima_correccion_at: string | null
+  /**
+   * Contrato no anulado cuya factura se corrigió después de generarlo (17):
+   * hay que anularlo y generar otro. Derivado, no se guarda.
+   */
+  desactualizado: boolean
 }
 
 export interface ParteContrato {
@@ -672,7 +689,230 @@ export interface ElegibilidadContrato {
   puedeGenerar: boolean
   /** Por qué no se puede generar (p. ej. "Documento anulado"). */
   motivo?: string
-  contratoActivo?: { id: string; numero: number; estado: EstadoContrato }
+  /** `desactualizado`: la factura se corrigió después de generarlo (17). */
+  contratoActivo?: { id: string; numero: number; estado: EstadoContrato; desactualizado: boolean }
+}
+
+/* ============ Trazabilidad y corrección de facturas (17) ============ */
+
+/** Señal de posible error en una línea: Pérdida, Por debajo o Cobro mayor. */
+export type SenalFactura = 'perdida' | 'por_debajo' | 'cobro_mayor'
+/** Indicadores neutros: la señal correspondiente no aplica a la línea. */
+export type IndicadorLinea = 'sin_referencia' | 'sin_costo'
+/** Nivel de una línea o de la factura (el peor de sus líneas). */
+export type NivelSenal = 'ok' | 'aviso' | 'error'
+/** De dónde sale el precio de referencia de una línea. */
+export type FuenteReferencia = 'proceso' | 'catalogo'
+
+/** Compra de la que salió un lote (`null`s en lotes sin compra). */
+export interface CompraOrigenLote {
+  compra_id: string | null
+  fecha: string | null
+  proveedor_id: string | null
+  proveedor_nombre: string | null
+}
+
+/** Lote crudo (padre) de un lote procesado, con su compra. */
+export interface LotePadreTrazabilidad {
+  id: string
+  codigo: string
+  origen: OrigenLote
+  producto_nombre: string
+  fecha_ingreso: string
+  costo_usd_kg: number
+  moneda: Moneda
+  tasa_snapshot: number
+  peso_inicial_kg: number
+  compra: CompraOrigenLote | null
+}
+
+/** Procesamiento del que salió un lote procesado (merma y rendimiento del proceso completo). */
+export interface ProcesoOrigenLote {
+  procesamiento_id: string
+  proceso_item_id: string
+  fecha: string
+  reparto_costo: RepartoCosto | null
+  /** Sin cabecera (16): entrada = Σ `proceso_items`. */
+  legado: boolean
+  peso_entrada_kg: number
+  peso_salida_total_kg: number
+  /** Cantidad de salidas del procesamiento. */
+  salidas: number
+  /** Kg de esta salida. */
+  peso_salida_kg: number
+  /** Costo asignado a esta salida. */
+  costo_total_usd: number
+  /** Snapshot del precio de referencia usado en el reparto (16). */
+  precio_referencia_usd_kg: number | null
+  lote_padre: LotePadreTrazabilidad | null
+}
+
+interface EslabonLoteBase {
+  /** `factura_item_lotes.id`. */
+  fil_id: string
+  lote_id: string
+  codigo: string
+  orden: number
+  /** Kg de la línea que salieron de este lote. */
+  peso_kg: number
+  /** Costo/kg con que se vendió (snapshot de la asignación). */
+  costo_usd_kg: number
+  /** Kg ya devueltos a este lote por notas emitidas (tope al bajar el peso). */
+  kg_devueltos: number
+  fecha_ingreso: string
+  estado: EstadoLote
+  /** Stock actual del lote. */
+  stock_kg: number
+  moneda: Moneda
+  tasa_snapshot: number
+  /** Costo/kg actual del lote. */
+  lote_costo_usd_kg: number
+}
+
+/** Lote vendido en una línea, discriminado por su origen. */
+export type EslabonLoteVendido =
+  | (EslabonLoteBase & { origen: 'compra'; compra: CompraOrigenLote })
+  | (EslabonLoteBase & { origen: 'inicial' })
+  | (EslabonLoteBase & { origen: 'proceso'; proceso: ProcesoOrigenLote | null })
+
+/** Línea de factura con su cadena por lote. `lotes: []` sin control de stock (o legado). */
+export interface LineaTrazabilidad {
+  id: string
+  producto: Pick<Producto, 'id' | 'nombre' | 'codigo' | 'tipo' | 'controla_stock' | 'precio_referencia_usd_kg'>
+  peso_kg: number
+  precio_usd_kg: number
+  costo_usd_kg: number
+  /** Kg devueltos por notas de crédito emitidas (mínimo al corregir). */
+  kg_devueltos: number
+  lotes: EslabonLoteVendido[]
+}
+
+export interface NotaCreditoTrazabilidad extends NotaCredito {
+  items: Pick<NotaCreditoItem, 'id' | 'factura_item_id' | 'peso_kg' | 'precio_usd_kg' | 'afecta_inventario'>[]
+}
+
+export type PagoTrazabilidad = Pick<
+  Pago,
+  'id' | 'fecha' | 'monto_usd' | 'moneda_pago' | 'tasa_pago' | 'metodo' | 'ganancia_cambiaria_bs'
+>
+
+/** Kg movidos por una corrección en un lote (+ vuelve, − sale); `lote_id` `null` sin control de stock. */
+export interface MovimientoCorreccion {
+  lote_id: string | null
+  codigo: string | null
+  peso_kg: number
+}
+
+/** Fila del historial `factura_correcciones` (solo admin). */
+export interface CorreccionFactura {
+  id: string
+  factura_item_id: string
+  producto_nombre: string
+  peso_anterior_kg: number
+  peso_nuevo_kg: number
+  precio_anterior_usd_kg: number
+  precio_nuevo_usd_kg: number
+  costo_anterior_usd_kg: number
+  costo_nuevo_usd_kg: number
+  subtotal_anterior_usd: number
+  subtotal_nuevo_usd: number
+  iva_anterior_usd: number
+  iva_nuevo_usd: number
+  total_anterior_usd: number
+  total_nuevo_usd: number
+  pagado_usd: number
+  estado_anterior: Exclude<EstadoDoc, 'anulada'>
+  estado_nuevo: Exclude<EstadoDoc, 'anulada'>
+  contrato_id: string | null
+  contrato_numero: number | null
+  motivo: string
+  usuario_id: string
+  usuario_nombre: string | null
+  created_at: string
+  movimientos: MovimientoCorreccion[]
+}
+
+/** Contrato activo de la factura (06) con la marca derivada de 17. */
+export interface ContratoFactura {
+  id: string
+  numero: number
+  estado: EstadoContrato
+  created_at: string
+  desactualizado: boolean
+}
+
+export interface FacturaTrazabilidad extends Omit<Factura, 'cliente_id' | 'pedido_id'> {
+  created_at: string
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'limite_credito_usd' | 'bloqueado'>
+}
+
+/** Resultado de la RPC `trazabilidad_factura` (solo admin), sin cálculos. */
+export interface TrazabilidadFactura {
+  factura: FacturaTrazabilidad
+  lineas: LineaTrazabilidad[]
+  notas_credito: NotaCreditoTrazabilidad[]
+  pagos: PagoTrazabilidad[]
+  /** De la más reciente a la más antigua. */
+  correcciones: CorreccionFactura[]
+  contrato: ContratoFactura | null
+}
+
+/** Margen USD sin IVA (regla de `dashboard_lineas_venta`). */
+export interface MargenLinea {
+  venta_usd: number
+  costo_usd: number
+  margen_usd: number
+  /** `null` si la venta es 0. */
+  margen_pct: number | null
+}
+
+export interface SenalesLinea {
+  senales: SenalFactura[]
+  indicadores: IndicadorLinea[]
+  nivel: NivelSenal
+  precio_referencia_usd_kg: number | null
+  fuente_referencia: FuenteReferencia | null
+}
+
+export interface ResumenSenales {
+  nivel: NivelSenal
+  conteo: Record<SenalFactura, number>
+}
+
+export interface LineaDetalle extends LineaTrazabilidad {
+  margen: MargenLinea
+  senales: SenalesLinea
+}
+
+/** Ficha de una factura (`trazabilidadFacturaService`): trazabilidad + margen + señales. */
+export interface DetalleFactura extends Omit<TrazabilidadFactura, 'lineas'> {
+  lineas: LineaDetalle[]
+  saldo: {
+    /** Σ notas de crédito emitidas. */
+    creditos_usd: number
+    /** Pendiente de cobro (≥ 0). */
+    saldo_usd: number
+    /** A favor del cliente cuando lo pagado + créditos supera el total (≥ 0). */
+    saldo_a_favor_usd: number
+  }
+  /** Neto de notas de crédito emitidas. */
+  margen: MargenLinea
+  senales: ResumenSenales
+  tolerancia_precio_ref_pct: number
+}
+
+/** Respuesta de `corregir_linea_factura` (sin costos). */
+export interface ResultadoCorreccion {
+  correccion_id: string
+  subtotal_usd: number
+  iva_usd: number
+  total_usd: number
+  pagado_usd: number
+  saldo_usd: number
+  saldo_a_favor_usd: number
+  estado: Exclude<EstadoDoc, 'anulada'>
+  contrato: { id: string; numero: number; estado: EstadoContrato } | null
+  lotes: MovimientoCorreccion[]
 }
 
 /* ==================== Dashboard (15) ==================== */

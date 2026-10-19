@@ -113,7 +113,9 @@ function elegibilidad(
     // Contado: sin opciones de contrato (no entra en el mapa).
     if (o.condicion !== 'credito') continue
     const activo = activoPorOrigen.get(o.id)
-    const contratoActivo = activo ? { id: activo.id, numero: activo.numero, estado: activo.estado } : undefined
+    const contratoActivo = activo
+      ? { id: activo.id, numero: activo.numero, estado: activo.estado, desactualizado: activo.desactualizado }
+      : undefined
     if (o.estado === 'anulada') {
       resultado.set(o.id, { puedeGenerar: false, motivo: MSG_DOCUMENTO_ANULADO, contratoActivo })
     } else if (contratoActivo) {

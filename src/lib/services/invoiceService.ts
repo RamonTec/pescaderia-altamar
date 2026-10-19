@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/server'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { sumaAsignacion, TOLERANCIA_KG } from '@/lib/loteValidation'
 import { resolverTasaOperacion } from './tasaService'
+// 17: los totales viven en `lib/facturas/totales.ts` (puros, usables en la UI).
+import { ivaSobre, redondea6, subtotalItems } from '@/lib/facturas/totales'
 import { getSaldoPendiente } from './clienteBalanceService'
 
 /**
@@ -64,7 +66,6 @@ export class LimiteCreditoExcedido extends Error {
 }
 
 const redondea2 = (n: number) => Math.round(n * 100) / 100
-const redondea6 = (n: number) => Math.round(n * 1e6) / 1e6
 const redondea3 = (n: number) => Math.round(n * 1e3) / 1e3
 
 export interface ItemFacturaInput {
@@ -147,14 +148,6 @@ export function resolverDiasCredito(
     )
   }
   return dias
-}
-
-export function subtotalItems(items: ItemFacturaInput[]): number {
-  return redondea6(items.reduce((s, i) => s + i.peso_kg * i.precio_usd_kg, 0))
-}
-
-export function ivaSobre(subtotal: number, ivaPct: number): number {
-  return redondea6(subtotal * (ivaPct / 100))
 }
 
 /**

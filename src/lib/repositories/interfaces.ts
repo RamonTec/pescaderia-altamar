@@ -52,12 +52,14 @@ import type {
   RendimientoProveedor,
   RepresentanteProveedor,
   ResultadoCambiario,
+  ResultadoCorreccion,
   SugerenciaLotes,
   TipoContrato,
   TipoDocumentoCliente,
   TipoDocumentoProveedor,
   TramoAging,
   TramoAntiguedad,
+  TrazabilidadFactura,
   VentaLote,
   VentaMensual,
 } from '@/types/domain'
@@ -289,6 +291,26 @@ export interface IFacturaRepository {
   listAbiertasByCliente(
     clienteId: string
   ): Promise<Pick<Factura, 'id' | 'total_usd' | 'pagado_usd'>[]>
+  /**
+   * Facturas no anuladas y no abiertas de un cliente (17: una corrección puede
+   * dejar `pagado > total`, saldo a favor). PostgREST no compara columnas: el
+   * servicio filtra.
+   */
+  listCerradasByCliente(
+    clienteId: string
+  ): Promise<Pick<Factura, 'id' | 'total_usd' | 'pagado_usd'>[]>
+  /** RPC `trazabilidad_factura` (solo admin); `null` si no existe. */
+  getTrazabilidad(id: string): Promise<TrazabilidadFactura | null>
+  /** RPC `corregir_linea_factura` (solo admin, atómica). */
+  corregirLinea(input: CorreccionLineaNueva): Promise<ResultadoCorreccion>
+}
+
+/** Corrección de una línea (17): solo peso, precio/kg y motivo. */
+export interface CorreccionLineaNueva {
+  factura_item_id: string
+  peso_kg: number
+  precio_usd_kg: number
+  motivo: string
 }
 
 export type PagoNuevo = Omit<Pago, 'id'>
@@ -552,8 +574,11 @@ export interface OrigenContrato {
   estado: EstadoDoc
 }
 
-/** Contrato activo de un origen (para la elegibilidad). */
-export type ContratoActivoOrigen = Pick<Contrato, 'id' | 'numero' | 'estado' | 'factura_id' | 'compra_id'>
+/** Contrato activo de un origen (para la elegibilidad); `desactualizado` derivado de 17. */
+export type ContratoActivoOrigen = Pick<
+  ContratoListado,
+  'id' | 'numero' | 'estado' | 'factura_id' | 'compra_id' | 'desactualizado'
+>
 
 /** Error `23505` del índice de contrato activo, tipado para que el servicio lo reconozca. */
 export class ContratoActivoDuplicadoError extends Error {

@@ -117,7 +117,7 @@ export function useContratoAcciones() {
       const activo = elegibilidad.contratoActivo
       if (activo) {
         lista.push({
-          label: `Ver contrato ${numeroContrato(activo.numero)}`,
+          label: `Ver contrato ${numeroContrato(activo.numero)}${activo.desactualizado ? ' (desactualizado)' : ''}`,
           icon: <PictureAsPdfOutlinedIcon fontSize="small" />,
           onClick: () => verPdf(activo.id),
         })

@@ -23,3 +23,13 @@ export const MSG_DIAS_REQUERIDOS = 'Días requeridos'
 export const MSG_DIAS_ENTERO = 'Usa un número entero de días'
 export const MSG_DIAS_NO_NEGATIVO = 'No puede ser negativo'
 export const MSG_DIAS_MAX_365 = 'Máximo 365 días'
+
+// 17-trazabilidad-y-correccion-facturas: corrección de una línea de factura.
+export const MSG_PESO_REQUERIDO = 'Peso requerido'
+export const MSG_PESO_MAYOR_0 = 'El peso debe ser mayor a 0'
+export const MSG_PESO_3_DECIMALES = 'Usa como máximo 3 decimales'
+export const MSG_PRECIO_REQUERIDO = 'Precio requerido'
+export const MSG_PRECIO_NO_NEGATIVO = 'El precio no puede ser negativo'
+export const MSG_PRECIO_6_DECIMALES = 'Usa como máximo 6 decimales'
+export const MSG_MOTIVO_CORRECCION = 'Indica el motivo de la corrección (mínimo 5 caracteres)'
+export const MSG_MOTIVO_MAX_500 = 'Máximo 500 caracteres'

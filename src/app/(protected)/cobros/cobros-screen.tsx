@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { CarteraResumenCards } from '@/components/molecules/CarteraResumenCards'
 import type { RowAction } from '@/components/molecules/RowActionsMenu'
@@ -22,6 +23,9 @@ import type { CobrosAbiertos } from '@/lib/services/carteraService'
 import type { ElegibilidadContrato } from '@/types/domain'
 import { useContratoAcciones } from '@/app/(protected)/contratos/useContratoAcciones'
 import { numeroFactura } from '@/lib/repositories/carteraRepository'
+
+/** Ficha de la factura (17, solo admin). */
+const hrefFactura = (doc: DocumentoCartera) => `/facturas/${doc.id}`
 
 interface Recordando {
   key: number
@@ -55,7 +59,14 @@ export function CobrosScreen({
   const acciones = React.useCallback(
     (doc: DocumentoCartera): RowAction[] => {
       if (!esAdmin) return []
-      const lista: RowAction[] = []
+      // 17: ficha con la trazabilidad y la corrección de la factura (solo admin).
+      const lista: RowAction[] = [
+        {
+          label: 'Ver detalle y trazabilidad',
+          icon: <ReceiptLongOutlinedIcon fontSize="small" />,
+          onClick: () => router.push(hrefFactura(doc)),
+        },
+      ]
       const factura = facturasPorId.get(doc.id)
       if (factura && Number(factura.total_usd) - Number(factura.pagado_usd) > 0.005) {
         lista.push({
@@ -95,7 +106,7 @@ export function CobrosScreen({
       }
       return lista
     },
-    [esAdmin, facturasPorId, contexto.hoy, contexto.diasAviso, accionesDeOrigen, contratos]
+    [esAdmin, facturasPorId, contexto.hoy, contexto.diasAviso, accionesDeOrigen, contratos, router]
   )
 
   return (
@@ -118,6 +129,7 @@ export function CobrosScreen({
           mostrarCliente
           mostrarMontos={contexto.mostrarMontos}
           renderAcciones={esAdmin ? acciones : undefined}
+          getRowHref={esAdmin ? hrefFactura : undefined}
           filtro={filtro}
           onFiltroChange={setFiltro}
           nombre={{ singular: 'factura', plural: 'facturas por cobrar' }}

@@ -32,6 +32,8 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     dias_alerta_lote: c?.dias_alerta_lote ?? null,
     // 08-tasas: default de la migración (10 %) si la fila no lo trae.
     umbral_desviacion_tasa_pct: c?.umbral_desviacion_tasa_pct ?? 10,
+    // 17: default de la migración (0 %: marca cualquier diferencia).
+    tolerancia_precio_ref_pct: c?.tolerancia_precio_ref_pct ?? 0,
     // 09-cuentas-por-cobrar: defaults de la migración si la fila no los trae.
     dias_credito_default: c?.dias_credito_default ?? 15,
     dias_aviso_por_vencer: c?.dias_aviso_por_vencer ?? 3,
@@ -64,6 +66,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
   const umbralKg = useWatch({ control, name: 'umbral_stock_bajo_kg' })
   const diasAlertaLote = useWatch({ control, name: 'dias_alerta_lote' })
   const umbralTasa = useWatch({ control, name: 'umbral_desviacion_tasa_pct' })
+  const toleranciaRef = useWatch({ control, name: 'tolerancia_precio_ref_pct' })
   const diasCredito = useWatch({ control, name: 'dias_credito_default' })
   const diasAviso = useWatch({ control, name: 'dias_aviso_por_vencer' })
   const instrucciones = useWatch({ control, name: 'instrucciones_pago' })
@@ -258,6 +261,26 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
               </Typography>
             </Box>
           ) : null}
+          </FormSection>
+
+          <FormSection
+            titulo="Señales de facturas"
+            ayuda="En el detalle de una factura, cada línea se compara con su precio de referencia y su costo para marcar posibles errores."
+          >
+          <NumberField
+            label="Tolerancia frente al precio de referencia (%) *"
+            fullWidth
+            size="small"
+            decimals={2}
+            suffix="%"
+            value={toleranciaRef}
+            onChange={(v) => methods.setValue('tolerancia_precio_ref_pct', v ?? 0, { shouldDirty: true })}
+            error={!!formState.errors.tolerancia_precio_ref_pct}
+            helperText={
+              formState.errors.tolerancia_precio_ref_pct?.message ??
+              '0 % marca cualquier diferencia. Se aplica igual por debajo ("Por debajo") y por encima ("Cobro mayor").'
+            }
+          />
           </FormSection>
 
           <FormSection

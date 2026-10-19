@@ -76,3 +76,9 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
   - `getMovimientosArbol` lee `proceso_items_view` / `procesamientos_view`.
 
   Cierra la deuda del checklist de este módulo sobre `proceso_items.costo_total_usd` legible por el operador.
+- **17-trazabilidad-y-correccion-facturas (2026-10-19)**: el admin puede corregir el peso de una línea ya vendida.
+  - Nuevo tipo de movimiento `correccion_venta` (`ref_id` = la corrección).
+  - Si baja el peso, los kg vuelven a los lotes de la línea en orden inverso, con tope por lo devuelto en notas de crédito, y se reabre el lote. Si sube, sale primero de los lotes de la línea y luego por PEPS del mismo producto. Si no alcanza, da `stock_insuficiente` sin cambios parciales (aprobado el 2026-10-19).
+  - `factura_item_lotes` y `factura_items.costo_usd_kg` pueden cambiar después de la venta, **solo** por la RPC `corregir_linea_factura`, bajo el lock de la fila del lote.
+  - `resultadoLote` y la trazabilidad leen `factura_item_lotes`, así que reflejan los kg corregidos sin cambios.
+  - En `LoteTimeline`, el número de factura de una venta enlaza a `/facturas/[id]` cuando el usuario es admin.
