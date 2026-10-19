@@ -12,18 +12,16 @@ import { AppDialog } from '@/components/organisms/AppDialog'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import useMediaQuery from '@mui/material/useMediaQuery'
 import { NumberField } from '@/components/atoms/NumberField'
+import { TotalesVenta, totalesVenta } from '@/components/molecules/TotalesVenta'
 import { notaCreditoFormSchema, type NotaCreditoFormInput, type NotaCreditoFormValues } from '@/lib/notaCreditoValidation'
-import { fechaHoy, formatKg, formatUsd } from '@/lib/format'
+import { fechaHoy, formatKg } from '@/lib/format'
 import type { FacturaDetalle, FacturaResumen } from '@/lib/repositories/interfaces'
 import { facturaRepository } from '@/lib/repositories/facturaRepository'
 import { notaCreditoRepository } from '@/lib/repositories/notaCreditoRepository'
 import { emitirNotaCreditoAction } from '@/app/(protected)/notas-credito/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
-
-const NUM = { fontVariantNumeric: 'tabular-nums' }
 
 export interface NotaCreditoFormProps {
   open: boolean
@@ -110,10 +108,16 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
     }
   }, [facturaId, notify])
 
-  const totalDevolucion = (items ?? []).reduce((s, i) => {
-    const original = detalle?.items.find((fi) => fi.id === i.factura_item_id)
-    return s + (i.peso_kg != null && original ? i.peso_kg * Number(original.precio_usd_kg) : 0)
-  }, 0)
+  // 18: el IVA de la nota es el de su factura (el trigger lo recalcula al emitir).
+  const ivaPctFactura = Number(detalle?.iva_pct ?? 0)
+  const totalesNota = totalesVenta(
+    (items ?? []).map((i) => {
+      const original = detalle?.items.find((fi) => fi.id === i.factura_item_id)
+      return { peso_kg: original ? i.peso_kg : null, precio_usd_kg: original ? Number(original.precio_usd_kg) : null }
+    }),
+    ivaPctFactura
+  )
+  const totalDevolucion = totalesNota.subtotal_usd
 
   const pedirCierre = async () => {
     if (formState.isDirty) {
@@ -282,13 +286,13 @@ export function NotaCreditoForm({ open, onClose, facturas, facturaInicialId }: N
             ) : null}
 
             {totalDevolucion > 0 ? (
-              <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2, textAlign: 'right' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Subtotal a devolver
-                </Typography>
-                <Typography variant="h6" sx={NUM}>
-                  {formatUsd(totalDevolucion)}
-                </Typography>
+              <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2, display: 'flex' }}>
+                <TotalesVenta
+                  totales={totalesNota}
+                  ivaPct={ivaPctFactura}
+                  etiquetaSubtotal="Subtotal a devolver"
+                  etiquetaTotal="Total a acreditar"
+                />
               </Box>
             ) : null}
 

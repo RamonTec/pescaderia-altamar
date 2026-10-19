@@ -3,6 +3,9 @@
 import * as React from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import Box from '@mui/material/Box'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import FormHelperText from '@mui/material/FormHelperText'
+import Switch from '@mui/material/Switch'
 import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
@@ -129,7 +132,10 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
         </Grid>
       </FormSection>
 
-      <FormSection titulo="Crédito" ayuda="Déjalo vacío si el cliente solo compra de contado.">
+      <FormSection
+        titulo="Condiciones comerciales"
+        ayuda="Deja el límite vacío si el cliente solo compra de contado."
+      >
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
@@ -171,6 +177,33 @@ export function ClienteFormFields({ diasCreditoDefault = 15 }: { diasCreditoDefa
                     'Se precargan al vender a crédito; se pueden cambiar en cada venta.'
                   }
                 />
+              )}
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            {/* 18-iva-opcional: precarga el interruptor de IVA de cada venta. */}
+            <Controller
+              name="aplica_iva"
+              control={control}
+              render={({ field }) => (
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        onBlur={field.onBlur}
+                        disabled={field.disabled}
+                        slotProps={{ input: { 'aria-describedby': 'cliente-aplica-iva-ayuda' } }}
+                      />
+                    }
+                    label="Aplica IVA"
+                    sx={{ mr: 0 }}
+                  />
+                  <FormHelperText id="cliente-aplica-iva-ayuda" sx={{ mt: 0 }}>
+                    Se precarga en cada venta; se puede cambiar en la factura.
+                  </FormHelperText>
+                </Box>
               )}
             />
           </Grid>

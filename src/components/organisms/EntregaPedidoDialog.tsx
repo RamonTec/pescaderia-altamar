@@ -15,6 +15,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { NumberField } from '@/components/atoms/NumberField'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
+import { IvaVentaSwitch } from '@/components/molecules/IvaVentaSwitch'
+import { TotalesVenta, totalesVenta } from '@/components/molecules/TotalesVenta'
 import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
 import {
   pedirConfirmacionTasaManual,
@@ -23,7 +25,8 @@ import {
   type TasaSelectorConfig,
 } from '@/components/organisms/TasaSelector'
 import { entregaPedidoSchema, type EntregaPedidoInput, type EntregaPedidoValues } from '@/lib/pedidoValidation'
-import { fechaHoy, formatFecha, formatKg, formatUsd } from '@/lib/format'
+import { fechaHoy, formatBs, formatFecha, formatKg, formatUsd } from '@/lib/format'
+import { ivaPctVenta } from '@/lib/facturas/iva'
 import type { AdvertenciaLimiteCredito } from '@/lib/services/invoiceService'
 import type { PedidoDetalle } from '@/lib/repositories/interfaces'
 import type { Producto } from '@/types/domain'
@@ -37,6 +40,8 @@ export interface EntregaPedidoDialogProps {
   configTasas: TasaSelectorConfig
   /** Días de crédito del negocio para clientes sin días propios (09). */
   diasCreditoDefault: number
+  /** `config_negocio.iva_pct` vigente: el % de las ventas con IVA (18). */
+  ivaPct: number
   /** Productos (para saber cuáles controlan stock y usan lotes, 07-lotes). */
   productos: Producto[]
   onClose: () => void
@@ -48,6 +53,7 @@ function vacio(pedidoId: string): EntregaPedidoInput {
     fecha: fechaHoy(),
     condicion: 'credito',
     dias_credito: null,
+    aplica_iva: true,
     // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
     // completa origen/fuente/valor (o exige la manual).
     tasa_origen: 'referencial',
@@ -61,11 +67,16 @@ function vacio(pedidoId: string): EntregaPedidoInput {
  * Entrega de un pedido pendiente: captura el peso real por item y genera la
  * factura con esos kg. La tasa se elige con `TasaSelector` (referencial por
  * fecha o manual). Montar con `key={pedido.id}` para reiniciar el form.
+ *
+ * 18-iva-opcional: el pedido no guarda IVA; `IvaVentaSwitch` viene
+ * precargado con el "Aplica IVA" actual del cliente y decide el IVA de esta
+ * factura. `TotalesVenta` usa los pesos reales capturados.
  */
 export function EntregaPedidoDialog({
   pedido,
   configTasas,
   diasCreditoDefault,
+  ivaPct,
   productos,
   onClose,
 }: EntregaPedidoDialogProps) {
@@ -89,6 +100,7 @@ export function EntregaPedidoDialog({
           fecha: fechaHoy(),
           condicion: 'credito',
           dias_credito: pedido.cliente?.dias_credito ?? diasCreditoDefault,
+          aplica_iva: pedido.cliente?.aplica_iva ?? true,
           tasa_origen: 'referencial',
           tasa_fuente: null,
           tasa: null,
@@ -101,9 +113,9 @@ export function EntregaPedidoDialog({
       : undefined,
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
-  const [fecha, condicion, diasCredito, pesosReales] = useWatch({
+  const [fecha, condicion, diasCredito, pesosReales, aplicaIva] = useWatch({
     control,
-    name: ['fecha', 'condicion', 'dias_credito', 'pesos_reales'],
+    name: ['fecha', 'condicion', 'dias_credito', 'pesos_reales', 'aplica_iva'],
   })
 
   // 07-lotes: líneas sin stock suficiente en lotes (no se puede facturar).
@@ -120,7 +132,20 @@ export function EntregaPedidoDialog({
 
   if (!pedido) return null
 
-  const totalUsd = pedido.items.reduce((s, i) => s + Number(i.peso_estimado_kg) * Number(i.precio_usd_kg), 0)
+  // 18: IVA de esta factura; estimado con los pesos del pedido y real con los capturados.
+  const ivaPctEfectivo = ivaPctVenta(aplicaIva !== false, ivaPct)
+  const totalEstimadoUsd = totalesVenta(
+    pedido.items.map((i) => ({ peso_kg: Number(i.peso_estimado_kg), precio_usd_kg: Number(i.precio_usd_kg) })),
+    ivaPctEfectivo
+  ).total_usd
+  const totales = totalesVenta(
+    pedido.items.map((i, index) => ({
+      peso_kg: pesosReales?.[index]?.peso_kg ?? null,
+      precio_usd_kg: Number(i.precio_usd_kg),
+    })),
+    ivaPctEfectivo
+  )
+  const totalUsd = totales.total_usd
 
   const enviar = (values: EntregaPedidoValues, forzarLimite: boolean) => {
     setServerError(null)
@@ -194,7 +219,7 @@ export function EntregaPedidoDialog({
             <Box>
               <Typography variant="body2">{pedido.cliente?.nombre}</Typography>
               <Typography variant="caption" color="text.secondary">
-                Pedido del {formatFecha(pedido.fecha)} · total estimado {formatUsd(totalUsd)}
+                Pedido del {formatFecha(pedido.fecha)} · total estimado {formatUsd(totalEstimadoUsd)}
               </Typography>
             </Box>
           </Box>
@@ -235,6 +260,16 @@ export function EntregaPedidoDialog({
               />
             </Grid>
           </Grid>
+
+          <IvaVentaSwitch
+            value={aplicaIva !== false}
+            onChange={(v) => setValue('aplica_iva', v, { shouldDirty: true })}
+            ivaPct={ivaPct}
+            habitualCliente={pedido.cliente ? pedido.cliente.aplica_iva : null}
+            disabled={isPending}
+            error={!!formState.errors.aplica_iva}
+            helperText={formState.errors.aplica_iva?.message}
+          />
 
           {condicion === 'credito' ? (
             <DiasCreditoField
@@ -297,7 +332,24 @@ export function EntregaPedidoDialog({
             config={configTasas}
             onReferencial={setReferencial}
             titulo="Tasa de la factura"
+            renderEquivalencia={(tasaFinal) =>
+              totalUsd && tasaFinal ? (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Equivale a {formatBs(totalUsd * tasaFinal)} con esta tasa.
+                </Typography>
+              ) : null
+            }
           />
+
+          <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2, display: 'flex' }}>
+            <TotalesVenta totales={totales} ivaPct={ivaPctEfectivo} />
+          </Box>
+
+          {condicion === 'credito' && totalUsd ? (
+            <Alert severity="info">
+              Quedará una cuenta por cobrar de {formatUsd(totalUsd)} a {pedido.cliente?.nombre ?? 'este cliente'}.
+            </Alert>
+          ) : null}
 
           {hayFaltante ? (
             <Alert severity="warning">

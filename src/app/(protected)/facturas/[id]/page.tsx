@@ -3,6 +3,7 @@ import { FacturaFicha } from './factura-ficha'
 import { requireAdmin } from '@/lib/services/authService'
 import { getDetalleFactura } from '@/lib/services/trazabilidadFacturaService'
 import { getContextoCartera } from '@/lib/services/carteraService'
+import { getIvaPct } from '@/lib/services/configService'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -17,8 +18,15 @@ export default async function FacturaPage({ params }: { params: Promise<{ id: st
   if (!UUID.test(id)) notFound()
   if (!(await requireAdmin())) notFound()
 
-  const [detalle, contexto] = await Promise.all([getDetalleFactura(id), getContextoCartera()])
+  // 18: el % de IVA vigente es el que aplica «Aplicar IVA».
+  const [detalle, contexto, ivaPctConfig] = await Promise.all([
+    getDetalleFactura(id),
+    getContextoCartera(),
+    getIvaPct(),
+  ])
   if (!detalle) notFound()
 
-  return <FacturaFicha detalle={detalle} hoy={contexto.hoy} diasAviso={contexto.diasAviso} />
+  return (
+    <FacturaFicha detalle={detalle} hoy={contexto.hoy} diasAviso={contexto.diasAviso} ivaPctConfig={ivaPctConfig} />
+  )
 }

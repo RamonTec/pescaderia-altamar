@@ -136,6 +136,8 @@ export interface Cliente {
   bloqueado: boolean
   motivo_bloqueo: string | null
   activo: boolean
+  /** "Aplica IVA" (18): precarga el interruptor de IVA de cada venta. */
+  aplica_iva: boolean
 }
 
 /** Campos que la UI/envío provee al crear; bloqueado/motivo/activo tienen default en BD. */
@@ -803,17 +805,9 @@ export interface MovimientoCorreccion {
   peso_kg: number
 }
 
-/** Fila del historial `factura_correcciones` (solo admin). */
-export interface CorreccionFactura {
+/** Campos comunes de una fila del historial `factura_correcciones` (solo admin). */
+interface CorreccionFacturaBase {
   id: string
-  factura_item_id: string
-  producto_nombre: string
-  peso_anterior_kg: number
-  peso_nuevo_kg: number
-  precio_anterior_usd_kg: number
-  precio_nuevo_usd_kg: number
-  costo_anterior_usd_kg: number
-  costo_nuevo_usd_kg: number
   subtotal_anterior_usd: number
   subtotal_nuevo_usd: number
   iva_anterior_usd: number
@@ -829,8 +823,37 @@ export interface CorreccionFactura {
   usuario_id: string
   usuario_nombre: string | null
   created_at: string
+}
+
+export type TipoCorreccionFactura = 'linea' | 'iva'
+
+/** Corrección de peso y/o precio/kg de una línea (17). */
+export interface CorreccionLinea extends CorreccionFacturaBase {
+  tipo: 'linea'
+  factura_item_id: string
+  producto_nombre: string
+  peso_anterior_kg: number
+  peso_nuevo_kg: number
+  precio_anterior_usd_kg: number
+  precio_nuevo_usd_kg: number
+  costo_anterior_usd_kg: number
+  costo_nuevo_usd_kg: number
   movimientos: MovimientoCorreccion[]
 }
+
+/** Activación o retiro del IVA de la factura (18): a nivel factura, sin línea. */
+export interface CorreccionIva extends CorreccionFacturaBase {
+  tipo: 'iva'
+  factura_item_id: null
+  iva_pct_anterior: number
+  iva_pct_nuevo: number
+  /** Σ total de las notas de crédito emitidas antes y después del cambio. */
+  creditos_anterior_usd: number
+  creditos_nuevo_usd: number
+}
+
+/** Fila del historial `factura_correcciones` (solo admin), discriminada por `tipo`. */
+export type CorreccionFactura = CorreccionLinea | CorreccionIva
 
 /** Contrato activo de la factura (06) con la marca derivada de 17. */
 export interface ContratoFactura {
@@ -913,6 +936,22 @@ export interface ResultadoCorreccion {
   estado: Exclude<EstadoDoc, 'anulada'>
   contrato: { id: string; numero: number; estado: EstadoContrato } | null
   lotes: MovimientoCorreccion[]
+}
+
+/** Respuesta de `cambiar_iva_factura` (18, sin costos). */
+export interface ResultadoCambioIva {
+  correccion_id: string
+  iva_pct: number
+  subtotal_usd: number
+  iva_usd: number
+  total_usd: number
+  pagado_usd: number
+  /** Σ notas de crédito emitidas, ya al % nuevo. */
+  creditos_usd: number
+  saldo_usd: number
+  saldo_a_favor_usd: number
+  estado: Exclude<EstadoDoc, 'anulada'>
+  contrato: { id: string; numero: number; estado: EstadoContrato } | null
 }
 
 /* ==================== Dashboard (15) ==================== */

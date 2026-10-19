@@ -1,50 +1,53 @@
 # Checklist — 18-iva-opcional
 
+> Verificación del 2026-10-19 (executor). "Postgres local" = contenedor `postgres:16-alpine` desechable, con stubs de `auth` (`auth.uid()` desde `request.jwt.claim.sub`, `auth.users`), `storage` y los roles `anon` / `authenticated` / `service_role`. Se aplicaron todas las migraciones anteriores en orden (la `0015` con la secuencia en 1, base vacía), se sembró una factura al 16 % con una corrección de línea de 17 **antes** de las migraciones de 18, se aplicaron las 2 de este módulo y luego un script de 56 aserciones SQL, dos pruebas de concurrencia con dos sesiones y una comparación del dashboard antes/después. El contenedor se borró al terminar. **No se aplicó nada a Supabase remoto.**
+
 ## Decisiones
 - [x] Decisiones del pedido cerradas por el usuario el 2026-10-19 (tabla de `spec.md`): IVA por cliente y editable en la venta, sí/no sin otro %, el total baja y corrección de emitidas solo admin con motivo y el % vigente al activar.
 - [x] Decisiones de diseño aprobadas por el usuario el 2026-10-19 (tabla de `spec.md`): `iva_pct = 0` sin booleano en `facturas`, recálculo del IVA y el total de las notas emitidas, `tipo linea|iva` en `factura_correcciones`, triggers `facturas_validar_iva` y `notas_credito_iva_factura`, interruptor para quien vende, pedidos sin IVA guardado, y `sin_cambios` / `iva_config_cero`.
-- [ ] `/SPEC.md` (§2, §4.4, §5), `05-ventas/spec.md` (§4.2, §4.4) y `17-trazabilidad-y-correccion-facturas/spec.md` tienen la nota "(Antes: …; reemplazado el 2026-10-19.)". `specs/README.md` registra el cambio de alcance. Las tareas agregadas están en 02, 05, 06, 09, 15 y 17.
+- [x] `/SPEC.md` (§2, §4.4, §5), `05-ventas/spec.md` (§4.2, §4.4) y `17-trazabilidad-y-correccion-facturas/spec.md` tienen la nota "(Antes: …; reemplazado el 2026-10-19.)". `specs/README.md` registra el cambio de alcance. Las tareas agregadas están en 02, 05, 06, 09, 15 y 17. — Revisado al cerrar (tarea 17): siguen vigentes.
 
 ## Datos y seguridad (migraciones + RLS)
-- [ ] Dos migraciones nuevas e incrementales (`20261019110000`, `20261019110100`). No se editó ninguna migración aplicada (en particular las tres de 17).
-- [ ] `clientes.aplica_iva` `not null default true`; los clientes existentes quedaron en `true`.
-- [ ] `factura_correcciones`: `tipo` con check, columnas de línea nullable, columnas de IVA y créditos, check `factura_correcciones_forma` por tipo. Las filas existentes lo cumplen. RLS, `revoke` y permanencia sin cambios.
-- [ ] `facturas_validar_iva` rechaza un `iva_pct` distinto de 0 y del configurado y los importes incoherentes (`iva_invalido`), también por PostgREST directo.
-- [ ] `notas_credito_iva_factura` deja toda nota nueva con el IVA vigente de su factura.
-- [ ] `cambiar_iva_factura` es `security definer`, exige `es_admin()` (`42501`), no tiene `grant` para `anon` y toma el lock de la factura y luego el de las notas emitidas.
-- [ ] `trazabilidad_factura` recreada: devuelve las correcciones de los dos tipos (las de IVA sin línea) y el resto sin cambios.
+- [x] Dos migraciones nuevas e incrementales (`20261019110000`, `20261019110100`). No se editó ninguna migración aplicada (en particular las tres de 17). — `20261019110000_iva_opcional_esquema.sql` y `20261019110100_iva_opcional_rpc.sql`.
+- [x] `clientes.aplica_iva` `not null default true`; los clientes existentes quedaron en `true`. — Postgres local: todos los existentes en `true`.
+- [x] `factura_correcciones`: `tipo` con check, columnas de línea nullable, columnas de IVA y créditos, check `factura_correcciones_forma` por tipo. Las filas existentes lo cumplen. RLS, `revoke` y permanencia sin cambios. — La corrección de línea sembrada antes de 18 pasó el check nuevo (la migración no falló). Un `insert` `iva` con 0 → 0 y uno `linea` sin línea dan `23514`. El operador lee 0 filas.
+- [x] `facturas_validar_iva` rechaza un `iva_pct` distinto de 0 y del configurado y los importes incoherentes (`iva_invalido`), también por PostgREST directo. — Con `set role authenticated` (= PostgREST): `registrar_factura` con 5 %, con IVA 15 sobre 100 al 16 %, con total 120 y con 0 % e IVA 16 → `P0001/iva_invalido`; 0 % (100) y 16 % (116) pasan. Con config 15, el 16 % ya no pasa.
+- [x] `notas_credito_iva_factura` deja toda nota nueva con el IVA vigente de su factura. — Payload con IVA 9 sobre subtotal 10 (factura al 16 %) → 1,6 / 11,6; payload con IVA sobre factura sin IVA → 0 / 5.
+- [x] `cambiar_iva_factura` es `security definer`, exige `es_admin()` (`42501`), no tiene `grant` para `anon` y toma el lock de la factura y luego el de las notas emitidas. — `prosecdef = true`, `has_function_privilege('anon', …) = false`, operador → `42501`. Orden de locks: `for update` de la factura y luego `perform … order by nc.id for update` de las notas emitidas.
+- [x] `trazabilidad_factura` recreada: devuelve las correcciones de los dos tipos (las de IVA sin línea) y el resto sin cambios. — Misma definición que `20261019100100` con `left join` a línea y producto y los 5 campos nuevos. Factura con historial `iva, linea, iva`: las de IVA con `producto_nombre` `null` y `movimientos []`; el JSON real pasó por `mapearTrazabilidad` sin errores.
 
 ## Reglas de negocio
-- [ ] Venta (POS y entrega): el interruptor viene precargado con `clientes.aplica_iva` y cambiarlo afecta solo esa factura. Sí = `config_negocio.iva_pct`; no = 0 %.
-- [ ] El total mostrado en `PedidoForm` y `EntregaPedidoDialog` (y su equivalencia en Bs y el aviso de crédito) es el total con o sin IVA que se emite (corrige el hallazgo de mostrar el subtotal).
-- [ ] El límite de crédito al vender usa el total resultante.
-- [ ] Facturas existentes sin cambios: conservan su `iva_pct` e importes.
-- [ ] Cambio de IVA de una emitida: solo admin, motivo 5–500, anuladas no, `sin_cambios` e `iva_config_cero`. Subtotal igual; IVA, total y estado recalculados con el redondeo de `ivaSobre`. Al activar, se usa el % vigente.
-- [ ] Saldo a favor al quitar el IVA de una pagada; contado que activa queda `abierta` y vencida; confirmación de límite al activar a crédito. Pagos y ganancia cambiaria intactos.
-- [ ] Notas emitidas de la factura: IVA y total recalculados al % nuevo; subtotal, ítems y kg intactos; anuladas sin cambios; créditos antes y después en el historial.
-- [ ] `corregir_linea_factura` sobre una factura sin IVA sigue sin IVA.
-- [ ] Contrato activo: aviso previo y marca "Desactualizado" derivada, sin cambios en la vista ni en `contratoService`.
-- [ ] El cliente no ve rastro de la corrección; toda factura sin IVA se rotula «Sin IVA» (PDF de contrato: «IVA: No aplica»).
-- [ ] Concurrencia: cambio de IVA frente a nota de crédito y frente a abono se serializan y cuadran.
+- [x] Venta (POS y entrega): el interruptor viene precargado con `clientes.aplica_iva` y cambiarlo afecta solo esa factura. Sí = `config_negocio.iva_pct`; no = 0 %. — `PedidoForm` precarga al elegir o cambiar de cliente; `EntregaPedidoDialog` con el `aplica_iva` actual del cliente del pedido (se lee al abrir la entrega). `invoiceService`: `ivaPctVenta(input.aplica_iva ?? cliente.aplica_iva, config)`; nada escribe en `clientes` al vender.
+- [x] El total mostrado en `PedidoForm` y `EntregaPedidoDialog` (y su equivalencia en Bs y el aviso de crédito) es el total con o sin IVA que se emite (corrige el hallazgo de mostrar el subtotal). — Ambos usan `totalesVenta` (= `totalesDe`, el mismo cálculo que la emisión). `EntregaPedidoDialog` suma la equivalencia en Bs y el aviso de crédito (no los tenía) con los pesos reales; el "total estimado" de la cabecera también lleva el IVA elegido. En el pedido agendado el total es "Total estimado USD" con lo habitual del cliente.
+- [x] El límite de crédito al vender usa el total resultante. — `verificarLimiteCredito(cliente, total)` con el total ya calculado con `ivaPct` del interruptor.
+- [x] Facturas existentes sin cambios: conservan su `iva_pct` e importes. — Sin `update` en las migraciones; la factura sembrada antes de 18 conserva 16 %.
+- [x] Cambio de IVA de una emitida: solo admin, motivo 5–500, anuladas no, `sin_cambios` e `iva_config_cero`. Subtotal igual; IVA, total y estado recalculados con el redondeo de `ivaSobre`. Al activar, se usa el % vigente. — SQL: motivo de 3 y de 501 → `motivo_requerido`; anulada → `factura_anulada`; inexistente → `P0002`; aplicar con IVA / quitar sin IVA → `sin_cambios`; config 0 → `iva_config_cero`. Caso del cliente: 116 → quitar → 100 (a favor 16, `pagada`) → línea a $40 → 80 sin IVA → aplicar con config 15 → 92 (15 %), a favor 24. Paridad TS ↔ SQL en 200 casos aleatorios.
+- [x] Saldo a favor al quitar el IVA de una pagada; contado que activa queda `abierta` y vencida; confirmación de límite al activar a crédito. Pagos y ganancia cambiaria intactos. — SQL: pago de 116 con ganancia 10 Bs intacto tras quitar. Contado de 100 pagada → aplicar → `abierta`, 116, saldo 16, `fecha_vencimiento <= hoy`. El límite al activar lo comprueba `cambiarIvaFactura` (aumento de saldo de `previsualizarCambioIva` + `getSaldoPendiente`) y el diálogo confirma con `useConfirm`. **Pendiente**: verlo en pantalla (ver deuda).
+- [x] Notas emitidas de la factura: IVA y total recalculados al % nuevo; subtotal, ítems y kg intactos; anuladas sin cambios; créditos antes y después en el historial. — SQL: nota 25 + 4 = 29 → 25; nota anulada 10 + 1,6 sin cambios; ítem 0,5 kg × 50 intacto; historial 29 → 25; saldo 100 − 0 − 25 = 75.
+- [x] `corregir_linea_factura` sobre una factura sin IVA sigue sin IVA. — SQL: precio a $40 → total 80, `iva_pct` 0.
+- [x] Contrato activo: aviso previo y marca "Desactualizado" derivada, sin cambios en la vista ni en `contratoService`. — SQL: `contratos_listado_view.desactualizado` pasa de `false` a `true` y `trazabilidad_factura` lo marca; la respuesta de la RPC trae el contrato. El diálogo avisa si hay contrato activo.
+- [x] El cliente no ve rastro de la corrección; toda factura sin IVA se rotula «Sin IVA» (PDF de contrato: «IVA: No aplica»). — `etiquetaIva` en `FacturaTotalesCard`, `CorregirLineaFacturaDialog`, `TotalesVenta` e historial; PDF (`bloques.tsx`) fila «IVA» con «No aplica». El PDF y los recordatorios no leen `factura_correcciones`.
+- [x] Concurrencia: cambio de IVA frente a nota de crédito y frente a abono se serializan y cuadran. — Dos sesiones: cambio lento (quitar IVA, 3 s) + nota con payload 25 + 4 → la nota esperó ~2 s y quedó 0 / 25. Cambio lento + abono de 110 → `sobrepago` (saldo ya 100) y abono de 50 → total 100, pagado 50, `abierta`.
 
 ## Dashboard (15)
-- [ ] Ninguna RPC `dashboard_*` cambió. Ventas y margen (sin IVA) no se mueven al cambiar el IVA; la cartera refleja el total vigente y los saldos a favor quedan fuera de los indicadores.
+- [x] Ninguna RPC `dashboard_*` cambió. Ventas y margen (sin IVA) no se mueven al cambiar el IVA; la cartera refleja el total vigente y los saldos a favor quedan fuera de los indicadores. — Ninguna `dashboard_*` lee `iva_usd`/`iva_pct` (consulta a `pg_proc`). Antes/después de quitar el IVA a una abierta y a una pagada: `dashboard_mezcla_ventas` idéntico; `dashboard_aging_cartera` 419,80 → 403,80 (−16, solo la abierta) y `dashboard_top_deudores` 241 → 225; la pagada con saldo a favor no entra.
 
 ## Repositorios y servicios
-- [ ] `IFacturaRepository.cambiarIva` solo llama a la RPC; el mapper reconoce los dos tipos de corrección sin lógica de negocio.
-- [ ] `invoiceService` resuelve el IVA con `ivaPctVenta`; `correccionFacturaService.cambiarIvaFactura` valida admin, esquema y límite, y mapea los `hint`.
-- [ ] Funciones puras (`lib/facturas/iva.ts`, `previsualizarCambioIva`) sin imports de Supabase; `scripts/probar-correccion-factura.ts` pasa con los casos nuevos.
+- [x] `IFacturaRepository.cambiarIva` solo llama a la RPC; el mapper reconoce los dos tipos de corrección sin lógica de negocio. — Filas sin `tipo` (legadas) se mapean como `linea`; `mapearResultadoCambioIva` nuevo.
+- [x] `invoiceService` resuelve el IVA con `ivaPctVenta`; `correccionFacturaService.cambiarIvaFactura` valida admin, esquema y límite, y mapea los `hint`. — `iva_invalido` → `InvoiceError` general; `motivo_requerido` → campo `motivo`; `factura_anulada` / `sin_cambios` / `iva_config_cero` → `Alert`; `42501` → mensaje de solo admin.
+- [x] Funciones puras (`lib/facturas/iva.ts`, `previsualizarCambioIva`) sin imports de Supabase; `scripts/probar-correccion-factura.ts` pasa con los casos nuevos. — 25 casos nuevos (incl. mapper y paridad SQL en 200 casos). `scripts/probar-procesamiento.ts` también pasa.
 
 ## UI (Atomic Design y `00-estandares-ui`)
-- [ ] "Aplica IVA" en el formulario de cliente y chip "Sin IVA" en la ficha.
-- [ ] `IvaVentaSwitch` y `TotalesVenta` en POS y entrega de pedido; `NotaCreditoForm` muestra el IVA de la factura.
-- [ ] Ficha de factura: «Sin IVA» en el resumen, acción «Quitar IVA» / «Aplicar IVA», `CambiarIvaFacturaDialog` con vista previa, avisos, `useForm({ disabled })`, `Button loading`, cierre protegido, confirmación del límite y toast; historial con las filas de IVA.
-- [ ] `IvaVentaSwitch` y `TotalesVenta` registrados en "Componentes compartidos" de `00-estandares-ui/spec.md`.
-- [ ] Revisados el modo claro/oscuro y el responsive (375/768/1024/1440; diálogo `fullScreen` en `xs`). Números con `lib/format.ts`; sin `window.alert`/`confirm`.
+- [x] "Aplica IVA" en el formulario de cliente y chip "Sin IVA" en la ficha. — `Switch` en la sección "Condiciones comerciales" (antes "Crédito") con la ayuda de la spec; default `true` en alta y valor del cliente en edición.
+- [x] `IvaVentaSwitch` y `TotalesVenta` en POS y entrega de pedido; `NotaCreditoForm` muestra el IVA de la factura. — `NotaCreditoForm`: «Subtotal a devolver», IVA de la factura (o «Sin IVA») y «Total a acreditar». `ConfigNegocioForm`: «IVA (%) *» con la ayuda de la spec.
+- [x] Ficha de factura: «Sin IVA» en el resumen, acción «Quitar IVA» / «Aplicar IVA», `CambiarIvaFacturaDialog` con vista previa, avisos, `useForm({ disabled })`, `Button loading`, cierre protegido, confirmación del límite y toast; historial con las filas de IVA. — Acción de texto en la tarjeta, deshabilitada con tooltip si está anulada. Avisos: abonos (+ saldo a favor), contrato, notas emitidas, contado con saldo y «Se aplicará el X % vigente» (último `iva_pct_anterior` del historial). Error del motivo en el campo, el resto en el `Alert`. `FilaPrevia` reutilizada de `CorregirLineaFacturaDialog`. El chip "Corregida · N" cuenta los dos tipos (misma lista).
+- [x] `IvaVentaSwitch` y `TotalesVenta` registrados en "Componentes compartidos" de `00-estandares-ui/spec.md`.
+- [ ] Revisados el modo claro/oscuro y el responsive (375/768/1024/1440; diálogo `fullScreen` en `xs`). Números con `lib/format.ts`; sin `window.alert`/`confirm`. — **Diferido**: la revisión visual necesita la base con las migraciones de 18 (las pantallas leen `aplica_iva` y la RPC nueva) y no se aplicó nada a Supabase. El código usa solo tokens del theme, `lib/format.ts`, `useConfirm`/`useNotify` y `AppDialog` (que ya da `fullScreen` en `xs`); sin `window.alert`/`confirm`.
 
 ## Tipos y calidad
-- [ ] `Cliente.aplica_iva`, `CorreccionFactura` como unión por `tipo` y `ResultadoCambioIva` en `src/types/domain.ts`, sin `any`.
-- [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
+- [x] `Cliente.aplica_iva`, `CorreccionFactura` como unión por `tipo` y `ResultadoCambioIva` en `src/types/domain.ts`, sin `any`. — `CorreccionLinea | CorreccionIva` sobre una base común.
+- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores. — Lint sin errores ni advertencias (se quitó un import sin uso previo de `NotaCreditoForm`).
 
 ## Pendientes / deuda técnica
-- _(anotar aquí con fecha lo que se difiera y por qué)_
+- **2026-10-19 — Migraciones sin aplicar en Supabase** (tarea 27): `20261019110000` y `…110100` están escritas y validadas en un Postgres local desechable. **Aplicarlas antes de desplegar este código**: hasta entonces fallan los listados de pedidos (`aplica_iva` en el `select` del cliente), el alta/edición de clientes y la ficha de factura. Después de aplicarlas, repetir por PostgREST contra Supabase: `registrar_factura` con 5 % → `iva_invalido` y `cambiar_iva_factura` con sesión de operador → `42501`.
+- **2026-10-19 — Revisión en pantalla** (tareas 18–22, 24 y 27): caso del cliente, confirmación del límite al activar a crédito, aviso «Se aplicará el 15 % vigente», PDF regenerado con «IVA: No aplica», POS y entrega con un cliente "Sin IVA", operador usando el interruptor y editando "Aplica IVA", claro/oscuro y 375/768/1024/1440. Cubierto a nivel SQL y con el script; falta verlo en la app con la base migrada.

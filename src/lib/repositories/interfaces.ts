@@ -52,6 +52,7 @@ import type {
   RendimientoProveedor,
   RepresentanteProveedor,
   ResultadoCambiario,
+  ResultadoCambioIva,
   ResultadoCorreccion,
   SugerenciaLotes,
   TipoContrato,
@@ -200,7 +201,7 @@ export interface ICompraRepository {
 export type PedidoItemNuevo = Pick<PedidoItem, 'producto_id' | 'peso_estimado_kg' | 'precio_usd_kg'>
 
 export interface PedidoResumen extends Pedido {
-  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'bloqueado' | 'dias_credito'>
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'bloqueado' | 'dias_credito' | 'aplica_iva'>
 }
 
 export interface PedidoDetalle extends PedidoResumen {
@@ -303,6 +304,15 @@ export interface IFacturaRepository {
   getTrazabilidad(id: string): Promise<TrazabilidadFactura | null>
   /** RPC `corregir_linea_factura` (solo admin, atómica). */
   corregirLinea(input: CorreccionLineaNueva): Promise<ResultadoCorreccion>
+  /** RPC `cambiar_iva_factura` (18, solo admin, atómica). */
+  cambiarIva(input: CambioIvaNuevo): Promise<ResultadoCambioIva>
+}
+
+/** Cambio de IVA de una factura emitida (18): activar o quitar, con motivo. */
+export interface CambioIvaNuevo {
+  factura_id: string
+  aplica_iva: boolean
+  motivo: string
 }
 
 /** Corrección de una línea (17): solo peso, precio/kg y motivo. */

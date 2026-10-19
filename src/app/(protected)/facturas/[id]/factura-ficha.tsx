@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { FichaHeader } from '@/components/molecules/FichaHeader'
 import { FichaSeccion } from '@/components/molecules/FichaSeccion'
 import { ListaResumen, type FilaResumen } from '@/components/molecules/ListaResumen'
+import { CambiarIvaFacturaDialog } from '@/components/organisms/CambiarIvaFacturaDialog'
 import { CorregirLineaFacturaDialog } from '@/components/organisms/CorregirLineaFacturaDialog'
 import { FacturaTotalesCard } from '@/components/organisms/FacturaTotalesCard'
 import { FacturaTrazabilidadLineas } from '@/components/organisms/FacturaTrazabilidadLineas'
@@ -25,26 +26,32 @@ import { numeroFactura } from '@/lib/repositories/carteraRepository'
 import { numeroContrato } from '@/lib/contratos/textos'
 import { ETIQUETA_METODO } from '@/lib/dashboard/etiquetas'
 import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/format'
-import type { CorregirLineaValues } from '@/lib/correccionFacturaValidation'
+import type { CambiarIvaValues, CorregirLineaValues } from '@/lib/correccionFacturaValidation'
 import type { DetalleFactura, LineaDetalle } from '@/types/domain'
-import { corregirLineaFacturaAction, disponibleProductoAction } from './actions'
+import { cambiarIvaFacturaAction, corregirLineaFacturaAction, disponibleProductoAction } from './actions'
 
 export interface FacturaFichaProps {
   detalle: DetalleFactura
   /** Hoy en Venezuela y días de aviso (estado de cobro igual que la cartera). */
   hoy: string
   diasAviso: number
+  /** `config_negocio.iva_pct` vigente (18): el que aplica «Aplicar IVA». */
+  ivaPctConfig: number
 }
 
 /**
  * Ficha de una factura (17, solo admin): resumen con saldo o saldo a favor y
  * margen, líneas con su trazabilidad y señales, notas de crédito, pagos e
- * historial de correcciones. "Corregir" abre `CorregirLineaFacturaDialog`.
+ * historial de correcciones. "Corregir" abre `CorregirLineaFacturaDialog`;
+ * «Quitar IVA» / «Aplicar IVA» (18) abre `CambiarIvaFacturaDialog`.
  */
-export function FacturaFicha({ detalle, hoy, diasAviso }: FacturaFichaProps) {
+export function FacturaFicha({ detalle, hoy, diasAviso, ivaPctConfig }: FacturaFichaProps) {
   const router = useRouter()
   const theme = useTheme()
   const [corrigiendo, setCorrigiendo] = React.useState<LineaDetalle | null>(null)
+  const [cambiandoIva, setCambiandoIva] = React.useState(false)
+  // Cada apertura monta el diálogo de cero (motivo vacío).
+  const [aperturaIva, setAperturaIva] = React.useState(0)
   const { factura, contrato, correcciones } = detalle
   const numero = numeroFactura(factura.numero)
   const anulada = factura.estado === 'anulada'
@@ -92,6 +99,10 @@ export function FacturaFicha({ detalle, hoy, diasAviso }: FacturaFichaProps) {
 
   const onCorregir = React.useCallback(
     (values: CorregirLineaValues) => corregirLineaFacturaAction(values, factura.numero),
+    [factura.numero]
+  )
+  const onCambiarIva = React.useCallback(
+    (values: CambiarIvaValues) => cambiarIvaFacturaAction(values, factura.numero),
     [factura.numero]
   )
 
@@ -151,7 +162,14 @@ export function FacturaFicha({ detalle, hoy, diasAviso }: FacturaFichaProps) {
           </Box>
 
           <Box sx={{ display: 'grid', gap: 3, minWidth: 0 }}>
-            <FacturaTotalesCard detalle={detalle} />
+            <FacturaTotalesCard
+              detalle={detalle}
+              ivaPctConfig={ivaPctConfig}
+              onCambiarIva={() => {
+                setAperturaIva((n) => n + 1)
+                setCambiandoIva(true)
+              }}
+            />
 
             <FichaSeccion titulo="Notas de crédito">
               {notas.length > 0 ? (
@@ -179,6 +197,16 @@ export function FacturaFicha({ detalle, hoy, diasAviso }: FacturaFichaProps) {
           onCorregir={onCorregir}
           onCorregida={() => router.refresh()}
           cargarDisponible={disponibleProductoAction}
+        />
+
+        <CambiarIvaFacturaDialog
+          key={`iva-${aperturaIva}`}
+          detalle={detalle}
+          open={cambiandoIva}
+          ivaPctConfig={ivaPctConfig}
+          onClose={() => setCambiandoIva(false)}
+          onCambiar={onCambiarIva}
+          onCambiado={() => router.refresh()}
         />
       </Box>
     </Fade>

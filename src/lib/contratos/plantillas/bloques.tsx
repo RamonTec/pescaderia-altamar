@@ -220,7 +220,12 @@ export function Totales({ datos }: BloqueProps) {
       {venta ? (
         <>
           <FilaTotal etiqueta="Subtotal" valor={formatUsd(totales.subtotal_usd)} />
-          <FilaTotal etiqueta={`IVA (${totales.iva_pct ?? 0}%)`} valor={formatUsd(totales.iva_usd ?? 0)} />
+          {/* 18-iva-opcional: una venta sin IVA (`iva_pct = 0`) nunca dice «IVA (0 %)». */}
+          {(totales.iva_pct ?? 0) > 0 ? (
+            <FilaTotal etiqueta={`IVA (${totales.iva_pct}%)`} valor={formatUsd(totales.iva_usd ?? 0)} />
+          ) : (
+            <FilaTotal etiqueta="IVA" valor="No aplica" />
+          )}
         </>
       ) : null}
       <View style={[estilos.filaTotal, estilos.negrita]}>

@@ -4,7 +4,7 @@ import { makePedidoRepository } from '@/lib/repositories/pedidoRepository'
 import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
 import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { getConfigTasas } from '@/lib/services/tasaService'
-import { getDiasCreditoDefault } from '@/lib/services/configService'
+import { getDiasCreditoDefault, getIvaPct } from '@/lib/services/configService'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function PedidosPage(props: {
@@ -16,7 +16,7 @@ export default async function PedidosPage(props: {
   const q = params?.q || ''
 
   const db = await createClient()
-  const [pedidosPage, clientes, productos, configTasas, diasCreditoDefault] = await Promise.all([
+  const [pedidosPage, clientes, productos, configTasas, diasCreditoDefault, ivaPct] = await Promise.all([
     makePedidoRepository(db).list({ page: pagina, pageSize: 10, estado, q }),
     makeClienteRepository(db).list(),
     makeProductoRepository(db).list(),
@@ -25,6 +25,8 @@ export default async function PedidosPage(props: {
     getConfigTasas(db),
     // 09: días de crédito por defecto para precargar la venta a crédito.
     getDiasCreditoDefault(db),
+    // 18: % de IVA de las ventas con IVA (interruptor y totales).
+    getIvaPct(db),
   ])
 
   return (
@@ -36,6 +38,7 @@ export default async function PedidosPage(props: {
         productos={productos.filter((p) => p.activo)}
         configTasas={configTasas}
         diasCreditoDefault={diasCreditoDefault}
+        ivaPct={ivaPct}
       />
     </AppShell>
   )

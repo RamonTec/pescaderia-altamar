@@ -61,6 +61,8 @@ export interface ClienteCreateInput {
   limite_credito_usd: number | null
   /** Días de crédito habituales; `null` = el default del negocio (09). */
   dias_credito: number | null
+  /** "Aplica IVA" (18): precarga el interruptor de la venta. */
+  aplica_iva: boolean
   representantes: RepresentanteInput[]
 }
 
@@ -74,6 +76,9 @@ function validarInput(input: ClienteCreateInput): void {
     (!Number.isInteger(input.dias_credito) || input.dias_credito < 0 || input.dias_credito > 365)
   ) {
     throw new ClienteValidationError('Los días de crédito deben ser un entero entre 0 y 365')
+  }
+  if (typeof input.aplica_iva !== 'boolean') {
+    throw new ClienteValidationError('Indica si al cliente se le aplica IVA')
   }
   if (input.email.trim() && !validarEmail(input.email)) {
     throw new ClienteValidationError('Email inválido')
@@ -147,6 +152,7 @@ export async function crearCliente(input: ClienteCreateInput): Promise<Cliente> 
     notas: input.notas.trim() || null,
     limite_credito_usd: input.limite_credito_usd,
     dias_credito: input.dias_credito,
+    aplica_iva: input.aplica_iva,
   })
 
   await sincronizarRepresentantes(cliente.id, input.representantes)
@@ -171,6 +177,7 @@ export async function actualizarCliente(
     notas: input.notas.trim() || null,
     limite_credito_usd: input.limite_credito_usd,
     dias_credito: input.dias_credito,
+    aplica_iva: input.aplica_iva,
   })
 
   await sincronizarRepresentantes(id, input.representantes)
