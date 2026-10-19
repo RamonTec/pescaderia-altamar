@@ -86,3 +86,4 @@ Ver "Cambio de alcance (2026-10-13)" en `spec.md`. Sin migración. Tras cada tar
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "04-inventario necesita … — agregado el <fecha>")_
+- **Corrección de `proveedores_guard_bloqueo` en el INSERT — agregado el 2026-10-14** (detectado al cargar el inventario de apertura con `scripts/importar-inventario-octubre.ts`). En el alta `old` es null y el trigger de 0007 exigía admin para toda inserción, aunque llegara sin bloqueo. `20261014000000_fix_proveedores_guard_bloqueo_insert.sql`: en el insert solo exige admin si `bloqueado` o `motivo_bloqueo` vienen informados; el update no cambia.
