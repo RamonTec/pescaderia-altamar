@@ -184,3 +184,6 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. Mi
   - `ElegibilidadContrato` y `ContratoListado` suman `desactualizado`.
 
   El trigger `contratos_validar`, la regla de PDF inmutable y el flujo "anular y generar otro" no cambian. El PDF nunca menciona correcciones.
+- **18-iva-opcional (2026-10-19)**:
+  - Una factura puede no llevar IVA (`iva_pct = 0`). En el PDF de venta (`lib/contratos/plantillas/bloques.tsx`, `Totales`), la fila de IVA dice «No aplica» en lugar de «IVA (0%)».
+  - El admin puede activar o quitar el IVA de una factura emitida. La corrección queda en `factura_correcciones` (`tipo = 'iva'`), así que el contrato activo pasa a **desactualizado** con la misma regla derivada de 17, **sin cambios** en `contratos_listado_view` ni en `contratoService`.

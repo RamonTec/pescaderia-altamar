@@ -85,3 +85,4 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
   - `dashboard_resultado_cambiario` no cambia, porque los pagos y su ganancia cambiaria no se tocan.
 
   Se verifica en la tarea 26 de ese módulo.
+- **18-iva-opcional (2026-10-19)**: hay ventas sin IVA (`iva_pct = 0`) y el admin puede activar o quitar el IVA de una emitida. **No cambia ninguna RPC `dashboard_*`**: ninguna lee `iva_usd` ni `iva_pct`. Las ventas, el margen, el ticket y la mezcla son sin IVA y no se mueven. CxC, aging, flujo y exposición usan el `total_usd` vigente, así que reflejan el cambio; los saldos a favor quedan fuera por el filtro `saldo_usd > 0.005`. Se verifica en la tarea 23 de ese módulo.

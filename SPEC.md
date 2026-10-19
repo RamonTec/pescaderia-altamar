@@ -10,10 +10,10 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 |---|---|
 | Moneda base de registro | **USD** (referente estable); Bs como moneda operativa |
 | Tasa de cambio | Automática: **BCV oficial por scraping de www.bcv.org.ve (USD y EUR)**, con dolarapi como respaldo y como fuente de la paralela; tasa del día manual (admin). En cada operación, referencial por defecto o **manual** (cualquier usuario, queda registrado quién y cuánto difería). EUR solo de referencia. Escritura de `tasas` solo admin; las automáticas van con `service_role` desde el servidor. *(Ampliado el 2026-10-07, ver `specs/08-tasas`.)* |
-| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. La corrección de una factura (`specs/17-trazabilidad-y-correccion-facturas`) cambia peso y precio de una línea, **nunca la tasa**. |
+| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. La corrección de una factura (`specs/17-trazabilidad-y-correccion-facturas`) cambia peso y precio de una línea, o activa o quita el IVA (`specs/18-iva-opcional`), **nunca la tasa**. |
 | Costeo de inventario | **Por lote** (costo propio de cada lote; PEPS sugerido al vender). *Reabierto el 2026-10-07: antes era promedio ponderado por kg. Ver `specs/07-lotes`.* |
 | Crédito | Deuda pactada en USD; cada abono usa la **tasa del día del pago** → ganancia/pérdida cambiaria |
-| Facturación | Interna (no fiscal SENIAT), con **IVA desglosado configurable** (default 16%) |
+| Facturación | Interna (no fiscal SENIAT), con **IVA desglosado al % configurable** (default 16%) **o sin IVA**: sí/no por cliente (`clientes.aplica_iva`), editable en cada venta; sin IVA = `iva_pct` 0. *(Antes: IVA desglosado configurable aplicado a toda venta; reemplazado el 2026-10-19, ver `specs/18-iva-opcional`.)* |
 | Ventas | Venta directa (POS) **y** pedidos agendados |
 | Inventario | Por peso (kg) y **por lote** físico; productos crudos y procesados |
 
@@ -49,9 +49,9 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - Al entregar se **pesa lo real** → se genera factura con los kg entregados.
 - **Venta directa**: mismo flujo en un paso (peso real inmediato).
 - Precio pactado en USD o Bs; tasa congelada al emitir la factura.
-- IVA desglosado: `subtotal + iva (16% default) = total`.
+- IVA desglosado: `subtotal + iva = total`, con `iva` al % de `config_negocio` (16% default) si la venta lleva IVA, o 0 si no. El interruptor de IVA se precarga con `clientes.aplica_iva` y se puede cambiar solo para esa factura. El precio/kg es neto: sin IVA, el total baja. *(Antes: toda venta llevaba IVA; reemplazado el 2026-10-19, ver `specs/18-iva-opcional`.)*
 - Cada línea vendida se asigna a lotes **PEPS** (más antiguo primero), editable por el vendedor; no se vende más de lo que hay en los lotes.
-- **Corrección de factura** (solo admin): se pueden editar el peso y el precio/kg de una línea emitida, con motivo obligatorio e historial que solo ve el admin. Se recalculan subtotal, IVA, total y saldo; si el total queda por debajo de lo pagado, queda saldo a favor. El cambio de peso mueve stock de los lotes de la línea. Las anuladas no se editan y el peso no baja de lo devuelto por notas de crédito. *(Antes: la factura emitida nunca se editaba y toda corrección iba por nota de crédito; reemplazado el 2026-10-19, ver `specs/17-trazabilidad-y-correccion-facturas`.)*
+- **Corrección de factura** (solo admin): se pueden editar el peso y el precio/kg de una línea emitida, con motivo obligatorio e historial que solo ve el admin. Se recalculan subtotal, IVA, total y saldo; si el total queda por debajo de lo pagado, queda saldo a favor. El cambio de peso mueve stock de los lotes de la línea. Las anuladas no se editan y el peso no baja de lo devuelto por notas de crédito. *(Antes: la factura emitida nunca se editaba y toda corrección iba por nota de crédito; reemplazado el 2026-10-19, ver `specs/17-trazabilidad-y-correccion-facturas`.)* El admin también puede **activar o quitar el IVA** de una factura emitida (al % vigente de config al activarlo), con motivo e historial; el IVA de sus notas de crédito emitidas se recalcula al mismo %. *(Antes: solo peso y precio/kg de una línea; ampliado el 2026-10-19, ver `specs/18-iva-opcional`.)*
 
 ### 4.5 Cobros y pagos (crédito)
 - Deuda siempre expresada en USD.
@@ -70,7 +70,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 tasas               (fecha [valor], fuente bcv|paralela|manual, moneda USD|EUR, valor_bs, origen bcv_scraping|dolarapi|manual, registrada_por)
 -- compras/facturas/pagos/pagos_proveedores: + tasa_origen referencial|manual, tasa_fuente, tasa_referencial, tasa_registrada_por
 productos           (codigo, nombre, tipo crudo|procesado, categoria, controla_stock, producto_origen_id?, precio_referencia_usd_kg? [solo procesados])
-clientes            (nombre, rif_ci, telefono, notas, activo)
+clientes            (nombre, rif_ci, telefono, notas, activo, aplica_iva)  -- aplica_iva: precarga el IVA de la venta (18, 2026-10-19)
 proveedores         (nombre, rif_ci, telefono, notas, activo)
 compras            (proveedor_id, fecha, condicion, moneda, tasa_snapshot, estado, subtotal_usd, pagado_usd)
 compra_items       (compra_id, producto_id, peso_kg, costo_usd_kg)
@@ -84,7 +84,7 @@ facturas           (numero, cliente_id, pedido_id?, fecha, dias_credito, fecha_v
 factura_items      (factura_id, producto_id, peso_kg, precio_usd_kg, costo_usd_kg)
 pagos              (factura_id, fecha, monto_usd, moneda_pago, tasa_pago, metodo, ganancia_cambiaria_bs)
 movimientos        (producto_id, lote_id, fecha, tipo compra|proceso_in|proceso_out|venta|ajuste|perdida|correccion_venta, peso_kg, costo_usd_kg, ref_id)  -- ledger auditable; correccion_venta: 17, 2026-10-19
-factura_correcciones (factura_id, factura_item_id, peso/precio/costo anterior y nuevo, totales anterior y nuevo, pagado_usd, estado anterior y nuevo, contrato_id?, motivo, usuario_id, created_at)  -- 17 (2026-10-19); historial solo admin, escritura solo por RPC
+factura_correcciones (factura_id, tipo linea|iva, factura_item_id?, peso/precio/costo anterior y nuevo [linea], iva_pct y créditos de notas anterior y nuevo [iva], totales anterior y nuevo, pagado_usd, estado anterior y nuevo, contrato_id?, motivo, usuario_id, created_at)  -- 17; tipo iva: 18 (2026-10-19); historial solo admin, escritura solo por RPC
 lotes              (codigo, producto_id, origen compra|proceso|inicial, compra_item_id?, proceso_item_id?, lote_padre_id?, proveedor_id, fecha_ingreso, peso_inicial_kg, costo_usd_kg, moneda, tasa_snapshot, estado abierto|agotado|cerrado)
 factura_item_lotes (factura_item_id, lote_id, peso_kg, costo_usd_kg)
 perdidas_lote      (lote_id, fecha, peso_kg, motivo, detalle, usuario_id)

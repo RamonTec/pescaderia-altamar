@@ -52,3 +52,8 @@ Depende de: `00-estandares-ui`, `02-clientes` completo, `04-inventario` completo
   - `subtotalItems` e `ivaSobre` se mueven de `invoiceService.ts` a `src/lib/facturas/totales.ts` (puro), y `invoiceService` los importa de allí.
   - **Hallazgo**: `clienteBalanceService.getSaldoPendiente` solo suma facturas `abierta`, así que no ve el saldo a favor de una factura `pagada` con `pagado > total`. Pasa a restar también `Σ (pagado − total)` de esas facturas.
   - Nueva ficha `/facturas/[id]` (solo admin). Las notas de crédito y los pagos no cambian de comportamiento.
+- **18-iva-opcional (2026-10-19)**: se reemplaza la regla del §4.2 de la spec (`iva_pct` siempre de `config_negocio`; nota de reemplazo agregada en §4.2 y §4.4).
+  - `invoiceService.crearFactura` acepta `aplica_iva` (si falta, `cliente.aplica_iva`): `iva_pct` = el de config o 0. `pedidoService.entregarPedido` y `pedidos/actions.ts` lo pasan.
+  - `PedidoForm` (solo entrega inmediata) y `EntregaPedidoDialog` suman el interruptor `IvaVentaSwitch`, precargado con el cliente, y `TotalesVenta`. **Hallazgo**: hoy ambos muestran como total el subtotal sin IVA (también la equivalencia en Bs y el aviso de crédito); pasan a mostrar el total que se emite.
+  - Triggers `before insert` nuevos: `facturas_validar_iva` (`iva_pct` 0 o el de config, importes coherentes; hoy `registrar_factura` inserta lo que recibe) y `notas_credito_iva_factura` (el IVA de la nota sigue al vigente de la factura). `registrar_factura` y `registrar_nota_credito` no se reescriben.
+  - `NotaCreditoForm` muestra el IVA de la factura y el total a acreditar.

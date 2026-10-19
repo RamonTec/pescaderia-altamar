@@ -65,3 +65,7 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
   - `lib/cartera`, `DocumentoCartera` y `cartera_clientes_view` **no cambian**. Una factura corregida por debajo de lo pagado tiene saldo negativo, así que ya da `pagada`, igual que con una nota de crédito.
   - Una factura de contado corregida al alza queda `abierta` y vencida (vence el mismo día), así que entra en los recordatorios.
   - Los recordatorios usan solo los valores vigentes y no mencionan correcciones.
+- **18-iva-opcional (2026-10-19)**: **sin cambios de código** en `lib/cartera`, `DocumentosCarteraTable`, `/cobros` ni los recordatorios, que solo usan total y saldo vigentes.
+  - Quitar el IVA de una factura pagada deja saldo a favor (da `pagada`, como en 17).
+  - Activar el IVA de una factura de contado la deja `abierta` y vencida, así que entra en los recordatorios.
+  - Los créditos de notas emitidas cambian si cambia el IVA de su factura; el saldo `total − pagado − créditos` ya los toma.

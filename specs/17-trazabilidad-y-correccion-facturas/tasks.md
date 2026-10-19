@@ -135,3 +135,8 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "NN-modulo necesita … — agregado el <fecha>")_
+- **18-iva-opcional (2026-10-19)**: se amplía la corrección de este módulo (nota de reemplazo en `spec.md`). El admin puede activar o quitar el IVA de una factura emitida con la RPC nueva `cambiar_iva_factura`.
+  - `factura_correcciones` (migración `20261019110000_iva_opcional_esquema.sql`, sin editar las de este módulo) suma `tipo linea|iva`, `iva_pct_anterior`/`_nuevo` y `creditos_anterior_usd`/`_nuevo`. `factura_item_id` y las columnas de línea pasan a nullable, y `factura_correcciones_cambio_real` se reemplaza por `factura_correcciones_forma`, con un check por tipo. Las filas existentes son `tipo = 'linea'`.
+  - `trazabilidad_factura` se recrea (`20261019110100_iva_opcional_rpc.sql`): `left join` a la línea en `correcciones` y campos nuevos. `corregir_linea_factura` **no cambia**: ya usa el `iva_pct` de la factura.
+  - `CorreccionFactura` pasa a unión por `tipo`. Se adaptan `trazabilidadFacturaMapper.ts`, `HistorialCorreccionesFactura` (fila «IVA 16 % → Sin IVA»), `FacturaTotalesCard` («Sin IVA» y la acción Quitar/Aplicar IVA), `factura-ficha.tsx`, `facturas/[id]/actions.ts`, `correccionFacturaService.ts` y `scripts/probar-correccion-factura.ts`.
+  - El contrato desactualizado, el chip "Corregida · N" y el permiso solo admin no cambian de regla.

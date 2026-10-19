@@ -109,7 +109,16 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     precio/kg de una línea con historial solo admin, stock por lote y
     contrato desactualizado derivado. Spec del 2026-10-19)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16).
+18-iva-opcional → depende de 02, 05, 06, 09, 15 y 17 (hechos);
+                 modifica la regla de IVA de /SPEC.md §2 y amplía la corrección de 17;
+                 toca clientes (02), triggers en facturas/notas_credito (05) y
+                 factura_correcciones + trazabilidad_factura (17)
+   (IVA sí/no por cliente, precargado y editable en cada venta; sin IVA =
+    iva_pct 0 y el total baja; el admin activa o quita el IVA de una emitida
+    con motivo e historial, y las notas emitidas siguen el % de la factura.
+    Spec del 2026-10-19)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -169,6 +178,14 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - Una factura de contado que sube queda abierta y vencida.
 
   Cambia `movimientos` y `config_negocio` (04/07) y `contratos_listado_view` (06). Quedó anotado como tarea agregada en `04-inventario`, `05-ventas`, `06-contratos`, `07-lotes`, `09-cuentas-por-cobrar` y `15-dashboard` (en 15 sin cambios de RPC). `/SPEC.md` §2, §4.4, §4.6 y §5 y `05-ventas/spec.md` §4.4 se actualizaron con nota de reemplazo.
+
+- **IVA opcional (2026-10-19, pedido del cliente)**: el IVA no aplica a todas las ventas ni a todos los clientes. **Se modifica la regla cerrada de `/SPEC.md` §2** ("IVA desglosado configurable, default 16 %", aplicada a toda venta) **y la decisión de `17`** de corregir "solo peso y precio/kg de una línea". Decisiones aprobadas por el usuario:
+  - Por cliente y editable en la venta: `clientes.aplica_iva` (por defecto sí; los existentes quedan en sí) precarga el interruptor del POS y de la entrega de pedido, que se puede cambiar solo para esa factura.
+  - Sí o no, sin otro %: sí = `config_negocio.iva_pct`, no = 0 %. Las facturas existentes conservan su %.
+  - El precio/kg es neto: sin IVA, el total baja ($116 → $100).
+  - El admin puede activar o quitar el IVA de una factura emitida, con motivo e historial en `factura_correcciones` y las mismas reglas que 17 (saldo a favor, contrato desactualizado, anuladas no, sin recalcular la ganancia cambiaria, RPC `security definer` con `es_admin()`). Al activarlo se usa el % vigente.
+
+  Nuevo módulo `18-iva-opcional`. El mismo día el usuario aprobó las decisiones de diseño (ver su `spec.md`): representar "sin IVA" con `facturas.iva_pct = 0`, sin booleano nuevo; recalcular el IVA de las notas de crédito emitidas al cambiar el de la factura; una columna `tipo linea|iva` en `factura_correcciones`, y triggers que validan el IVA al emitir facturas y notas. Cambia `clientes` (02), `facturas`/`notas_credito` (05, triggers) y `factura_correcciones` + `trazabilidad_factura` (17). Quedó anotado como tarea agregada en `02-clientes`, `05-ventas`, `06-contratos`, `09-cuentas-por-cobrar`, `15-dashboard` (sin cambios de RPC) y `17-trazabilidad-y-correccion-facturas`. `/SPEC.md` §2, §4.4 y §5, `05-ventas/spec.md` §4.2 y §4.4 y `17-trazabilidad-y-correccion-facturas/spec.md` se actualizaron con nota de reemplazo.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

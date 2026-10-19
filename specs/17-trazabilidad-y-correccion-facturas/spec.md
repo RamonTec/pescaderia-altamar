@@ -23,7 +23,7 @@ Depende de `05`, `06`, `07`, `09`, `15` y `16`, todos hechos.
 | Tema | Decisión |
 |---|---|
 | Detalle | Desde una factura de la cartera, cada línea muestra su cadena: compra al proveedor → lote crudo → procesamiento → lote procesado → línea de factura, con margen por línea y por factura y una **señal de posible error**. |
-| Corrección | **Se edita la factura, con historial.** El admin puede cambiar el **peso (kg)** y el **precio por kg** de una línea. Nunca el total ni el IVA directamente. Subtotal, IVA, total y saldo se recalculan. |
+| Corrección | **Se edita la factura, con historial.** El admin puede cambiar el **peso (kg)** y el **precio por kg** de una línea y, a nivel factura, **activar o quitar el IVA** (RPC `cambiar_iva_factura` de `18-iva-opcional`). Nunca el total directamente. Subtotal, IVA, total y saldo se recalculan. *(Antes: solo peso y precio/kg de una línea, nunca el IVA; reemplazado el 2026-10-19.)* |
 | Historial | Cada cambio guarda quién, cuándo, valor anterior, valor nuevo y **motivo obligatorio**. Lo ve **solo el admin**. El cliente y cualquier documento enviado o impreso ven solo los valores vigentes, sin rastro de la corrección. |
 | Pagos y contratos | Se permite editar con pagos o con contrato, y se avisa. Total por debajo de lo pagado → **saldo a favor** del cliente (mismo tratamiento que las notas de crédito en `05`). Con contrato activo, el contrato queda **desactualizado** para regenerarlo. |
 | Notas de crédito | El peso no puede bajar de lo ya devuelto por notas de crédito emitidas. |
@@ -57,7 +57,7 @@ Esto **reemplaza** "la factura original nunca se edita" de `05-ventas/spec.md` �
 
 ### Historial: tabla `factura_correcciones`
 
-Una fila por corrección de una línea, con los valores anteriores y nuevos de la línea y de los totales. Los kg movidos por lote **no se duplican** en otra tabla: son los movimientos `correccion_venta` del ledger con `ref_id = factura_correcciones.id`.
+Una fila por corrección de una línea, con los valores anteriores y nuevos de la línea y de los totales. Desde `18-iva-opcional`, también una fila por cambio de IVA de la factura (`tipo = 'iva'`, sin línea). *(Antes: solo filas de línea; ampliado el 2026-10-19.)* Los kg movidos por lote **no se duplican** en otra tabla: son los movimientos `correccion_venta` del ledger con `ref_id = factura_correcciones.id`.
 
 ### Escritura: RPC `corregir_linea_factura`
 
@@ -186,7 +186,7 @@ Errores (`errcode P0001`, `hint`):
 ### Notas de crédito ya emitidas
 
 - El peso no baja de lo devuelto (paso 4).
-- Las notas emitidas **no cambian** con una corrección de línea: conservan su peso, su precio y su total (son documentos emitidos). Si se corrige el precio de una línea con devoluciones, el diálogo avisa que la nota sigue al precio con que se emitió.
+- Las notas emitidas **no cambian** con una corrección de línea: conservan su peso, su precio y su total (son documentos emitidos). Si se corrige el precio de una línea con devoluciones, el diálogo avisa que la nota sigue al precio con que se emitió. Excepción: su **IVA** sigue siempre al de la factura, así que un cambio de IVA (`18-iva-opcional`) recalcula su IVA y su total. *(Antes: la nota no cambiaba nunca; reemplazado el 2026-10-19.)*
 - Anular después una nota sigue funcionando: `anular_nota_credito` revierte por `nota_credito_item_lotes`, que la corrección no toca.
 - Una nota nueva usa los valores vigentes de la línea (`disponible = peso vigente − devuelto`).
 
@@ -314,7 +314,7 @@ Son tres señales por línea. `t = config_negocio.tolerancia_precio_ref_pct / 10
 
 ## Fuera de alcance (MVP)
 
-- Editar otra cosa que peso y precio de una línea: total, IVA, cliente, fecha, tasa, condición, días de crédito, producto, ni agregar o quitar líneas (eso sigue siendo nota de crédito o factura nueva).
+- Editar otra cosa que peso y precio de una línea: total, cliente, fecha, tasa, condición, días de crédito, producto, ni agregar o quitar líneas (eso sigue siendo nota de crédito o factura nueva). Activar o quitar el IVA pasó a estar en alcance con `18-iva-opcional`. *(Antes: el IVA también estaba fuera de alcance; reemplazado el 2026-10-19.)*
 - Elegir a mano los lotes al subir el peso (se usa la regla automática aprobada).
 - Deshacer una corrección: se hace otra corrección con su motivo.
 - Aplicar o reintegrar el saldo a favor automáticamente (igual que en 05).
