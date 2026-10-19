@@ -22,6 +22,7 @@ import {
 } from '@/components/organisms/AppDataGrid'
 import { colAcciones } from '@/components/organisms/appDataGridColumns'
 import type { Producto } from '@/types/domain'
+import { formatUsd } from '@/lib/format'
 
 /** Filtro del listado; vive en `?estado=` (sin parámetro = activos). */
 export type FiltroProductos = 'activos' | 'todos'
@@ -164,6 +165,20 @@ export function ProductosTable({
         flex: 0.9,
         minWidth: 120,
         valueFormatter: (value: string | null) => value || '—',
+      },
+      {
+        // Precio de venta de referencia de los procesados (16): reparte el
+        // costo cuando un lote da varios productos. No es un costo.
+        field: 'precio_referencia_usd_kg',
+        headerName: 'Precio ref.',
+        type: 'number',
+        flex: 0.8,
+        minWidth: 110,
+        valueGetter: (_v, row) =>
+          row.tipo === 'procesado' && row.precio_referencia_usd_kg != null
+            ? Number(row.precio_referencia_usd_kg)
+            : null,
+        valueFormatter: (value: number | null) => (value == null ? '—' : `${formatUsd(value)}/kg`),
       },
       {
         field: 'controla_stock',

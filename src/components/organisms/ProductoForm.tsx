@@ -11,7 +11,12 @@ import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import { AppDialog } from '@/components/organisms/AppDialog'
-import { productoFormSchema, type ProductoFormValues } from '@/lib/productoValidation'
+import { NumberField } from '@/components/atoms/NumberField'
+import {
+  productoFormSchema,
+  type ProductoFormInput,
+  type ProductoFormValues,
+} from '@/lib/productoValidation'
 import type { Producto } from '@/types/domain'
 import { upsertProductoAction } from '@/app/(protected)/catalogos/actions'
 import { useNotify } from '@/lib/useNotify'
@@ -26,7 +31,7 @@ export interface ProductoFormProps {
 
 const CATEGORIAS = ['pescado', 'marisco', 'otro'] as const
 
-function vacio(): ProductoFormValues {
+function vacio(): ProductoFormInput {
   return {
     nombre: '',
     tipo: 'crudo',
@@ -34,10 +39,11 @@ function vacio(): ProductoFormValues {
     codigo: '',
     controla_stock: true,
     producto_origen_id: '',
+    precio_referencia_usd_kg: null,
   }
 }
 
-function toFormValues(p: Producto): ProductoFormValues {
+function toFormValues(p: Producto): ProductoFormInput {
   return {
     nombre: p.nombre,
     tipo: p.tipo,
@@ -45,6 +51,8 @@ function toFormValues(p: Producto): ProductoFormValues {
     codigo: p.codigo ?? '',
     controla_stock: p.controla_stock,
     producto_origen_id: p.producto_origen_id ?? '',
+    precio_referencia_usd_kg:
+      p.precio_referencia_usd_kg == null ? null : Number(p.precio_referencia_usd_kg),
   }
 }
 
@@ -55,7 +63,7 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
   // Copia síncrona: dos clics antes del re-render deben ver el primero.
   const submittingRef = React.useRef(false)
 
-  const methods = useForm<ProductoFormValues>({
+  const methods = useForm<ProductoFormInput, unknown, ProductoFormValues>({
     resolver: zodResolver(productoFormSchema),
     mode: 'onSubmit',
     defaultValues: vacio(),
@@ -186,6 +194,30 @@ export function ProductoForm({ open, producto, crudos, onClose }: ProductoFormPr
                     </MenuItem>
                   ))}
                 </TextField>
+              )}
+            />
+          ) : null}
+          {tipo === 'procesado' ? (
+            <Controller
+              control={control}
+              name="precio_referencia_usd_kg"
+              render={({ field }) => (
+                <NumberField
+                  label="Precio de referencia (USD/kg)"
+                  fullWidth
+                  size="small"
+                  decimals={2}
+                  prefix="$"
+                  value={field.value}
+                  disabled={field.disabled}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={!!formState.errors.precio_referencia_usd_kg}
+                  helperText={
+                    formState.errors.precio_referencia_usd_kg?.message ??
+                    'Se usa para repartir el costo cuando un lote da varios productos'
+                  }
+                />
               )}
             />
           ) : null}

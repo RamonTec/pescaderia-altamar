@@ -40,6 +40,7 @@ import type {
   PerdidaPorMotivo,
   Procesamiento,
   ProcesoItem,
+  RepartoCosto,
   ProcesoLote,
   Producto,
   ProductoSalida,
@@ -340,35 +341,59 @@ export interface INotaCreditoRepository {
 
 type ProductoRef = Pick<Producto, 'id' | 'nombre' | 'codigo'>
 
+/**
+ * Salida de un procesamiento leída de `proceso_items_view` (16), con sus
+ * productos y el lote hijo generado. `costo_total_usd` llega `null` al
+ * operador desde la base.
+ */
 export interface ProcesoItemDetalle extends ProcesoItem {
   origen: ProductoRef
   destino: ProductoRef
+  lote_destino_id: string | null
+  lote_destino_codigo: string | null
 }
 
+/**
+ * Procesamiento leído de `procesamientos_view` con sus salidas
+ * (`proceso_items_view`). `costo_total_usd` llega `null` al operador.
+ */
 export interface ProcesamientoResumen extends Procesamiento {
   created_at: string
+  lote_origen_codigo: string | null
+  origen: ProductoRef | null
   proceso_items: ProcesoItemDetalle[]
 }
 
-/** Línea a procesar: el costo lo calcula la base desde el lote (RPC `registrar_procesamiento`). */
-export type ProcesoItemNuevo = Pick<
+/** Cabecera a registrar: sin costo (lo calcula la base desde el lote). */
+export type ProcesamientoNuevo = Pick<Procesamiento, 'id' | 'fecha' | 'notas'> & {
+  lote_origen_id: string
+  peso_entrada_kg: number
+}
+
+/**
+ * Salida a registrar. `precio_referencia_usd_kg` solo cuenta si el catálogo
+ * no tiene precio (la RPC usa el del catálogo cuando existe).
+ */
+export type SalidaProcesoNueva = Pick<
   ProcesoItem,
-  'lote_origen_id' | 'producto_origen_id' | 'peso_entrada_kg' | 'producto_destino_id' | 'peso_salida_kg'
+  'producto_destino_id' | 'peso_salida_kg' | 'precio_referencia_usd_kg'
 >
 
-/** Resultado de `registrar_procesamiento`: los lotes procesados creados (sin costos). */
+/** Resultado de `registrar_procesamiento`: los lotes creados (sin costos). */
 export interface ProcesamientoRegistrado {
   procesamiento_id: string
+  reparto_costo: RepartoCosto
   lotes: LoteCreado[]
 }
 
 export interface IProcesamientoRepository {
   /**
-   * Inserta procesamiento + líneas + lote procesado + movimientos
-   * `proceso_out`/`proceso_in` en una sola transacción, con el costo del lote
-   * de origen (07-lotes).
+   * Un lote crudo + un peso de entrada → N salidas en una sola transacción
+   * (RPC `registrar_procesamiento`, 16): cabecera, líneas, un `proceso_out`,
+   * un lote hijo + `proceso_in` por salida, con el costo repartido en la base.
    */
-  create(procesamiento: Procesamiento, items: ProcesoItemNuevo[]): Promise<ProcesamientoRegistrado>
+  create(procesamiento: ProcesamientoNuevo, salidas: SalidaProcesoNueva[]): Promise<ProcesamientoRegistrado>
+  /** Procesamientos con sus salidas, del más reciente al más antiguo. */
   list(): Promise<ProcesamientoResumen[]>
 }
 

@@ -16,7 +16,7 @@ Depende de: `04-inventario` (compras y procesamiento implementados) y `05-ventas
 |---|---|
 | Costeo | **Costo propio de cada lote** (identificación específica). Cada lote conserva su costo/kg en USD, su moneda y la tasa de su compra. Al procesar, vender o perder, se usa el costo del lote del que salió el producto. **Reemplaza el promedio ponderado** de `/SPEC.md` §2/§4.1. El "costo promedio" de un producto pasa a ser solo un dato informativo (`valor de sus lotes / kg en stock`). |
 | Origen de un lote | Cada **línea de compra** (`compra_items`) crea un lote. Cada **línea de procesamiento** crea un lote del producto procesado. |
-| Procesamiento | El operador **elige el lote crudo** de origen. **Un lote crudo da un lote procesado**: no se mezclan lotes. Procesar dos lotes = dos líneas = dos lotes de filete. |
+| Procesamiento | El operador **elige el lote crudo** de origen. **Un lote crudo da un lote procesado**: no se mezclan lotes. Procesar dos lotes = dos líneas = dos lotes de filete. *(Reemplazado el 2026-10-19 por `16-procesamiento-multisalida`: un lote crudo y un peso de entrada dan **N salidas**, cada una su lote hijo, y el costo se reparte por valor de venta. Sigue sin mezclarse lotes: otro lote = otro registro.)* |
 | Venta (POS y entrega de pedido) | **Automático, el más antiguo primero (PEPS)**. Si un lote no alcanza, se completa con el siguiente. El vendedor puede cambiar la asignación si físicamente tomó otro. |
 | Pérdidas | Fuera del procesamiento (dañado, vencido, faltante, otro), **cualquier usuario** puede registrarlas en un lote, con kg y motivo obligatorio. El admin las ve en la trazabilidad. |
 | Productos sin control de stock | `productos.controla_stock = false` no usan lotes (ni asignación ni validación de stock). |

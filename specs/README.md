@@ -93,7 +93,15 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     es_admin(), sin tablas nuevas; el operador ve solo lo operativo.
     Spec del 2026-10-08; decisiones D1–D7 cerradas el mismo día)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (último: lee datos de todos los módulos).
+16-procesamiento-multisalida → depende de 07-lotes y 15-dashboard (hechos);
+                 toca el esquema de 04-inventario (productos, procesamientos,
+                 proceso_items) y reemplaza la RPC de 07
+   (1 lote crudo + 1 peso de entrada → N salidas, cada una su lote hijo;
+    merma del proceso completo; costo repartido por valor de venta con
+    precio de referencia en productos; costos de procesamiento protegidos
+    con vistas. Spec del 2026-10-19)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida.
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -127,6 +135,16 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Dashboard ampliado (2026-10-08, pedido del usuario)**: la pantalla 7 de `/SPEC.md` §7 (tasa del día, ventas/margen del día, CxC/CxP, alertas de stock) se amplía con una sección analítica por período: ventas por mes en USD y kg, merma por procesos, margen bruto USD separado del resultado cambiario Bs, volumen en kg, productos con salida y CxC/CxP. Se suman 14 indicadores aprobados por el usuario: antigüedad de lotes, valor del inventario USD/Bs, pérdidas por motivo, margen por producto, spread precio/costo, rendimiento por proveedor, aging y top deudores, flujo de caja proyectado a 7/30 días, exposición cambiaria, contado vs crédito y métodos de pago, Pareto y clientes inactivos, ticket promedio, pedidos de hoy y mañana, y contratos sin firmar. Los cálculos van en RPC protegidas con `es_admin()`, sin tablas nuevas, y el operador ve solo lo operativo. Nuevo módulo `15-dashboard`. **No cambia el esquema de otros módulos**: el usuario aprobó el 2026-10-08 las decisiones D1–D7 tal como se propusieron. Con D2, el vencimiento de cuentas por pagar sale del contrato de compra o de `compras.fecha + dias_credito_default`, sin tocar `compras`. Con D1 se agrega `@mui/x-charts`, que amplía el stack de `/SPEC.md` §3 sin reabrir ninguna decisión.
 
 - **Proveedores: representante legal opcional (2026-10-13, pedido del usuario)**: se reabre la decisión del 2026-10-06 de `03-proveedores`. Ahora un proveedor persona jurídica puede darse de alta sin representante legal. Si se registran representantes, se sigue validando cada fila y su cédula sigue contando en la documentación requerida. No requiere migración: la regla vivía solo en `proveedorValidation.ts`. `02-clientes` no cambia. Detalle en `03-proveedores/spec.md` ("Cambio de alcance 2026-10-13"), con las tareas 33–37 en `tasks.md` y su sección en `checklist.md`.
+
+- **Procesamiento multisalida (2026-10-19, pedido del cliente)**: al limpiar un lote crudo salen varios productos (filete, cabeza, piel…). **Se reabre la decisión cerrada de `07-lotes`** ("un lote crudo da un lote procesado") **y la transferencia total del costo de `/SPEC.md` §4.3**. Decisiones aprobadas por el usuario:
+  - Un procesamiento es un solo lote crudo con un solo peso de entrada y genera N salidas. Cada salida es un lote hijo.
+  - La merma es del proceso completo y `Σ salidas ≤ entrada`.
+  - Otro lote crudo va en otro registro.
+  - El costo se reparte **por valor de venta**, con un precio de referencia USD/kg nuevo en `productos`. La línea guarda el precio usado como snapshot.
+
+  Nuevo módulo `16-procesamiento-multisalida`. Elegimos la opción "cabecera + líneas prorrateadas" (ver la decisión de diseño en su `spec.md`): así la merma y el rendimiento del dashboard y del resultado por lote siguen cuadrando sin reescribir las RPC de `15-dashboard`.
+
+  También cierra la deuda de costos de procesamiento legibles por el operador: vistas protegidas y escritura solo por RPC. Cambia el esquema de `04-inventario` (`productos`, `procesamientos`, `proceso_items`) y reemplaza `registrar_procesamiento` de `07-lotes`. Quedó anotado como tarea agregada en `04-inventario/tasks.md`, `07-lotes/tasks.md` y `15-dashboard/tasks.md` (en 15 solo cambia una etiqueta: el costo del kg limpio de B7 pasa a ser el costo medio del kg obtenido). `/SPEC.md` §4.3, §5, §6 y §7 se actualizaron con nota de reemplazo.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

@@ -71,6 +71,8 @@ export async function upsertProductoAction(
   const codigo = input.codigo.trim() ? input.codigo.trim().toUpperCase() : null
   const categoria = input.categoria.trim() ? input.categoria.trim() : null
   const productoOrigenId = input.tipo === 'procesado' ? input.producto_origen_id : null
+  // Solo procesados (16); el esquema ya lo deja en `null` para un crudo.
+  const precioReferencia = input.tipo === 'procesado' ? input.precio_referencia_usd_kg : null
 
   const db = await createClient()
   const repo = makeProductoRepository(db)
@@ -84,6 +86,7 @@ export async function upsertProductoAction(
         categoria,
         controla_stock: input.controla_stock,
         producto_origen_id: productoOrigenId,
+        precio_referencia_usd_kg: precioReferencia,
       })
     } else {
       const creado = await repo.create({
@@ -94,6 +97,7 @@ export async function upsertProductoAction(
         controla_stock: input.controla_stock,
         activo: true,
         producto_origen_id: productoOrigenId,
+        precio_referencia_usd_kg: precioReferencia,
       })
       revalidatePath('/catalogos')
       revalidatePath('/procesamiento')

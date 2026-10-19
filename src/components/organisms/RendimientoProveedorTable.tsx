@@ -23,9 +23,11 @@ const colPct = (field: keyof RendimientoProveedor, headerName: string): GridColD
 })
 
 /**
- * Rendimiento por proveedor y costo del kg limpio (15, B7): por proveedor del
- * lote origen y producto. Costo kg crudo medio y costo real del kg limpio =
- * Σ costo total / Σ kg de salida (la merma encarece el kg neto, §4.3).
+ * Rendimiento por proveedor (15, B7): por proveedor del lote origen y
+ * producto. Costo kg crudo medio y costo medio del kg obtenido =
+ * Σ costo total / Σ kg de salida. Desde 16 un procesamiento tiene N salidas:
+ * ese cociente es el costo medio de todas ellas, no el de un producto (la
+ * RPC no cambia; solo la etiqueta). La merma encarece el kg neto (§4.3).
  */
 export function RendimientoProveedorTable({ rendimiento }: { rendimiento: BloqueDashboard<RendimientoProveedor[]> }) {
   const filas: Fila[] = (rendimiento.ok ? rendimiento.data : []).map((r) => ({
@@ -51,13 +53,21 @@ export function RendimientoProveedorTable({ rendimiento }: { rendimiento: Bloque
     colPct('rendimiento', 'Rendimiento'),
     colPct('merma_pct', 'Merma %'),
     { ...colMonto<Fila>('costo_kg_crudo_usd', 'Costo kg crudo'), flex: 1 },
-    { ...colMonto<Fila>('costo_kg_limpio_usd', 'Costo kg limpio'), flex: 1 },
+    {
+      ...colMonto<Fila>('costo_kg_limpio_usd', 'Costo medio kg obtenido'),
+      flex: 1,
+      minWidth: 150,
+      // Con varias salidas por proceso (16) es el promedio de todas ellas,
+      // no el costo de un producto en particular.
+      description:
+        'Costo total de lo que entró a proceso ÷ kg obtenidos de todas las salidas (filete, cabeza, piel…). Incluye la merma.',
+    },
   ]
 
   return (
     <ChartCard
       title="Rendimiento por proveedor"
-      help="Según el proveedor del lote que entró a proceso. El costo del kg limpio incluye la merma."
+      help="Según el proveedor del lote que entró a proceso. El costo medio del kg obtenido reparte el costo de la entrada entre todos los kg que salieron (todas las salidas) e incluye la merma."
       error={rendimiento.ok ? null : rendimiento.error}
     >
       <AppDataGrid
@@ -77,7 +87,7 @@ export function RendimientoProveedorTable({ rendimiento }: { rendimiento: Bloque
         }}
         mobileCard={(r) => ({
           primary: `${r.proveedor_nombre} · ${r.producto_nombre}`,
-          secondary: `${formatKg(r.kg_entrada)} → ${formatKg(r.kg_salida)} · kg limpio ${r.costo_kg_limpio_usd === null ? '—' : formatUsd(r.costo_kg_limpio_usd)}`,
+          secondary: `${formatKg(r.kg_entrada)} → ${formatKg(r.kg_salida)} · kg obtenido ${r.costo_kg_limpio_usd === null ? '—' : formatUsd(r.costo_kg_limpio_usd)}`,
           amount: r.rendimiento === null ? '—' : formatPct(r.rendimiento),
         })}
       />

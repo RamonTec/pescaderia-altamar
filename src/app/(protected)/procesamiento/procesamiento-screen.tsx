@@ -58,7 +58,7 @@ export function ProcesamientoScreen({
       <LotesCreadosDialog
         lotes={lotesCreados}
         nombresProducto={nombresProducto}
-        subtitle="Procesamiento registrado · rotula el recipiente con su código"
+        subtitle="Procesamiento registrado · rotula cada recipiente con su código"
         onClose={() => setLotesCreados(null)}
       />
     </>

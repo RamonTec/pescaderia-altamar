@@ -10,42 +10,47 @@ import { createClient } from '@/lib/supabase/server'
 
 export default async function ProcesamientoPage() {
   const db = await createClient()
-  const loteRepo = makeLoteRepository(db)
   const [procesamientos, productos, lotesAbiertos, config, esAdmin] = await Promise.all([
     makeProcesamientoRepository(db).list(),
     makeProductoRepository(db).list(),
-    loteRepo.listAbiertosTodos(),
+    makeLoteRepository(db).listAbiertosTodos(),
     getConfigNegocio(db),
     requireAdmin(),
   ])
 
-  // Lote procesado generado por cada línea (y su lote crudo padre).
-  const lotesGenerados = await loteRepo.listByOrigen({
-    procesamientoIds: procesamientos.map((p) => p.id),
-  })
-  const porProcesoItem = new Map(
-    lotesGenerados.filter((l) => l.proceso_item_id).map((l) => [l.proceso_item_id as string, l])
-  )
-
-  // Costos son de admin (/SPEC.md §5): `proceso_items.costo_total_usd` sigue
-  // legible por RLS, así que se quita aquí y no llega al payload del operador.
-  const filas: ProcesoFila[] = procesamientos.flatMap((p) =>
-    p.proceso_items.map((i) => {
-      const generado = porProcesoItem.get(i.id)
-      return {
+  // Una fila por procesamiento (16). Los costos llegan `null` al operador
+  // desde las vistas (`procesamientos_view` / `proceso_items_view`).
+  const filas: ProcesoFila[] = procesamientos.map((p) => {
+    const salidaTotal =
+      p.proceso_items.reduce((s, i) => s + Math.round(i.peso_salida_kg * 1000), 0) / 1000
+    // Registros legados sin cabecera: la entrada es la suma de sus líneas.
+    const entrada =
+      p.peso_entrada_kg ??
+      p.proceso_items.reduce((s, i) => s + Math.round(i.peso_entrada_kg * 1000), 0) / 1000
+    const primera = p.proceso_items[0]
+    return {
+      id: p.id,
+      fecha: p.fecha,
+      notas: p.notas,
+      origen_nombre: p.origen?.nombre ?? primera?.origen.nombre ?? '—',
+      lote_origen_id: p.lote_origen_id ?? primera?.lote_origen_id ?? null,
+      lote_origen_codigo: p.lote_origen_codigo,
+      peso_entrada_kg: entrada,
+      salida_total_kg: salidaTotal,
+      costo_total_usd: p.costo_total_usd,
+      salidas: p.proceso_items.map((i) => ({
         id: i.id,
-        fecha: p.fecha,
-        notas: p.notas,
-        origen: i.origen,
-        destino: i.destino,
-        peso_entrada_kg: i.peso_entrada_kg,
+        producto_nombre: i.destino.nombre,
         peso_salida_kg: i.peso_salida_kg,
-        costo_total_usd: esAdmin ? i.costo_total_usd : null,
-        lote_origen_codigo: generado?.lote_padre_codigo ?? null,
-        lote_destino_codigo: generado?.codigo ?? null,
-      }
-    })
-  )
+        lote_destino_id: i.lote_destino_id,
+        lote_destino_codigo: i.lote_destino_codigo,
+        costo_usd_kg:
+          i.costo_total_usd != null && i.peso_salida_kg > 0
+            ? Math.round((i.costo_total_usd / i.peso_salida_kg) * 1e6) / 1e6
+            : null,
+      })),
+    }
+  })
 
   const activos = productos.filter((p) => p.activo)
   const crudosIds = new Set(activos.filter((p) => p.tipo === 'crudo').map((p) => p.id))
