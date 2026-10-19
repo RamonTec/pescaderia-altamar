@@ -60,3 +60,8 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "Cuentas por pagar reutiliza DocumentosCarteraTable — <fecha>")_
+- **17-trazabilidad-y-correccion-facturas (2026-10-19)**:
+  - En `/cobros` y en la sección "Facturas y cobranza" de la ficha de cliente, solo para el admin: `getRowHref` → `/facturas/[id]` y la opción `⋮` "Ver detalle y trazabilidad".
+  - `lib/cartera`, `DocumentoCartera` y `cartera_clientes_view` **no cambian**. Una factura corregida por debajo de lo pagado tiene saldo negativo, así que ya da `pagada`, igual que con una nota de crédito.
+  - Una factura de contado corregida al alza queda `abierta` y vencida (vence el mismo día), así que entra en los recordatorios.
+  - Los recordatorios usan solo los valores vigentes y no mencionan correcciones.

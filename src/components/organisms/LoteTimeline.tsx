@@ -174,7 +174,15 @@ export function LoteTimeline({ traza, esAdmin }: LoteTimelineProps) {
       icono: <ReceiptLongOutlinedIcon />,
       titulo: (
         <>
-          Venta de {formatKg(v.peso_kg)} · factura {numeroDoc(v.factura_numero)}
+          Venta de {formatKg(v.peso_kg)} · factura{' '}
+          {esAdmin ? (
+            // 17: el admin abre la ficha de la factura con su trazabilidad.
+            <Link component={NextLink} href={`/facturas/${v.factura_id}`}>
+              {numeroDoc(v.factura_numero)}
+            </Link>
+          ) : (
+            numeroDoc(v.factura_numero)
+          )}
           {deLote(v.lote_id)}
           {v.factura_estado === 'anulada' ? (
             <Box component="span" sx={{ ml: 1 }}>

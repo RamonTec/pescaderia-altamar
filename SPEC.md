@@ -10,7 +10,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 |---|---|
 | Moneda base de registro | **USD** (referente estable); Bs como moneda operativa |
 | Tasa de cambio | Automática: **BCV oficial por scraping de www.bcv.org.ve (USD y EUR)**, con dolarapi como respaldo y como fuente de la paralela; tasa del día manual (admin). En cada operación, referencial por defecto o **manual** (cualquier usuario, queda registrado quién y cuánto difería). EUR solo de referencia. Escritura de `tasas` solo admin; las automáticas van con `service_role` desde el servidor. *(Ampliado el 2026-10-07, ver `specs/08-tasas`.)* |
-| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. |
+| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. La corrección de una factura (`specs/17-trazabilidad-y-correccion-facturas`) cambia peso y precio de una línea, **nunca la tasa**. |
 | Costeo de inventario | **Por lote** (costo propio de cada lote; PEPS sugerido al vender). *Reabierto el 2026-10-07: antes era promedio ponderado por kg. Ver `specs/07-lotes`.* |
 | Crédito | Deuda pactada en USD; cada abono usa la **tasa del día del pago** → ganancia/pérdida cambiaria |
 | Facturación | Interna (no fiscal SENIAT), con **IVA desglosado configurable** (default 16%) |
@@ -51,6 +51,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - Precio pactado en USD o Bs; tasa congelada al emitir la factura.
 - IVA desglosado: `subtotal + iva (16% default) = total`.
 - Cada línea vendida se asigna a lotes **PEPS** (más antiguo primero), editable por el vendedor; no se vende más de lo que hay en los lotes.
+- **Corrección de factura** (solo admin): se pueden editar el peso y el precio/kg de una línea emitida, con motivo obligatorio e historial que solo ve el admin. Se recalculan subtotal, IVA, total y saldo; si el total queda por debajo de lo pagado, queda saldo a favor. El cambio de peso mueve stock de los lotes de la línea. Las anuladas no se editan y el peso no baja de lo devuelto por notas de crédito. *(Antes: la factura emitida nunca se editaba y toda corrección iba por nota de crédito; reemplazado el 2026-10-19, ver `specs/17-trazabilidad-y-correccion-facturas`.)*
 
 ### 4.5 Cobros y pagos (crédito)
 - Deuda siempre expresada en USD.
@@ -60,7 +61,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - Las compras a crédito a proveedores funcionan igual (cuentas por pagar).
 
 ### 4.6 COGS y margen
-- Cada `factura_item` guarda `costo_usd_kg` snapshot (promedio de los lotes asignados) y su detalle por lote (`factura_item_lotes`) → margen real por venta, por producto y **por lote**, con resultado en USD y en Bs a las tasas de compra y de venta.
+- Cada `factura_item` guarda `costo_usd_kg` snapshot (promedio de los lotes asignados) y su detalle por lote (`factura_item_lotes`) → margen real por venta, por producto y **por lote**, con resultado en USD y en Bs a las tasas de compra y de venta. Una corrección de peso (§4.4) actualiza la asignación y recalcula ese promedio. *(Agregado el 2026-10-19.)*
 
 ## 5. Esquema de datos (Postgres/Supabase)
 
@@ -82,13 +83,14 @@ pedido_items       (pedido_id, producto_id, peso_estimado_kg, peso_entregado_kg,
 facturas           (numero, cliente_id, pedido_id?, fecha, dias_credito, fecha_vencimiento, condicion, tasa_snapshot, iva_pct, subtotal_usd, iva_usd, total_usd, pagado_usd, estado)
 factura_items      (factura_id, producto_id, peso_kg, precio_usd_kg, costo_usd_kg)
 pagos              (factura_id, fecha, monto_usd, moneda_pago, tasa_pago, metodo, ganancia_cambiaria_bs)
-movimientos        (producto_id, lote_id, fecha, tipo compra|proceso_in|proceso_out|venta|ajuste|perdida, peso_kg, costo_usd_kg, ref_id)  -- ledger auditable
+movimientos        (producto_id, lote_id, fecha, tipo compra|proceso_in|proceso_out|venta|ajuste|perdida|correccion_venta, peso_kg, costo_usd_kg, ref_id)  -- ledger auditable; correccion_venta: 17, 2026-10-19
+factura_correcciones (factura_id, factura_item_id, peso/precio/costo anterior y nuevo, totales anterior y nuevo, pagado_usd, estado anterior y nuevo, contrato_id?, motivo, usuario_id, created_at)  -- 17 (2026-10-19); historial solo admin, escritura solo por RPC
 lotes              (codigo, producto_id, origen compra|proceso|inicial, compra_item_id?, proceso_item_id?, lote_padre_id?, proveedor_id, fecha_ingreso, peso_inicial_kg, costo_usd_kg, moneda, tasa_snapshot, estado abierto|agotado|cerrado)
 factura_item_lotes (factura_item_id, lote_id, peso_kg, costo_usd_kg)
 perdidas_lote      (lote_id, fecha, peso_kg, motivo, detalle, usuario_id)
 recordatorios_cobro (cliente_id, canal whatsapp|email, destinatario, asunto?, mensaje, estado generado|enviado|fallido, enviado_por) + recordatorio_facturas
 contratos          (numero, tipo venta_credito|compra_credito, factura_id?, compra_id?, fecha, dias_credito, fecha_vencimiento, estado generado|enviado|firmado|anulado, url_storage, notas, generado_por, estado_cambiado_por/_at)  -- 06-contratos; PDF inmutable en bucket privado `contratos`; solo admin
-config_negocio     (singleton: iva_pct, fuente_tasa_default, umbrales, dias_credito_default, ..., nombre_comercial, razon_social, rif, direccion, telefono)  -- los 4 últimos: encabezado de contratos (06)
+config_negocio     (singleton: iva_pct, fuente_tasa_default, umbrales, dias_credito_default, ..., nombre_comercial, razon_social, rif, direccion, telefono, tolerancia_precio_ref_pct)  -- razon_social..telefono: encabezado de contratos (06); tolerancia_precio_ref_pct: señales de facturas (17)
 usuarios           (via Supabase Auth; rol admin|operador)
 ```
 

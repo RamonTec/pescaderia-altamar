@@ -13,7 +13,8 @@ import type { Contrato, ContratoListado } from '@/types/domain'
  * (security_invoker, hereda la RLS solo admin). Sin lógica de negocio.
  */
 
-const SELECT_ACTIVO = 'id, numero, estado, factura_id, compra_id'
+// 17: se lee de la vista para traer `desactualizado` (derivado de las correcciones).
+const SELECT_ACTIVO = 'id, numero, estado, factura_id, compra_id, desactualizado'
 
 /** Quita comodines y separadores de PostgREST de la búsqueda libre. */
 function limpiarBusqueda(texto: string): string {
@@ -30,11 +31,12 @@ function normalizaListado(fila: ContratoListado): ContratoListado {
     documento_numero: fila.documento_numero === null ? null : Number(fila.documento_numero),
     monto_usd: fila.monto_usd === null ? null : Number(fila.monto_usd),
     origen_anulado: Boolean(fila.origen_anulado),
+    desactualizado: Boolean(fila.desactualizado),
   }
 }
 
 function normalizaActivo(fila: ContratoActivoOrigen): ContratoActivoOrigen {
-  return { ...fila, numero: Number(fila.numero) }
+  return { ...fila, numero: Number(fila.numero), desactualizado: Boolean(fila.desactualizado) }
 }
 
 export function makeContratoRepository(db: SupabaseClient): IContratoRepository {
@@ -87,7 +89,7 @@ export function makeContratoRepository(db: SupabaseClient): IContratoRepository 
     async activosPorFacturas(ids) {
       if (ids.length === 0) return []
       const { data, error } = await db
-        .from('contratos')
+        .from('contratos_listado_view')
         .select(SELECT_ACTIVO)
         .in('factura_id', ids)
         .neq('estado', 'anulado')
@@ -98,7 +100,7 @@ export function makeContratoRepository(db: SupabaseClient): IContratoRepository 
     async activosPorCompras(ids) {
       if (ids.length === 0) return []
       const { data, error } = await db
-        .from('contratos')
+        .from('contratos_listado_view')
         .select(SELECT_ACTIVO)
         .in('compra_id', ids)
         .neq('estado', 'anulado')

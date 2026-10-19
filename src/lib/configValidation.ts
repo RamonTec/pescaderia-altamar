@@ -5,7 +5,8 @@ import { RIF_CI_REGEX, TELEFONO_VE_REGEX } from './clienteValidation'
 /**
  * Validación de la configuración del negocio (04-inventario, 08-tasas).
  * IVA en porcentaje (0–100), fuente de tasa preferida, umbral de stock bajo
- * y umbral de desviación % de una tasa manual (08-tasas).
+ * y umbral de desviación % de una tasa manual (08-tasas). Tolerancia de las
+ * señales de facturas frente al precio de referencia (17).
  */
 export const configFormSchema = z.object({
   iva_pct: z
@@ -28,6 +29,11 @@ export const configFormSchema = z.object({
     .number({ message: 'Umbral requerido' })
     .min(0, 'El umbral no puede ser negativo')
     .max(100, 'El umbral no puede superar 100%'),
+  // 17: tolerancia simétrica de las señales "Por debajo" / "Cobro mayor".
+  tolerancia_precio_ref_pct: z
+    .number({ message: 'Tolerancia requerida' })
+    .min(0, 'No puede ser negativa')
+    .max(100, 'No puede superar 100 %'),
   // 09-cuentas-por-cobrar: vencimientos y datos de los recordatorios de cobro.
   dias_credito_default: z
     .number({ message: 'Días requeridos' })

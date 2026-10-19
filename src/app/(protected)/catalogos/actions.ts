@@ -193,6 +193,7 @@ export async function updateConfigAction(
       umbral_stock_bajo_kg: safe.data.umbral_stock_bajo_kg,
       dias_alerta_lote: safe.data.dias_alerta_lote,
       umbral_desviacion_tasa_pct: safe.data.umbral_desviacion_tasa_pct,
+      tolerancia_precio_ref_pct: safe.data.tolerancia_precio_ref_pct,
       dias_credito_default: safe.data.dias_credito_default,
       dias_aviso_por_vencer: safe.data.dias_aviso_por_vencer,
       nombre_comercial: safe.data.nombre_comercial,
@@ -213,5 +214,6 @@ export async function updateConfigAction(
   revalidatePath('/cobros')
   revalidatePath('/inventario', 'layout')
   revalidatePath('/contratos')
+  revalidatePath('/facturas/[id]', 'page')
   return { error: null, success: 'Configuración guardada' }
 }

@@ -122,3 +122,19 @@ const isoLocalFormatter = new Intl.DateTimeFormat('en-CA', {
 export function fechaHoy(): string {
   return isoLocalFormatter.format(new Date())
 }
+const fechaHoraFormatter = new Intl.DateTimeFormat('es-VE', {
+  timeZone: 'America/Caracas',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+/** Marca de tiempo (`timestamptz`) en hora de Venezuela: `19 oct 2026, 10:35 a. m.` (17: historial). */
+export function formatFechaHora(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return '—'
+  return fechaHoraFormatter.format(fecha)
+}

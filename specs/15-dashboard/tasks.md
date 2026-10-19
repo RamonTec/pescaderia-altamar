@@ -79,3 +79,9 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
   - En B7, `Σ costo_total_usd / Σ peso_salida_kg` pasa a ser el **costo medio del kg obtenido** de todas las salidas: se re-etiqueta en `RendimientoProveedorTable`.
   - Se ajusta el texto de ayuda de `MermaProcesosPanel`.
   - Esto cierra en parte la deuda "lectura directa de `proceso_items` por el operador".
+- **17-trazabilidad-y-correccion-facturas (2026-10-19)**: el admin puede corregir peso y precio/kg de una línea de factura. **No cambia ninguna RPC `dashboard_*`**:
+  - `dashboard_lineas_venta` y `dashboard_facturas_saldo_view` leen los valores vigentes, así que las ventas, el margen, el spread, la mezcla y el top de clientes reflejan la corrección en el período de la **fecha de la factura**, no en el de la corrección;
+  - los saldos a favor (saldo < 0) quedan fuera de CxC, aging, top deudores, flujo y exposición por el filtro `saldo_usd > 0.005`, como con las notas de crédito;
+  - `dashboard_resultado_cambiario` no cambia, porque los pagos y su ganancia cambiaria no se tocan.
+
+  Se verifica en la tarea 26 de ese módulo.

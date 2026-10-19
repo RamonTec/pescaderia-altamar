@@ -101,7 +101,15 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     precio de referencia en productos; costos de procesamiento protegidos
     con vistas. Spec del 2026-10-19)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida.
+17-trazabilidad-y-correccion-facturas → depende de 05, 06, 07, 09, 15 y 16 (hechos);
+                 reabre la decisión de 05 "la factura original nunca se edita";
+                 toca movimientos/config_negocio (04/07) y contratos_listado_view (06)
+   (ficha /facturas/[id] solo admin con la cadena compra → proceso → venta
+    por línea, margen y señales de posible error; corrección de peso y
+    precio/kg de una línea con historial solo admin, stock por lote y
+    contrato desactualizado derivado. Spec del 2026-10-19)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -145,6 +153,22 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   Nuevo módulo `16-procesamiento-multisalida`. Elegimos la opción "cabecera + líneas prorrateadas" (ver la decisión de diseño en su `spec.md`): así la merma y el rendimiento del dashboard y del resultado por lote siguen cuadrando sin reescribir las RPC de `15-dashboard`.
 
   También cierra la deuda de costos de procesamiento legibles por el operador: vistas protegidas y escritura solo por RPC. Cambia el esquema de `04-inventario` (`productos`, `procesamientos`, `proceso_items`) y reemplaza `registrar_procesamiento` de `07-lotes`. Quedó anotado como tarea agregada en `04-inventario/tasks.md`, `07-lotes/tasks.md` y `15-dashboard/tasks.md` (en 15 solo cambia una etiqueta: el costo del kg limpio de B7 pasa a ser el costo medio del kg obtenido). `/SPEC.md` §4.3, §5, §6 y §7 se actualizaron con nota de reemplazo.
+
+- **Trazabilidad y corrección de facturas (2026-10-19, pedido del cliente)**: el cliente quiere ver el detalle de las cuentas por cobrar con la trazabilidad completa de cada venta, para medir si hay errores en las facturas, y corregir el monto de una factura en el momento. **Se reabre la decisión cerrada de `05-ventas/spec.md` §4.4** ("la factura original nunca se edita"). Decisiones aprobadas por el usuario:
+  - Detalle por línea: compra al proveedor → procesamiento → venta, con margen por línea y por factura y una señal de posible error.
+  - Corrección editando la factura con historial: **solo el peso y el precio/kg de una línea**, con recálculo de subtotal, IVA, total y saldo, y motivo obligatorio. El historial lo ve solo el admin; el cliente ve solo los valores vigentes.
+  - Se permite editar con pagos (saldo a favor si el total queda por debajo de lo pagado) o con contrato (queda desactualizado). El peso no baja de lo devuelto por notas de crédito, y las facturas anuladas no se editan.
+  - Editar el peso mueve stock por lote.
+  - Todo es solo admin, por RPC `security definer` con lock.
+
+  Nuevo módulo `17-trazabilidad-y-correccion-facturas`. El movimiento del ledger es un tipo nuevo, `correccion_venta`, y el contrato desactualizado se deriva sin escribir en `contratos` (ver la decisión de diseño en su `spec.md`). El mismo día el usuario cerró las decisiones que la spec había dejado abiertas:
+  - Al subir el peso, se toma primero de los lotes de la línea, después por PEPS y, si no alcanza, da error.
+  - Hay tres señales por línea (Pérdida, Por debajo y Cobro mayor), con una tolerancia simétrica `config_negocio.tolerancia_precio_ref_pct` que por defecto es 0 %.
+  - El precio de referencia es el del procesamiento, con el del catálogo como respaldo.
+  - El ledger es visible al operador solo con kg.
+  - Una factura de contado que sube queda abierta y vencida.
+
+  Cambia `movimientos` y `config_negocio` (04/07) y `contratos_listado_view` (06). Quedó anotado como tarea agregada en `04-inventario`, `05-ventas`, `06-contratos`, `07-lotes`, `09-cuentas-por-cobrar` y `15-dashboard` (en 15 sin cambios de RPC). `/SPEC.md` §2, §4.4, §4.6 y §5 y `05-ventas/spec.md` §4.4 se actualizaron con nota de reemplazo.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

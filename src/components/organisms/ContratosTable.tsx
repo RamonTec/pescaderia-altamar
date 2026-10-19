@@ -77,6 +77,8 @@ function EstadoContratoChips({ contrato }: { contrato: ContratoListado }) {
       {contrato.origen_anulado && contrato.estado !== 'anulado' ? (
         <EstadoChip label="Documento anulado" color="warning" />
       ) : null}
+      {/* 17: la factura se corrigió después de generarlo; hay que anularlo y generar otro. */}
+      {contrato.desactualizado ? <EstadoChip label="Desactualizado" color="warning" /> : null}
     </Box>
   )
 }

@@ -176,3 +176,11 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. Mi
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 
 - _(ej.: "Cuentas por pagar agrega días de crédito a compras: el diálogo los precarga como en facturas — <fecha>")_
+- **17-trazabilidad-y-correccion-facturas (2026-10-19)**: una factura con contrato activo se puede corregir (peso y precio/kg de una línea). El contrato queda **desactualizado**, sin escribir en `contratos`:
+  - es un valor derivado (hay una corrección de la factura posterior al `created_at` del contrato);
+  - `contratos_listado_view` se recrea con `ultima_correccion_at` y `desactualizado` al final (migración `20261019100200_correccion_facturas_contratos.sql`);
+  - `ContratosTable` muestra el chip "Desactualizado" junto a "Documento anulado";
+  - `useContratoAcciones` muestra "Ver contrato N.º 0007 (desactualizado)";
+  - `ElegibilidadContrato` y `ContratoListado` suman `desactualizado`.
+
+  El trigger `contratos_validar`, la regla de PDF inmutable y el flujo "anular y generar otro" no cambian. El PDF nunca menciona correcciones.
