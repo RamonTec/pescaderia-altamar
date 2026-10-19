@@ -1,4 +1,10 @@
-import type { ConfigNegocio, Lote, ResultadoLote, TrazabilidadLote } from '@/types/domain'
+import type {
+  ConfigNegocio,
+  Lote,
+  ProcesoLote,
+  ResultadoLote,
+  TrazabilidadLote,
+} from '@/types/domain'
 import { fechaHoy } from '@/lib/format'
 
 /**
@@ -39,6 +45,11 @@ export function porcentajeRestante(lote: Pick<Lote, 'stock_kg' | 'peso_inicial_k
 export const redondea6 = (n: number) => Math.round(n * 1e6) / 1e6
 export const redondea3 = (n: number) => Math.round(n * 1e3) / 1e3
 
+/** Σ kg obtenidos en un procesamiento (sus N salidas). */
+export function salidaProcesoKg(p: Pick<ProcesoLote, 'salidas'>): number {
+  return redondea3(p.salidas.reduce((s, x) => s + x.peso_salida_kg, 0))
+}
+
 /**
  * Resultado de un lote y sus hijos para los kg vendidos y perdidos
  * (spec 07-lotes, "Trazabilidad y resultado por lote"):
@@ -50,8 +61,10 @@ export const redondea3 = (n: number) => Math.round(n * 1e3) / 1e3
  *
  * Las devoluciones (notas emitidas con `afecta_inventario`) restan su venta
  * y su costo; las ventas de facturas anuladas no cuentan. El costo de cada
- * lote es fijo (el de un procesado ya incluye la merma), por eso el
- * `proceso_out` del padre no es costo: pasa al hijo.
+ * lote es fijo (el de un procesado ya incluye su parte del costo del
+ * proceso, repartido por valor de venta, 16), por eso el `proceso_out` del
+ * padre no es costo: pasa a los hijos. El árbol de un crudo consolida sus N
+ * hijos.
  *
  * Requiere costos (admin): si alguno llega `null`, devuelve `null`.
  */
@@ -99,8 +112,10 @@ export function resultadoLote(t: TrazabilidadLote): ResultadoLote | null {
     costoPerdidoBs += costo * tasaDe(p.lote_id)
   }
 
+  // Merma y rendimiento del proceso completo (16): entrada de la cabecera y
+  // Σ de las N salidas de cada procesamiento (no el prorrateo por línea).
   const entrada = t.procesos.reduce((s, p) => s + p.peso_entrada_kg, 0)
-  const salida = t.procesos.reduce((s, p) => s + p.peso_salida_kg, 0)
+  const salida = t.procesos.reduce((s, p) => s + salidaProcesoKg(p), 0)
 
   const resultadoUsd = ingresoUsd - costoVendidoUsd - costoPerdidoUsd
   const resultadoBs = ingresoBs - costoVendidoBs - costoPerdidoBs

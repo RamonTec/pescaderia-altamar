@@ -16,6 +16,7 @@ import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOut
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined'
 import { EstadoChip } from '@/components/organisms/appDataGridColumns'
 import { ETIQUETA_MOTIVO } from '@/lib/loteValidation'
+import { salidaProcesoKg } from '@/lib/lotes'
 import { formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/format'
 import type { Lote, TrazabilidadLote } from '@/types/domain'
 
@@ -53,7 +54,7 @@ export interface LoteTimelineProps {
 
 /**
  * Línea de tiempo de un lote y sus hijos (07-lotes): compra → procesamientos
- * → ventas → pérdidas → devoluciones, con enlaces al lote padre o hijo, al
+ * (uno por evento, con sus N salidas, 16) → ventas → pérdidas → devoluciones, con enlaces al lote padre o hijo, al
  * cliente de cada factura y a las compras. Hecha con `List` (sin
  * dependencias nuevas). En un árbol, cada evento indica de qué lote es.
  */
@@ -112,39 +113,54 @@ export function LoteTimeline({ traza, esAdmin }: LoteTimelineProps) {
         detalle: (
           <>
             {formatKg(l.peso_inicial_kg)} obtenidos
-            {esAdmin && l.costo_usd_kg != null ? ` · ${formatUsd(l.costo_usd_kg)}/kg (incluye la merma)` : ''}
+            {esAdmin && l.costo_usd_kg != null
+              ? ` · ${formatUsd(l.costo_usd_kg)}/kg (costo repartido por valor de venta)`
+              : ''}
           </>
         ),
       })
     }
   }
 
+  // Un evento por procesamiento (16): entrada → N salidas, cada una con
+  // enlace a su lote hijo; merma y rendimiento del proceso completo.
   for (const p of traza.procesos) {
-    const merma = p.peso_entrada_kg - p.peso_salida_kg
+    const salida = salidaProcesoKg(p)
+    const merma = Math.round((p.peso_entrada_kg - salida) * 1000) / 1000
+    const n = p.salidas.length
     eventos.push({
-      clave: `pr-${p.proceso_item_id}`,
+      clave: `pr-${p.procesamiento_id}-${p.lote_origen_id}`,
       fecha: p.fecha,
       orden: 1,
       icono: <ContentCutOutlinedIcon />,
       titulo: (
         <>
-          Procesamiento: {formatKg(p.peso_entrada_kg)} → {formatKg(p.peso_salida_kg)}
+          Procesamiento: {formatKg(p.peso_entrada_kg)} → {n} {n === 1 ? 'salida' : 'salidas'}
           {deLote(p.lote_origen_id)}
         </>
       ),
       detalle: (
         <>
           Merma {formatKg(merma)} ({pct.format(p.peso_entrada_kg > 0 ? merma / p.peso_entrada_kg : 0)}) ·
-          rendimiento {pct.format(p.peso_entrada_kg > 0 ? p.peso_salida_kg / p.peso_entrada_kg : 0)}
-          {p.lote_destino_id ? (
-            <>
-              {' · lote '}
-              <EnlaceLote
-                lote={{ id: p.lote_destino_id, codigo: p.lote_destino_codigo ?? 'generado' }}
-                actual={lote.id}
-              />
-            </>
-          ) : null}
+          rendimiento {pct.format(p.peso_entrada_kg > 0 ? salida / p.peso_entrada_kg : 0)}
+          <Box component="span" sx={{ display: 'block', mt: 0.25 }}>
+            {p.salidas.map((s, i) => (
+              <React.Fragment key={s.proceso_item_id}>
+                {i > 0 ? ' · ' : ''}
+                {s.producto_nombre} {formatKg(s.peso_salida_kg)}
+                {s.lote_destino_id ? (
+                  <>
+                    {' ('}
+                    <EnlaceLote
+                      lote={{ id: s.lote_destino_id, codigo: s.lote_destino_codigo ?? 'generado' }}
+                      actual={lote.id}
+                    />
+                    {')'}
+                  </>
+                ) : null}
+              </React.Fragment>
+            ))}
+          </Box>
         </>
       ),
     })

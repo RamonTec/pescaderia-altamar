@@ -26,7 +26,8 @@ function Cifra({ titulo, valor }: { titulo: string; valor: string }) {
 
 /**
  * Merma por procesos (15, B6, §4.3): por producto de origen, kg de entrada y
- * salida, merma (kg y %), rendimiento = salida / entrada y costo de la merma
+ * salida (Σ de las N salidas de cada proceso, 16), merma del proceso completo
+ * (kg y %), rendimiento = salida / entrada y costo de la merma
  * al costo del lote origen. Barras apiladas salida + merma por producto.
  */
 export function MermaProcesosPanel({ merma }: { merma: BloqueDashboard<MermaProceso[]> }) {
@@ -46,7 +47,7 @@ export function MermaProcesosPanel({ merma }: { merma: BloqueDashboard<MermaProc
   return (
     <ChartCard
       title="Merma por procesos"
-      help="Procesamientos del período por producto de origen. El costo de la merma se calcula al costo del lote que entró."
+      help="Procesamientos del período por producto de origen. La merma es la del proceso completo: entrada menos la suma de todas sus salidas. Su costo se calcula al costo del lote que entró."
       error={merma.ok ? null : merma.error}
       empty={filas.length === 0}
       emptyTitle="Sin procesamientos en el período"

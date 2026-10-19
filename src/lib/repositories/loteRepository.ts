@@ -34,13 +34,24 @@ function limpiarBusqueda(texto: string): string {
 
 const num = (v: unknown): number => Number(v ?? 0)
 
-type FilaProceso = {
+/** Fila de `proceso_items_view` (16): una salida con su lote hijo. */
+type FilaSalidaProceso = {
   id: string
   procesamiento_id: string
+  fecha: string
   lote_origen_id: string
   peso_entrada_kg: number
   peso_salida_kg: number
-  procesamiento: { fecha: string } | null
+  producto_destino_nombre: string
+  lote_destino_id: string | null
+  lote_destino_codigo: string | null
+}
+
+/** Fila de `procesamientos_view`: la entrada única del proceso. */
+type FilaCabeceraProceso = {
+  id: string
+  lote_origen_id: string | null
+  peso_entrada_kg: number | null
 }
 
 type FilaItemFactura = { id: string; factura_id: string; precio_usd_kg: number }
@@ -150,11 +161,12 @@ export function makeLoteRepository(db: SupabaseClient = createClient()): ILoteRe
 
       const [procesosRes, filRes, perdidasRes, devolucionesRes] = await Promise.all([
         db
-          .from('proceso_items')
+          .from('proceso_items_view')
           .select(
-            'id, procesamiento_id, lote_origen_id, peso_entrada_kg, peso_salida_kg, procesamiento:procesamientos(fecha)'
+            'id, procesamiento_id, fecha, lote_origen_id, peso_entrada_kg, peso_salida_kg, producto_destino_nombre, lote_destino_id, lote_destino_codigo'
           )
-          .in('lote_origen_id', ids),
+          .in('lote_origen_id', ids)
+          .order('peso_salida_kg', { ascending: false }),
         db.from('factura_item_lotes_view').select('*').in('lote_id', ids),
         db
           .from('perdidas_lote_view')
@@ -205,23 +217,58 @@ export function makeLoteRepository(db: SupabaseClient = createClient()): ILoteRe
       )
 
       const codigos = new Map(lotes.map((l): [string, Lote] => [l.id, l]))
-      const destinoPorProceso = new Map(
-        lotes
-          .filter((l) => l.proceso_item_id)
-          .map((l): [string, Lote] => [l.proceso_item_id as string, l])
+
+      // Procesamientos agrupados (16): la entrada sale de la cabecera.
+      const filasSalida = (procesosRes.data ?? []) as FilaSalidaProceso[]
+      const procesamientoIds = [...new Set(filasSalida.map((f) => f.procesamiento_id))]
+      const { data: cabecerasData, error: cabecerasError } = procesamientoIds.length
+        ? await db
+            .from('procesamientos_view')
+            .select('id, lote_origen_id, peso_entrada_kg')
+            .in('id', procesamientoIds)
+        : { data: [], error: null }
+      if (cabecerasError) throw cabecerasError
+      const cabeceras = new Map(
+        ((cabecerasData ?? []) as FilaCabeceraProceso[]).map(
+          (c): [string, FilaCabeceraProceso] => [c.id, c]
+        )
       )
 
-      const procesos: ProcesoLote[] = ((procesosRes.data ?? []) as unknown as FilaProceso[]).map((p) => {
-        const destino = destinoPorProceso.get(p.id) ?? null
+      // Clave procesamiento + lote: un registro legado con líneas de lotes
+      // distintos (sin cabecera) se muestra por lote, con su Σ de entradas.
+      const grupos = new Map<string, ProcesoLote>()
+      const entradaLineas = new Map<string, number>()
+      for (const f of filasSalida) {
+        const clave = `${f.procesamiento_id}:${f.lote_origen_id}`
+        let grupo = grupos.get(clave)
+        if (!grupo) {
+          grupo = {
+            procesamiento_id: f.procesamiento_id,
+            fecha: f.fecha,
+            lote_origen_id: f.lote_origen_id,
+            peso_entrada_kg: 0,
+            salidas: [],
+          }
+          grupos.set(clave, grupo)
+        }
+        entradaLineas.set(clave, (entradaLineas.get(clave) ?? 0) + num(f.peso_entrada_kg))
+        grupo.salidas.push({
+          proceso_item_id: f.id,
+          producto_nombre: f.producto_destino_nombre,
+          peso_salida_kg: num(f.peso_salida_kg),
+          lote_destino_id: f.lote_destino_id,
+          lote_destino_codigo: f.lote_destino_codigo,
+        })
+      }
+      const procesos: ProcesoLote[] = [...grupos.entries()].map(([clave, g]) => {
+        const cabecera = cabeceras.get(g.procesamiento_id)
+        const deLaCabecera =
+          cabecera?.peso_entrada_kg != null && cabecera.lote_origen_id === g.lote_origen_id
         return {
-          proceso_item_id: p.id,
-          procesamiento_id: p.procesamiento_id,
-          fecha: p.procesamiento?.fecha ?? '',
-          lote_origen_id: p.lote_origen_id,
-          peso_entrada_kg: num(p.peso_entrada_kg),
-          peso_salida_kg: num(p.peso_salida_kg),
-          lote_destino_id: destino?.id ?? null,
-          lote_destino_codigo: destino?.codigo ?? null,
+          ...g,
+          peso_entrada_kg: deLaCabecera
+            ? num(cabecera.peso_entrada_kg)
+            : Math.round((entradaLineas.get(clave) ?? 0) * 1000) / 1000,
         }
       })
 

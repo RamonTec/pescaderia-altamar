@@ -68,3 +68,11 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
 - _(ej.: "06-contratos necesita … — agregado el <fecha>")_
 - **09-cuentas-por-cobrar (2026-10-07)**: agrega `facturas.fecha_vencimiento` y la pasa en `registrar_factura`. Si este módulo reescribe esa RPC después, **conservar** la columna.
 - **09-cuentas-por-cobrar, ejecutado (2026-10-07)**: la migración `20261007170000_cartera_vencimientos.sql` reescribe `registrar_factura` (versión de 0019 + `dias_credito` en el insert; contado = 0). `fecha_vencimiento` la deriva el trigger `facturas_derivar_vencimiento` (no hace falta pasarla). **Ojo con la numeración**: las migraciones de 09 usan prefijo de timestamp (`20261007170000…`); una migración nueva de este módulo con prefijo `0021_…` se ordenaría **antes** y la de 09 pisaría su `registrar_factura`. Usar un prefijo posterior (timestamp ≥ `20261007170300`) y conservar `dias_credito`.
+- **16-procesamiento-multisalida (2026-10-19)**: se reabre "un lote crudo da un lote procesado". `registrar_procesamiento` se reemplaza (migración nueva `20261019000200_…`, firma `(p_procesamiento, p_salidas)`) para que un lote y un peso de entrada generen N lotes hijos, con el costo repartido por valor de venta. Además:
+  - `procesamientos` suma la cabecera de entrada.
+  - `ProcesoLote` se agrupa por procesamiento.
+  - `LoteTimeline` muestra un evento por procesamiento con N hijos.
+  - `resultadoLote` toma la entrada de la cabecera.
+  - `getMovimientosArbol` lee `proceso_items_view` / `procesamientos_view`.
+
+  Cierra la deuda del checklist de este módulo sobre `proceso_items.costo_total_usd` legible por el operador.

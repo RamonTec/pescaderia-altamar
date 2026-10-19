@@ -1,37 +1,186 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Lote, Producto } from '@/types/domain'
-import { makeLoteRepository } from '@/lib/repositories/loteRepository'
-import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
+import type { Lote, Producto, RepartoCosto } from '@/types/domain'
 
 /**
- * CostingService (SRP): transferencia de costo en el procesamiento y
- * valorización del stock por lote (/SPEC.md §4.1 y §4.3, 07-lotes).
+ * Repositorios con import dinámico: así el módulo no arrastra clientes de
+ * Supabase al cargarse, y las funciones puras (`repartirCostoProceso`,
+ * `prorratearEntrada`, `valorizarLotes`) se usan en componentes cliente y en
+ * `scripts/probar-procesamiento.ts` sin configuración.
+ */
+const repositorios = async () => {
+  const [{ makeLoteRepository }, { makeProductoRepository }] = await Promise.all([
+    import('@/lib/repositories/loteRepository'),
+    import('@/lib/repositories/catalogRepositories'),
+  ])
+  return { makeLoteRepository, makeProductoRepository }
+}
+
+/**
+ * CostingService (SRP): reparto del costo del procesamiento y valorización
+ * del stock por lote (/SPEC.md §4.1 y §4.3, 07-lotes, 16).
  *
  *   - Costo por lote (identificación específica): cada lote conserva su
  *     costo/kg USD; el valor del inventario es Σ(stock_lote × costo_lote).
  *     Reemplaza el promedio ponderado (decisión reabierta el 2026-10-07).
  *   - El "costo promedio" de un producto es solo informativo:
  *     valor de sus lotes / kg en stock.
- *   - Transferencia total en el procesamiento (la merma encarece el kg neto):
- *     costo_kg_destino = (peso_entrada × costo_kg_lote_origen) / peso_salida.
- *     La aplica la RPC `registrar_procesamiento`; `costoDestino` se usa en la
- *     UI para merma, rendimiento y (solo admin) el costo resultante.
+ *   - Procesamiento multisalida (2026-10-19, 16): el costo total de la
+ *     entrada (`peso_entrada × costo_kg_lote`) se reparte entre las N salidas
+ *     **por valor de venta** (`kg × precio de referencia`); si todos los
+ *     precios son 0, o hay una sola salida, por kg. La merma encarece el kg
+ *     neto. Lo aplica la RPC `registrar_procesamiento`; `repartirCostoProceso`
+ *     es su espejo exacto para la UI (mismos enteros y mismo redondeo
+ *     half-up), y `prorratearEntrada` reparte la entrada por kg entre las
+ *     líneas (dato técnico).
  *
- * Sin importar el cliente de Supabase del servidor: `costoDestino` se usa
- * en componentes cliente. Las funciones con datos reciben `db`.
+ * Sin importar el cliente de Supabase del servidor: las funciones puras se
+ * usan en componentes cliente. Las funciones con datos reciben `db`.
  */
 
-export function costoDestino(
-  pesoEntradaKg: number,
-  costoOrigenKg: number,
-  pesoSalidaKg: number
-): { costo_total_usd: number; costo_kg_destino: number; merma_kg: number; rendimiento: number } {
-  const costoTotal = pesoEntradaKg * costoOrigenKg
+// ---------- Aritmética entera (espejo de la RPC) ----------
+// Milésimas de kg y micro-USD como BigInt: sin errores de coma flotante, el
+// resultado coincide con el `numeric` de Postgres. `BigInt(n)` en lugar de
+// literales `0n` por el `target` ES2017 del proyecto.
+const B0 = BigInt(0)
+const B1 = BigInt(1)
+const B2 = BigInt(2)
+const MIL = BigInt(1000)
+
+/** Entero escalado: `round(n × 10^decimales)` (half-up, n ≥ 0). */
+function escalar(n: number, decimales: number): bigint {
+  // `toFixed` redondea sobre la representación decimal: evita que 0.1 × 1000
+  // dé 99.99999. Un valor no numérico (campo a medio escribir) cuenta como 0.
+  if (!Number.isFinite(n)) return B0
+  return BigInt(n.toFixed(decimales).replace('.', ''))
+}
+
+/** round(a / b) half-up para a ≥ 0, b > 0 (igual que la RPC). */
+function divRedondeo(a: bigint, b: bigint): bigint {
+  return (B2 * a + b) / (B2 * b)
+}
+
+const desescalar = (n: bigint, decimales: number) => Number(n) / 10 ** decimales
+
+/**
+ * Reparte `totalMicro` según `pesos` (≥ 0, Σ > 0). El residuo de redondeo va
+ * al de mayor peso (el primero si empatan): Σ resultado = totalMicro exacto.
+ */
+function repartirEnteros(totalMicro: bigint, pesos: bigint[]): bigint[] {
+  if (pesos.length === 0) return []
+  let suma = B0
+  let max = 0
+  pesos.forEach((w, i) => {
+    suma += w
+    if (w > pesos[max]) max = i
+  })
+  if (suma <= B0) return pesos.map(() => B0)
+  const res = pesos.map((w) => divRedondeo(totalMicro * w, suma))
+  const asignado = res.reduce((s, c) => s + c, B0)
+  res[max] += totalMicro - asignado
+  return res
+}
+
+/**
+ * Entrada prorrateada por kg de salida (milésimas, floor + mayor resto, el
+ * primero si empatan). Con `Σ kg ≤ entrada` garantiza `e_i ≥ kg_i` (check
+ * `salida_menor_entrada`) y `Σ e_i = entrada`. Espejo de
+ * `procesamiento_prorratear_entrada`.
+ */
+export function prorratearEntrada(pesoEntradaKg: number, kgSalidas: number[]): number[] {
+  if (kgSalidas.length === 0) return []
+  const entrada = escalar(pesoEntradaKg, 3)
+  const kgs = kgSalidas.map((k) => escalar(k, 3))
+  const suma = kgs.reduce((s, k) => s + k, B0)
+  if (suma <= B0) return kgSalidas.map(() => 0)
+  const res = kgs.map((k) => (entrada * k) / suma)
+  const restos = kgs.map((k) => (entrada * k) % suma)
+  let faltan = entrada - res.reduce((s, e) => s + e, B0)
+  while (faltan > B0) {
+    let mejor = 0
+    for (let i = 1; i < restos.length; i++) if (restos[i] > restos[mejor]) mejor = i
+    res[mejor] += B1
+    restos[mejor] = -B1
+    faltan -= B1
+  }
+  return res.map((e) => desescalar(e, 3))
+}
+
+export interface SalidaReparto {
+  kg: number
+  /** Precio de referencia USD/kg; `null` = sin precio. */
+  precio: number | null
+}
+
+export interface RepartoSalida {
+  costo_usd: number
+  costo_usd_kg: number
+  /** Parte del costo total (0–1). */
+  participacion_costo: number
+  /** Parte de la entrada (kg_i / entrada, 0–1). */
+  participacion_kg: number
+}
+
+export interface RepartoProceso {
+  costo_total_usd: number
+  salida_total_kg: number
+  merma_kg: number
+  /** merma / entrada (0–1). */
+  merma_pct: number
+  /** Σ salidas / entrada (0–1). */
+  rendimiento: number
+  reparto: RepartoCosto
+  salidas: RepartoSalida[]
+}
+
+/**
+ * Reparto del costo de un procesamiento entre sus salidas (16, espejo de la
+ * RPC `registrar_procesamiento`):
+ *
+ *   1. costo_total = round(entrada × costo_lote, 6).
+ *   2. w_i = kg_i × precio_i (`valor`). Con una sola salida, o si Σ w = 0
+ *      (todos los precios en 0 o sin precio), w_i = kg_i (`peso`).
+ *   3. costo_i = round(costo_total × w_i / Σ w, 6), residuo a la de mayor w.
+ *   4. costo_kg_i = round(costo_i / kg_i, 6).
+ *
+ * Una salida sin precio cuenta como precio 0 (con ≥ 2 salidas la validación
+ * la rechaza antes). Merma y rendimiento son del proceso completo.
+ */
+export function repartirCostoProceso({
+  pesoEntradaKg,
+  costoLoteUsdKg,
+  salidas,
+}: {
+  pesoEntradaKg: number
+  costoLoteUsdKg: number
+  salidas: SalidaReparto[]
+}): RepartoProceso {
+  const entradaMil = escalar(pesoEntradaKg, 3)
+  const costoTotalMicro = divRedondeo(entradaMil * escalar(costoLoteUsdKg, 6), MIL)
+  const kgsMil = salidas.map((s) => escalar(s.kg, 3))
+  const valores = salidas.map((s, i) => kgsMil[i] * escalar(s.precio ?? 0, 6))
+  const sumaValor = valores.reduce((s, v) => s + v, B0)
+  const reparto: RepartoCosto = salidas.length >= 2 && sumaValor > B0 ? 'valor' : 'peso'
+  const costosMicro = repartirEnteros(costoTotalMicro, reparto === 'valor' ? valores : kgsMil)
+
+  const costoTotal = desescalar(costoTotalMicro, 6)
+  const salidaTotalMil = kgsMil.reduce((s, k) => s + k, B0)
+  const salidaTotal = desescalar(salidaTotalMil, 3)
+  const entrada = desescalar(entradaMil, 3)
+  const merma = desescalar(entradaMil - salidaTotalMil, 3)
+
   return {
     costo_total_usd: costoTotal,
-    costo_kg_destino: pesoSalidaKg > 0 ? costoTotal / pesoSalidaKg : 0,
-    merma_kg: pesoEntradaKg - pesoSalidaKg,
-    rendimiento: pesoEntradaKg > 0 ? pesoSalidaKg / pesoEntradaKg : 0,
+    salida_total_kg: salidaTotal,
+    merma_kg: merma,
+    merma_pct: entrada > 0 ? merma / entrada : 0,
+    rendimiento: entrada > 0 ? salidaTotal / entrada : 0,
+    reparto,
+    salidas: costosMicro.map((c, i) => ({
+      costo_usd: desescalar(c, 6),
+      costo_usd_kg: kgsMil[i] > B0 ? desescalar(divRedondeo(c * MIL, kgsMil[i]), 6) : 0,
+      participacion_costo: costoTotalMicro > B0 ? Number(c) / Number(costoTotalMicro) : 0,
+      participacion_kg: entrada > 0 ? desescalar(kgsMil[i], 3) / entrada : 0,
+    })),
   }
 }
 
@@ -115,6 +264,7 @@ export async function getInventarioPorLotes(
   db: SupabaseClient,
   umbralStockBajoKg: number | null = null
 ): Promise<InventarioPorLotes> {
+  const { makeLoteRepository, makeProductoRepository } = await repositorios()
   const [productos, lotes] = await Promise.all([
     makeProductoRepository(db).list(),
     makeLoteRepository(db).listAbiertosTodos(),
@@ -129,6 +279,7 @@ export async function getInventarioPorLotes(
 
 /** Stock (kg) por producto: Σ stock de sus lotes abiertos. */
 export async function getStockPorProducto(db: SupabaseClient): Promise<Map<string, number>> {
+  const { makeLoteRepository } = await repositorios()
   const lotes = await makeLoteRepository(db).listAbiertosTodos()
   const stocks = new Map<string, number>()
   for (const l of lotes) {

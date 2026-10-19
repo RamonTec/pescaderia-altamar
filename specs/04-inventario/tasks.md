@@ -68,3 +68,9 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
   - `config_negocio` suma `razon_social`, `rif`, `direccion` y `telefono` (migración `20261007190000_config_negocio_datos_contrato.sql`), editables en `ConfigNegocioForm` y validados en `configFormSchema`. Son datos del encabezado del PDF.
   - `ComprasTable` recibe `accionesExtra` para las opciones de contrato en su menú `⋮` (solo admin).
   - Las RLS de `config_negocio` no cambian.
+- **16-procesamiento-multisalida (2026-10-19)**: cambia el esquema de este módulo:
+  - `productos.precio_referencia_usd_kg` (solo procesados, ≥ 0), editable en `ProductoForm` y visible en `ProductosTable`.
+  - `procesamientos` suma la cabecera (`lote_origen_id`, `peso_entrada_kg`, `costo_total_usd`, `reparto_costo`), rellenada para los registros existentes.
+  - `proceso_items` suma `precio_referencia_usd_kg` (snapshot) e índice único `(procesamiento_id, producto_destino_id)`. Su `peso_entrada_kg` pasa a ser prorrateo por kg, y `costo_total_usd`, costo asignado a la salida.
+  - Lectura por `procesamientos_view` / `proceso_items_view` (costo `null` si no admin), con `revoke select` de las tablas base y sin políticas `write_all` de insert. Esto cierra la deuda del checklist de este módulo del 2026-10-06 sobre `proceso_items.costo_total_usd`.
+  - Las migraciones son `20261019000000`–`20261019000200` de ese módulo.

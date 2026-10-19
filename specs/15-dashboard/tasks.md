@@ -74,3 +74,8 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "Cuentas por pagar agrega `compras.fecha_vencimiento`: reemplazar la regla de D2 en `dashboard_vencimiento_compra` — <fecha>")_
+- **16-procesamiento-multisalida (2026-10-19)**: un procesamiento puede tener N salidas.
+  - `dashboard_merma_procesos` y `dashboard_rendimiento_proveedor` **no cambian**: `Σ proceso_items` = cabecera en entrada y costo. Se verifican con el caso de prueba de ese módulo.
+  - En B7, `Σ costo_total_usd / Σ peso_salida_kg` pasa a ser el **costo medio del kg obtenido** de todas las salidas: se re-etiqueta en `RendimientoProveedorTable`.
+  - Se ajusta el texto de ayuda de `MermaProcesosPanel`.
+  - Esto cierra en parte la deuda "lectura directa de `proceso_items` por el operador".

@@ -75,6 +75,12 @@ export interface Producto {
   activo: boolean
   /** Crudo del que se obtiene un procesado (0014); `null` en los crudos. */
   producto_origen_id: string | null
+  /**
+   * Precio de venta de referencia USD/kg de un procesado (16): reparte el
+   * costo cuando un lote da varias salidas. No es un costo: lo ven todos.
+   * Siempre `null` en los crudos.
+   */
+  precio_referencia_usd_kg: number | null
 }
 
 export interface ConfigNegocio {
@@ -233,23 +239,44 @@ export interface PagoProveedor extends TasaProcedencia {
   ganancia_cambiaria_bs: number
 }
 
+/**
+ * Cómo se repartió el costo de un procesamiento entre sus salidas (16):
+ * `valor` = kg × precio de referencia; `peso` = por kg (una sola salida o
+ * todos los precios en 0).
+ */
+export type RepartoCosto = 'valor' | 'peso'
+
+/**
+ * Cabecera de un procesamiento (16): un lote crudo + un peso de entrada →
+ * N salidas. Los campos de la cabecera son `null` solo en registros legados
+ * que no se pudieron rellenar.
+ */
 export interface Procesamiento {
   id: string
   fecha: string
   notas: string | null
+  lote_origen_id: string | null
+  peso_entrada_kg: number | null
+  /** `peso_entrada × costo del lote`. `null` para el operador (`procesamientos_view`). */
+  costo_total_usd: number | null
+  reparto_costo: RepartoCosto | null
 }
 
+/** Una salida de un procesamiento. */
 export interface ProcesoItem {
   id: string
   procesamiento_id: string
   producto_origen_id: string
+  /** Parte prorrateada (por kg) de la entrada de la cabecera: dato técnico, no se muestra. */
   peso_entrada_kg: number
   producto_destino_id: string
   peso_salida_kg: number
-  /** Costo del origen transferido completo al destino (/SPEC.md §4.3). */
-  costo_total_usd: number
+  /** Costo asignado a esta salida. `null` para el operador (`proceso_items_view`). */
+  costo_total_usd: number | null
   /** Lote crudo del que salió (07-lotes). */
   lote_origen_id: string
+  /** Snapshot del precio de referencia usado en el reparto (`null` en históricos). */
+  precio_referencia_usd_kg: number | null
 }
 
 export interface Pedido {
@@ -462,16 +489,23 @@ export interface LoteCreado {
   peso_kg: number
 }
 
-/** Procesamiento de un lote crudo del árbol. */
-export interface ProcesoLote {
+/** Salida de un procesamiento en la trazabilidad (16). */
+export interface SalidaProcesoLote {
   proceso_item_id: string
-  procesamiento_id: string
-  fecha: string
-  lote_origen_id: string
-  peso_entrada_kg: number
+  producto_nombre: string
   peso_salida_kg: number
   lote_destino_id: string | null
   lote_destino_codigo: string | null
+}
+
+/** Procesamiento de un lote crudo del árbol, agrupado con sus N salidas (16). */
+export interface ProcesoLote {
+  procesamiento_id: string
+  fecha: string
+  lote_origen_id: string
+  /** Entrada de la cabecera (no la suma del prorrateo de las líneas). */
+  peso_entrada_kg: number
+  salidas: SalidaProcesoLote[]
 }
 
 /** Kg de un lote vendidos en una factura. Importes en USD; `costo_usd_kg` solo admin. */

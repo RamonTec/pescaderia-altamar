@@ -39,10 +39,10 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - Condición: `contado` (pagada al registrar) o `credito` (genera cuenta por pagar en USD).
 
 ### 4.3 Procesamiento (limpieza)
-- Entrada: **lote** de producto crudo (elegido por el operador) + peso_kg. Salida: producto procesado + peso_kg → **nuevo lote procesado** ligado a su lote padre (un lote crudo da un lote procesado; no se mezclan).
-- `merma_kg = peso_entrada − peso_salida`; `rendimiento = peso_salida / peso_entrada`.
-- **El costo se transfiere completo**: el costo total de la entrada (`peso_entrada × costo_kg_crudo`) pasa al producto procesado → `costo_kg_procesado = costo_total / peso_salida`. **La merma encarece el kg neto.**
-- El stock del lote crudo baja; el lote procesado nace con su nuevo costo.
+- Entrada: **un lote** de producto crudo (elegido por el operador) + **un** peso de entrada. Salidas: **N productos procesados distintos** de ese crudo, cada uno con su peso_kg → **un lote procesado por salida**, ligado al lote padre. No se mezclan lotes crudos: otro lote = otro registro. *(Antes: un lote crudo daba un lote procesado; reemplazado el 2026-10-19, ver `specs/16-procesamiento-multisalida`.)*
+- `merma_kg = peso_entrada − Σ peso_salidas`; `rendimiento = Σ peso_salidas / peso_entrada`. Ambos son del proceso completo, no de cada salida; `Σ salidas ≤ entrada`.
+- **El costo total de la entrada** (`peso_entrada × costo_kg_lote_crudo`) **se reparte entre las salidas por valor de venta**: `costo_salida_i = costo_total × (kg_i × precio_ref_i) / Σ(kg × precio_ref)` y `costo_kg_i = costo_salida_i / kg_i`, donde `precio_ref` es el precio de referencia USD/kg del procesado (snapshot en la línea). Si `Σ(kg × precio_ref) = 0`, el reparto es por kg. Con una sola salida, el costo pasa completo. **La merma encarece el kg neto.** *(Antes: el costo se transfería completo a una única salida, `costo_total / peso_salida`; reemplazado el 2026-10-19.)*
+- El stock del lote crudo baja; cada lote procesado nace con su costo asignado.
 
 ### 4.4 Ventas (pedidos + POS)
 - **Pedido agendado**: cliente + fecha de entrega + items con peso estimado y precio/kg pactado.
@@ -68,14 +68,15 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 -- 12 tablas + soporte
 tasas               (fecha [valor], fuente bcv|paralela|manual, moneda USD|EUR, valor_bs, origen bcv_scraping|dolarapi|manual, registrada_por)
 -- compras/facturas/pagos/pagos_proveedores: + tasa_origen referencial|manual, tasa_fuente, tasa_referencial, tasa_registrada_por
-productos           (codigo, nombre, tipo crudo|procesado, categoria, controla_stock)
+productos           (codigo, nombre, tipo crudo|procesado, categoria, controla_stock, producto_origen_id?, precio_referencia_usd_kg? [solo procesados])
 clientes            (nombre, rif_ci, telefono, notas, activo)
 proveedores         (nombre, rif_ci, telefono, notas, activo)
 compras            (proveedor_id, fecha, condicion, moneda, tasa_snapshot, estado, subtotal_usd, pagado_usd)
 compra_items       (compra_id, producto_id, peso_kg, costo_usd_kg)
 pagos_proveedores  (compra_id, fecha, monto_usd, moneda_pago, tasa_pago, metodo, ganancia_cambiaria_bs)
-procesamientos     (fecha, notas)
-proceso_items      (procesamiento_id, producto_origen_id, peso_entrada_kg, producto_destino_id, peso_salida_kg, costo_total_usd)
+procesamientos     (fecha, notas, lote_origen_id, peso_entrada_kg, costo_total_usd, reparto_costo valor|peso)  -- cabecera: entrada única (16, 2026-10-19)
+proceso_items      (procesamiento_id, producto_origen_id, lote_origen_id, peso_entrada_kg [prorrateo por kg], producto_destino_id, peso_salida_kg, costo_total_usd [costo asignado], precio_referencia_usd_kg [snapshot])  -- una fila por salida
+-- procesamientos/proceso_items: lectura vía procesamientos_view / proceso_items_view (costo null si no admin); escritura solo por RPC
 pedidos            (cliente_id, fecha_entrega, estado pendiente|entregado|facturado|anulado)
 pedido_items       (pedido_id, producto_id, peso_estimado_kg, peso_entregado_kg, precio_usd_kg)
 facturas           (numero, cliente_id, pedido_id?, fecha, dias_credito, fecha_vencimiento, condicion, tasa_snapshot, iva_pct, subtotal_usd, iva_usd, total_usd, pagado_usd, estado)
@@ -101,7 +102,7 @@ Notas:
 | Servicio | Responsabilidad única |
 |---|---|
 | `TasaService` (`tasaService`, antes `rateService`) | Obtener tasas (scraping BCV → dolarapi → manual), tasa vigente por fecha valor, resolver la tasa de cada operación, historial |
-| `CostingService` | Transferencia de costo en procesamiento, valorización de stock por lote |
+| `CostingService` | Reparto del costo del procesamiento entre sus salidas (por valor de venta), valorización de stock por lote |
 | `LoteService` | Asignación PEPS, pérdidas/cierre de lote, trazabilidad y resultado por lote |
 | `InvoiceService` | Numeración, totales + IVA, snapshot de tasa y costos |
 | `CreditService` | Saldos, abonos, ganancia cambiaria |
@@ -115,7 +116,7 @@ Patrones: **Repository** (interfaces + impl Supabase → DIP, testeable), **Stra
 |---|---|---|
 | 1 | **Catálogos** | CRUD productos (crudo/procesado, categorías), clientes, proveedores, config (IVA, fuentes de tasa) |
 | 2 | **Compras** | Registrar recepción: proveedor, pesar items, costo/kg, moneda, tasa del día, contado/crédito |
-| 3 | **Procesamiento** | Lotes: peso entrada → peso salida, merma %, rendimiento, costo resultante |
+| 3 | **Procesamiento** | Lote crudo: peso entrada → N salidas, merma %, rendimiento, costo/kg de cada salida (admin) |
 | 4 | **Pedidos/POS** | Venta directa + pedidos agendados; pesar entrega; emitir factura |
 | 5 | **Cobros/Pagos** | Cuentas por cobrar/pagar; registrar abonos con tasa del día y ganancia cambiaria |
 | 6 | **Inventario** | Stock por producto y por lote, valorización USD/Bs, pérdidas, trazabilidad de lote |
