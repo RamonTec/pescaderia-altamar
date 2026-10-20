@@ -9,7 +9,9 @@ import { AppDataGrid } from '@/components/organisms/AppDataGrid'
 import { LoteChip } from '@/components/molecules/LoteChip'
 import type { RowAction } from '@/components/molecules/RowActionsMenu'
 import { colAcciones, colEstado, colFecha, colMonto, type EstadoDef } from '@/components/organisms/appDataGridColumns'
-import { formatFecha } from '@/lib/format'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
+import { formatFecha, formatUsd } from '@/lib/format'
 import type { CompraResumen } from '@/lib/repositories/interfaces'
 import type { EstadoDoc } from '@/types/domain'
 
@@ -21,7 +23,7 @@ export type CompraFila = Omit<CompraResumen, 'subtotal_usd' | 'pagado_usd'> & {
   lotes?: string[]
 }
 
-const ESTADO: Record<EstadoDoc, EstadoDef> = {
+export const ESTADOS_COMPRA: Record<EstadoDoc, EstadoDef> = {
   abierta: { label: 'Por pagar', color: 'warning' },
   pagada: { label: 'Pagada', color: 'success' },
   anulada: { label: 'Anulada', color: 'default' },
@@ -35,9 +37,30 @@ export interface ComprasTableProps {
   onNueva: () => void
   /** Acciones extra del `⋮` (06-contratos: generar / ver contrato), solo admin. */
   accionesExtra?: (row: CompraFila) => RowAction[]
+  /** 19: abre la ficha `/compras/[id]` (solo admin). */
+  onAbrir?: (row: CompraFila, editar: boolean) => void
 }
 
-export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accionesExtra }: ComprasTableProps) {
+/** Ruta de la ficha de una compra (19); `editar` abre el diálogo al cargar. */
+export const hrefCompra = (id: string, editar = false) => `/compras/${id}${editar ? '?editar=1' : ''}`
+
+/** Acciones del `⋮` hacia la ficha (19, admin): "Ver detalle" y "Editar compra". */
+export function accionesFichaCompra(
+  row: { estado: EstadoDoc },
+  abrir: (editar: boolean) => void
+): RowAction[] {
+  return [
+    { label: 'Ver detalle', icon: <ReceiptLongOutlinedIcon fontSize="small" />, onClick: () => abrir(false) },
+    {
+      label: 'Editar compra',
+      icon: <EditOutlinedIcon fontSize="small" />,
+      disabled: row.estado === 'anulada',
+      onClick: () => abrir(true),
+    },
+  ]
+}
+
+export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accionesExtra, onAbrir }: ComprasTableProps) {
   const columns: GridColDef<CompraFila>[] = React.useMemo(() => [
     colFecha('fecha', 'Fecha', { width: 120 }),
      {
@@ -92,13 +115,24 @@ export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accion
       width: 90,
       valueFormatter: (v: string) => v?.toUpperCase() ?? '—',
     },
-    colEstado('estado', 'Estado', ESTADO, { width: 120 }),
+    colEstado('estado', 'Estado', ESTADOS_COMPRA, { width: 120 }),
     ...(esAdmin
       ? ([
           colMonto('subtotal_usd', 'Total', { width: 130 }),
           colMonto('saldo', 'Saldo', {
-            width: 130,
+            width: 150,
             valueGetter: (_v, row) => Number(row.subtotal_usd) - Number(row.pagado_usd),
+            // 19: lo pagado por encima del total es un saldo a favor del negocio.
+            renderCell: (params) => {
+              const saldo = Math.round((Number(params.row.subtotal_usd) - Number(params.row.pagado_usd)) * 1e6) / 1e6
+              return saldo < 0 ? (
+                <Typography variant="body2" color="success.main" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {formatUsd(-saldo)} a favor
+                </Typography>
+              ) : (
+                formatUsd(saldo)
+              )
+            },
           }),
           colAcciones((row) => {
             const actions: RowAction[] = []
@@ -108,12 +142,13 @@ export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accion
                 onClick: () => onPagar(row),
               })
             }
+            if (onAbrir) actions.push(...accionesFichaCompra(row, (editar) => onAbrir(row, editar)))
             if (accionesExtra) actions.push(...accionesExtra(row))
             return actions
           }, { rowLabel: (row) => `compra a ${row.proveedor?.nombre}` }),
         ] satisfies GridColDef<CompraFila>[])
       : []),
-  ], [esAdmin, onPagar, accionesExtra])
+  ], [esAdmin, onPagar, accionesExtra, onAbrir])
 
   return (
     <AppDataGrid<CompraFila>
@@ -123,6 +158,7 @@ export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accion
       rows={compras}
       rowCount={total}
       columns={columns}
+      getRowHref={esAdmin && onAbrir ? (row) => hrefCompra(row.id) : undefined}
       emptyState={{
         title: 'Registra tu primera compra',
         description: 'Cada compra suma el producto pesado al inventario con su costo por kg.',
@@ -134,7 +170,7 @@ export function ComprasTable({ compras, total, esAdmin, onPagar, onNueva, accion
           secondary: `Compra del ${formatFecha(row.fecha)}`,
           amount: esAdmin ? Number(row.subtotal_usd) : null,
           status: row.estado,
-          statusColors: ESTADO,
+          statusColors: ESTADOS_COMPRA,
         }
       }}
     />

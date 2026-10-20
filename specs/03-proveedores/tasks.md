@@ -87,3 +87,7 @@ Ver "Cambio de alcance (2026-10-13)" en `spec.md`. Sin migración. Tras cada tar
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "04-inventario necesita … — agregado el <fecha>")_
 - **Corrección de `proveedores_guard_bloqueo` en el INSERT — agregado el 2026-10-14** (detectado al cargar el inventario de apertura con `scripts/importar-inventario-octubre.ts`). En el alta `old` es null y el trigger de 0007 exigía admin para toda inserción, aunque llegara sin bloqueo. `20261014000000_fix_proveedores_guard_bloqueo_insert.sql`: en el insert solo exige admin si `bloqueado` o `motivo_bloqueo` vienen informados; el update no cambia.
+- **19-edicion-compras (2026-10-19)**: el admin puede editar una compra, incluido su proveedor.
+  - "Historial de compras" de `proveedor-ficha.tsx`: fila abrible y `⋮` "Ver detalle" / "Editar compra" (solo admin) hacia `/compras/[id]`.
+  - El saldo pendiente de la ficha descuenta los saldos a favor (compras con `pagado > subtotal`) y, si quedan, se muestra «a favor» (vía `proveedorBalanceService`, de 04).
+  - Al cambiar el proveedor de una compra, la compra, sus lotes y sus pagos pasan al proveedor nuevo; una compra a crédito no puede quedar con un proveedor bloqueado (D4 de 19, aprobada el 2026-10-19).

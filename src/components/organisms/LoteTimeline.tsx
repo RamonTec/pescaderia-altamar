@@ -14,6 +14,7 @@ import ContentCutOutlinedIcon from '@mui/icons-material/ContentCutOutlined'
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined'
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import { EstadoChip } from '@/components/organisms/appDataGridColumns'
 import { ETIQUETA_MOTIVO } from '@/lib/loteValidation'
 import { salidaProcesoKg } from '@/lib/lotes'
@@ -92,9 +93,16 @@ export function LoteTimeline({ traza, esAdmin }: LoteTimelineProps) {
           <>
             {esAdmin && l.costo_usd_kg != null ? `${formatUsd(l.costo_usd_kg)}/kg · ` : ''}
             Moneda {l.moneda.toUpperCase()} · tasa {formatTasa(l.tasa_snapshot)} ·{' '}
-            <Link component={NextLink} href="/compras">
-              Ver compras
-            </Link>
+            {esAdmin && l.compra_id ? (
+              // 19: el admin abre la ficha de la compra (ver y editar).
+              <Link component={NextLink} href={`/compras/${l.compra_id}`}>
+                Ver compra
+              </Link>
+            ) : (
+              <Link component={NextLink} href="/compras">
+                Ver compras
+              </Link>
+            )}
           </>
         ),
       })
@@ -250,6 +258,24 @@ export function LoteTimeline({ traza, esAdmin }: LoteTimelineProps) {
           </Link>
         </>
       ),
+    })
+  }
+
+  // 19: kg ± por ediciones de la compra (motivo solo para el admin).
+  for (const c of traza.correcciones_compra ?? []) {
+    eventos.push({
+      clave: `cc-${c.id}`,
+      fecha: c.fecha,
+      orden: 5,
+      icono: <EditNoteOutlinedIcon />,
+      titulo: (
+        <>
+          Corrección de compra: {c.peso_kg > 0 ? '+' : '−'}
+          {formatKg(Math.abs(c.peso_kg))}
+          {deLote(c.lote_id)}
+        </>
+      ),
+      detalle: esAdmin && c.motivo ? <>Motivo: {c.motivo}</> : <>Kg corregidos al editar la compra</>,
     })
   }
 

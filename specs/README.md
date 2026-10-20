@@ -118,7 +118,16 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     con motivo e historial, y las notas emitidas siguen el % de la factura.
     Spec del 2026-10-19)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar).
+19-edicion-compras → depende de 03, 04, 06, 07, 08, 15, 16, 17 y 18 (hechos);
+                 cambia valores snapshot de compra (costo, moneda, tasa) de /SPEC.md §2;
+                 toca compra_items/movimientos/registrar_compra (04/07),
+                 contratos_listado_view (06) y recalcula costos de 16 y 17
+   (el admin edita kg y costo/kg de las líneas, y proveedor, fecha, notas,
+    condición, moneda y tasa, con motivo e historial; el costo nuevo baja a
+    procesados, ledger y líneas vendidas sin tocar precios ni totales de
+    facturas; ficha /compras/[id]. Spec del 2026-10-19; D1–D8 cerradas el mismo día)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar) → 19-edicion-compras (reutiliza el patrón de 17/18 y extiende su regla de contrato desactualizado; empezar después del commit de 18).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -186,6 +195,24 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - El admin puede activar o quitar el IVA de una factura emitida, con motivo e historial en `factura_correcciones` y las mismas reglas que 17 (saldo a favor, contrato desactualizado, anuladas no, sin recalcular la ganancia cambiaria, RPC `security definer` con `es_admin()`). Al activarlo se usa el % vigente.
 
   Nuevo módulo `18-iva-opcional`. El mismo día el usuario aprobó las decisiones de diseño (ver su `spec.md`): representar "sin IVA" con `facturas.iva_pct = 0`, sin booleano nuevo; recalcular el IVA de las notas de crédito emitidas al cambiar el de la factura; una columna `tipo linea|iva` en `factura_correcciones`, y triggers que validan el IVA al emitir facturas y notas. Cambia `clientes` (02), `facturas`/`notas_credito` (05, triggers) y `factura_correcciones` + `trazabilidad_factura` (17). Quedó anotado como tarea agregada en `02-clientes`, `05-ventas`, `06-contratos`, `09-cuentas-por-cobrar`, `15-dashboard` (sin cambios de RPC) y `17-trazabilidad-y-correccion-facturas`. `/SPEC.md` §2, §4.4 y §5, `05-ventas/spec.md` §4.2 y §4.4 y `17-trazabilidad-y-correccion-facturas/spec.md` se actualizaron con nota de reemplazo.
+
+- **Edición de compras (2026-10-19, pedido del cliente)**: el admin quiere editar una compra ya registrada. **Se amplía la regla de snapshot de `/SPEC.md` §2** (la tasa y el costo de la compra, y por ende el costo de sus lotes, dejan de ser inmutables) y la de `16` ("cambiar precios no recalcula procesamientos pasados" sigue, pero el costo del lote sí se recalcula). Decisiones aprobadas por el usuario:
+  - Se editan kg y costo/kg de cada línea, y proveedor, fecha, notas, condición, moneda y tasa de la cabecera.
+  - Si cambia el costo USD de una línea, el costo nuevo del lote baja a los procesados hijos (reparto de 16 con el snapshot de precios), al ledger y al `costo_usd_kg` de las líneas ya vendidas; precios y totales de facturas no cambian. Atómico.
+  - Kg: subir siempre; bajar solo hasta lo consumido; el stock nunca queda negativo.
+  - Solo admin, motivo obligatorio e historial solo admin, por RPC `security definer` con lock de la compra y de los lotes. Saldo a favor con el proveedor si lo pagado supera el total; contrato desactualizado con la regla derivada de 17; anuladas no; sin recalcular la ganancia cambiaria.
+
+  Nuevo módulo `19-edicion-compras`. La spec cierra el diseño (columna `compra_items.costo_kg_pactado`, porque hoy no se guarda el costo pactado en Bs; tipo de movimiento `correccion_compra`; historial `compra_correcciones` + `compra_correccion_items`; RPC única `editar_compra`). El mismo día el usuario aprobó sin cambios D1–D8:
+  - una compra de contado sigue pagada por el monto nuevo;
+  - de crédito a contado queda pagada sin pago nuevo y conserva los abonos;
+  - de contado a crédito se debe todo menos los abonos registrados;
+  - el proveedor cambia en la compra y en todo el árbol de lotes, los pagos siguen a la compra y a crédito no puede quedar un proveedor bloqueado;
+  - el código de lote se conserva, la fecha no queda después del primer uso del lote y la tasa no cambia sola (solo se avisa);
+  - al cambiar la moneda se conserva el número del costo;
+  - subir kg en un lote cerrado o agotado lo reabre, con aviso;
+  - ficha `/compras/[id]` solo admin, con historial y "Editar compra", y entradas desde el `⋮` de `/compras` y del historial del proveedor.
+
+  Cambia `compra_items`, `movimientos` y `registrar_compra` (04/07) y `contratos_listado_view` (06), y recalcula datos de 16 y 17. Quedó anotado como tarea agregada en `03-proveedores`, `04-inventario`, `06-contratos`, `07-lotes`, `15-dashboard` (sin cambios de RPC), `16-procesamiento-multisalida` y `17-trazabilidad-y-correccion-facturas`. `/SPEC.md` §2, §4.1, §4.2, §4.6 y §5 se actualizaron con nota del 2026-10-19.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

@@ -1,10 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 
 import AddIcon from '@mui/icons-material/Add'
 import { PageHeader } from '@/components/molecules/PageHeader'
-import { ComprasTable, type CompraFila } from '@/components/organisms/ComprasTable'
+import { ComprasTable, hrefCompra, type CompraFila } from '@/components/organisms/ComprasTable'
 import { CompraForm } from '@/components/organisms/CompraForm'
 import { PagoProveedorDialog } from '@/components/organisms/PagoProveedorDialog'
 import { LotesCreadosDialog } from '@/components/organisms/LotesCreadosDialog'
@@ -34,7 +35,13 @@ export function ComprasScreen({
   const [nuevaAbierta, setNuevaAbierta] = React.useState(false)
   const [pagando, setPagando] = React.useState<CompraFila | null>(null)
   const [lotesCreados, setLotesCreados] = React.useState<LoteCreado[] | null>(null)
+  const router = useRouter()
   const contratoAcciones = useContratoAcciones()
+  // 19: ficha de la compra (solo admin); `editar` abre el diálogo al cargar.
+  const abrirCompra = React.useCallback(
+    (row: CompraFila, editar: boolean) => router.push(hrefCompra(row.id, editar)),
+    [router]
+  )
   const { accionesDeOrigen } = contratoAcciones
   const accionesContrato = React.useCallback(
     (row: CompraFila) =>
@@ -72,6 +79,7 @@ export function ComprasScreen({
         onPagar={setPagando}
         onNueva={() => setNuevaAbierta(true)}
         accionesExtra={esAdmin ? accionesContrato : undefined}
+        onAbrir={esAdmin ? abrirCompra : undefined}
       />
 
       <CompraForm

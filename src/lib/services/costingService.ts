@@ -132,34 +132,19 @@ export interface RepartoProceso {
   salidas: RepartoSalida[]
 }
 
-/**
- * Reparto del costo de un procesamiento entre sus salidas (16, espejo de la
- * RPC `registrar_procesamiento`):
- *
- *   1. costo_total = round(entrada × costo_lote, 6).
- *   2. w_i = kg_i × precio_i (`valor`). Con una sola salida, o si Σ w = 0
- *      (todos los precios en 0 o sin precio), w_i = kg_i (`peso`).
- *   3. costo_i = round(costo_total × w_i / Σ w, 6), residuo a la de mayor w.
- *   4. costo_kg_i = round(costo_i / kg_i, 6).
- *
- * Una salida sin precio cuenta como precio 0 (con ≥ 2 salidas la validación
- * la rechaza antes). Merma y rendimiento son del proceso completo.
- */
-export function repartirCostoProceso({
-  pesoEntradaKg,
-  costoLoteUsdKg,
-  salidas,
-}: {
-  pesoEntradaKg: number
-  costoLoteUsdKg: number
-  salidas: SalidaReparto[]
-}): RepartoProceso {
+/** Reparto con el método dado (`valor` exige ≥ 2 salidas y Σ valor > 0; si no, por peso). */
+function repartir(
+  pesoEntradaKg: number,
+  costoLoteUsdKg: number,
+  salidas: SalidaReparto[],
+  metodo: RepartoCosto
+): RepartoProceso {
   const entradaMil = escalar(pesoEntradaKg, 3)
   const costoTotalMicro = divRedondeo(entradaMil * escalar(costoLoteUsdKg, 6), MIL)
   const kgsMil = salidas.map((s) => escalar(s.kg, 3))
   const valores = salidas.map((s, i) => kgsMil[i] * escalar(s.precio ?? 0, 6))
   const sumaValor = valores.reduce((s, v) => s + v, B0)
-  const reparto: RepartoCosto = salidas.length >= 2 && sumaValor > B0 ? 'valor' : 'peso'
+  const reparto: RepartoCosto = metodo === 'valor' && salidas.length >= 2 && sumaValor > B0 ? 'valor' : 'peso'
   const costosMicro = repartirEnteros(costoTotalMicro, reparto === 'valor' ? valores : kgsMil)
 
   const costoTotal = desescalar(costoTotalMicro, 6)
@@ -182,6 +167,48 @@ export function repartirCostoProceso({
       participacion_kg: entrada > 0 ? desescalar(kgsMil[i], 3) / entrada : 0,
     })),
   }
+}
+
+/**
+ * Reparto del costo de un procesamiento entre sus salidas (16, espejo de la
+ * RPC `registrar_procesamiento`):
+ *
+ *   1. costo_total = round(entrada × costo_lote, 6).
+ *   2. w_i = kg_i × precio_i (`valor`). Con una sola salida, o si Σ w = 0
+ *      (todos los precios en 0 o sin precio), w_i = kg_i (`peso`).
+ *   3. costo_i = round(costo_total × w_i / Σ w, 6), residuo a la de mayor w.
+ *   4. costo_kg_i = round(costo_i / kg_i, 6).
+ *
+ * Una salida sin precio cuenta como precio 0 (con ≥ 2 salidas la validación
+ * la rechaza antes). Merma y rendimiento son del proceso completo.
+ */
+export function repartirCostoProceso({
+  pesoEntradaKg,
+  costoLoteUsdKg,
+  salidas,
+}: {
+  pesoEntradaKg: number
+  costoLoteUsdKg: number
+  salidas: SalidaReparto[]
+}): RepartoProceso {
+  return repartir(pesoEntradaKg, costoLoteUsdKg, salidas, 'valor')
+}
+
+/**
+ * Recalcula el reparto de un procesamiento ya registrado con un costo nuevo
+ * de su lote crudo (19, espejo de `compra_recalcular_procesamiento`): usa
+ * el método guardado (`reparto`; `null` en legados → por peso) y los precios
+ * snapshot de las salidas, que deben venir en orden `proceso_items.id` (el
+ * residuo va a la de mayor peso de reparto y, en empate, a la primera).
+ * Con `valor` pero Σ valor = 0 o una sola salida, por peso (igual que la RPC).
+ */
+export function recalcularRepartoProceso(
+  salidas: SalidaReparto[],
+  pesoEntradaKg: number,
+  costoLoteUsdKg: number,
+  reparto: RepartoCosto | null
+): RepartoProceso {
+  return repartir(pesoEntradaKg, costoLoteUsdKg, salidas, reparto ?? 'peso')
 }
 
 /** Stock y valor de un producto a partir de sus lotes abiertos. */

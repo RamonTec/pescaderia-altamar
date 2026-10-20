@@ -10,7 +10,9 @@ import type {
   Contrato,
   ContratoListado,
   ContratoPendienteFirma,
+  CorreccionCompraLote,
   DashboardOperativo,
+  DetalleCompra,
   Deudor,
   DocumentoCliente,
   DocumentoProveedor,
@@ -54,12 +56,14 @@ import type {
   ResultadoCambiario,
   ResultadoCambioIva,
   ResultadoCorreccion,
+  ResultadoEdicionCompra,
   SugerenciaLotes,
   TipoContrato,
   TipoDocumentoCliente,
   TipoDocumentoProveedor,
   TramoAging,
   TramoAntiguedad,
+  TasaOperacion,
   TrazabilidadFactura,
   VentaLote,
   VentaMensual,
@@ -157,7 +161,30 @@ export interface CompraDetalle extends CompraResumen {
   pagos: PagoProveedor[]
 }
 
-export type CompraItemNuevo = Pick<CompraItem, 'producto_id' | 'peso_kg'> & { costo_usd_kg: number }
+export type CompraItemNuevo = Pick<CompraItem, 'producto_id' | 'peso_kg'> & {
+  costo_usd_kg: number
+  /** Costo/kg tecleado, en la moneda de la compra (19). */
+  costo_kg_pactado: number
+}
+
+/**
+ * Edición de una compra (19) tal como la recibe `editar_compra`: cabecera
+ * final (`tasa = null` conserva las cinco columnas de tasa), **todas** las
+ * líneas con su peso y costo pactado en la moneda final, y el motivo.
+ */
+export interface EdicionCompraNueva {
+  compra_id: string
+  cabecera: {
+    proveedor_id: string
+    fecha: string
+    condicion: Compra['condicion']
+    moneda: Compra['moneda']
+    notas: string | null
+    tasa: TasaOperacion | null
+  }
+  items: { compra_item_id: string; peso_kg: number; costo_kg_pactado: number }[]
+  motivo: string
+}
 export type PagoProveedorNuevo = Omit<PagoProveedor, 'id'>
 
 /** Resultado de `registrar_compra`: la compra y los lotes creados (sin costos). */
@@ -192,6 +219,18 @@ export interface ICompraRepository {
   listAbiertasByProveedor(
     proveedorId: string
   ): Promise<Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]>
+  /**
+   * Compras `pagada` de un proveedor (19: una edición puede dejar
+   * `pagado > subtotal`, saldo a favor). PostgREST no compara columnas: el
+   * servicio filtra.
+   */
+  listPagadasByProveedor(
+    proveedorId: string
+  ): Promise<Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]>
+  /** RPC `detalle_compra` (19, solo admin); `null` si no existe. */
+  getDetalle(id: string): Promise<DetalleCompra | null>
+  /** RPC `editar_compra` (19, solo admin, atómica). */
+  editar(input: EdicionCompraNueva): Promise<ResultadoEdicionCompra>
   /** Inserta el pago y actualiza `pagado_usd`/`estado` (RPC `registrar_pago_proveedor`). */
   registrarPago(pago: PagoProveedorNuevo): Promise<string>
 }
@@ -514,6 +553,8 @@ export interface MovimientosArbolLote {
   ventas: VentaLote[]
   perdidas: PerdidaLote[]
   devoluciones: DevolucionLote[]
+  /** Kg ± por ediciones de la compra (19); el motivo solo llega al admin. */
+  correcciones_compra: CorreccionCompraLote[]
 }
 
 /** Lotes generados por una compra o un procesamiento, para listados. */

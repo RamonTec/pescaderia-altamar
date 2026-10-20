@@ -25,6 +25,11 @@ export type TipoMovimiento =
    * `ref_id` = `factura_correcciones.id`. Positivo vuelve al lote, negativo sale.
    */
   | 'correccion_venta'
+  /**
+   * Kg ± de la edición de una línea de compra (19): `ref_id` =
+   * `compra_correcciones.id`. Positivo suma al lote, negativo resta.
+   */
+  | 'correccion_compra'
 
 export type MonedaTasa = 'USD' | 'EUR'
 export type OrigenTasa = 'bcv_scraping' | 'dolarapi' | 'manual'
@@ -238,6 +243,12 @@ export interface CompraItem {
   peso_kg: number
   /** `null` para operador: se lee de `compra_items_view` (0003). */
   costo_usd_kg: number | null
+  /**
+   * Costo/kg pactado en la moneda de la compra (19). `costo_usd_kg` =
+   * `usd ? pactado : pactado / tasa_snapshot` (6 decimales). `null` para
+   * operador (`compra_items_view`).
+   */
+  costo_kg_pactado: number | null
 }
 
 export interface PagoProveedor extends TasaProcedencia {
@@ -553,6 +564,20 @@ export interface DevolucionLote {
 }
 
 /**
+ * Kg ± de un lote por la edición de su compra (19, movimiento
+ * `correccion_compra`). `motivo` solo llega al admin (`null` al operador).
+ */
+export interface CorreccionCompraLote {
+  id: string
+  lote_id: string
+  correccion_id: string
+  /** Momento de la edición (`movimientos.fecha`). */
+  fecha: string
+  peso_kg: number
+  motivo: string | null
+}
+
+/**
  * Árbol de un lote para su trazabilidad: el lote, sus lotes procesados
  * hijos (si es crudo) y todo lo que les pasó.
  */
@@ -564,6 +589,8 @@ export interface TrazabilidadLote {
   ventas: VentaLote[]
   perdidas: PerdidaLote[]
   devoluciones: DevolucionLote[]
+  /** Ediciones de kg de la compra (19). Opcional: fixtures previos no lo traen. */
+  correcciones_compra?: CorreccionCompraLote[]
 }
 
 /** Resultado de un lote (o su árbol) para kg vendidos y perdidos. */
@@ -620,11 +647,14 @@ export interface ContratoListado extends Contrato {
   monto_usd: number | null
   /** El documento de origen se anuló después de generar el contrato. */
   origen_anulado: boolean
-  /** Última corrección de la factura de origen (17); `null` sin correcciones o en compras. */
+  /**
+   * Última corrección del origen: de la factura (17) o de la compra (19);
+   * `null` sin correcciones.
+   */
   ultima_correccion_at: string | null
   /**
-   * Contrato no anulado cuya factura se corrigió después de generarlo (17):
-   * hay que anularlo y generar otro. Derivado, no se guarda.
+   * Contrato no anulado cuya factura o compra se corrigió después de
+   * generarlo (17 y 19): hay que anularlo y generar otro. Derivado.
    */
   desactualizado: boolean
 }
@@ -691,7 +721,7 @@ export interface ElegibilidadContrato {
   puedeGenerar: boolean
   /** Por qué no se puede generar (p. ej. "Documento anulado"). */
   motivo?: string
-  /** `desactualizado`: la factura se corrigió después de generarlo (17). */
+  /** `desactualizado`: el origen se corrigió después de generarlo (17 y 19). */
   contratoActivo?: { id: string; numero: number; estado: EstadoContrato; desactualizado: boolean }
 }
 
@@ -952,6 +982,261 @@ export interface ResultadoCambioIva {
   saldo_a_favor_usd: number
   estado: Exclude<EstadoDoc, 'anulada'>
   contrato: { id: string; numero: number; estado: EstadoContrato } | null
+}
+
+/* ==================== Edición de compras (19) ==================== */
+
+/** Kg vendidos de un lote en facturas no anuladas, con sus líneas y facturas. */
+export interface VentasLoteResumen {
+  kg: number
+  lineas: number
+  facturas: number
+}
+
+/** Lote procesado (hijo) de una salida, con su costo vigente (solo admin). */
+export interface LoteHijoCompra {
+  id: string
+  codigo: string
+  estado: EstadoLote
+  peso_inicial_kg: number
+  stock_kg: number
+  costo_usd_kg: number
+  ventas: VentasLoteResumen
+}
+
+/** Salida de un procesamiento del lote de una compra (16), con su snapshot de precio. */
+export interface SalidaProcesoCompra {
+  proceso_item_id: string
+  producto_id: string
+  producto_nombre: string
+  /** Parte prorrateada de la entrada (en legados, la entrada propia de la línea). */
+  peso_entrada_kg: number
+  peso_salida_kg: number
+  precio_referencia_usd_kg: number | null
+  costo_total_usd: number
+  /** `null` si el procesado no controla stock. */
+  lote: LoteHijoCompra | null
+}
+
+/** Procesamiento del lote de una compra. `legado`: sin cabecera (16); solo sus salidas de ese lote. */
+export interface ProcesamientoCompra {
+  id: string
+  fecha: string
+  legado: boolean
+  peso_entrada_kg: number
+  costo_total_usd: number | null
+  reparto_costo: RepartoCosto | null
+  /** En orden `proceso_items.id` (el del reparto). */
+  salidas: SalidaProcesoCompra[]
+}
+
+/** Lote de una línea de compra con su consumo desglosado (Σ = peso_inicial − stock). */
+export interface LoteLineaCompra {
+  id: string
+  codigo: string
+  estado: EstadoLote
+  fecha_ingreso: string
+  peso_inicial_kg: number
+  costo_usd_kg: number
+  stock_kg: number
+  kg_procesados: number
+  /** Ventas netas de devoluciones y correcciones de factura. */
+  kg_vendidos: number
+  kg_perdidos: number
+  /** Primera salida (proceso, venta o pérdida); `null` si no salió nada. */
+  primera_salida: string | null
+  ventas: VentasLoteResumen
+  procesamientos: ProcesamientoCompra[]
+}
+
+/** Línea de la compra en la ficha (19, solo admin). */
+export interface LineaCompraDetalle {
+  id: string
+  producto: Pick<Producto, 'id' | 'nombre' | 'codigo' | 'controla_stock'>
+  peso_kg: number
+  /** En la moneda de la compra. */
+  costo_kg_pactado: number
+  costo_usd_kg: number
+  /** `null` si el producto no controla stock. */
+  lote: LoteLineaCompra | null
+}
+
+/** Propagación del costo que dejó una edición (resumen informativo del historial). */
+export interface PropagacionCosto {
+  lotes: { lote_id: string; codigo: string; origen: OrigenLote; costo_anterior: number; costo_nuevo: number }[]
+  procesamientos: number
+  lineas_factura: number
+  facturas: number
+}
+
+/** Línea que cambió en una edición de compra. */
+export interface CorreccionCompraItem {
+  compra_item_id: string
+  producto_nombre: string
+  lote_id: string | null
+  lote_codigo: string | null
+  peso_anterior_kg: number
+  peso_nuevo_kg: number
+  /** En la moneda anterior y en la nueva de la compra. */
+  costo_pactado_anterior: number
+  costo_pactado_nuevo: number
+  costo_anterior_usd_kg: number
+  costo_nuevo_usd_kg: number
+}
+
+type EstadoCompraVigente = Exclude<EstadoDoc, 'anulada'>
+type OrigenTasaOperacion = TasaOperacion['tasa_origen']
+type FuenteTasaOperacion = TasaOperacion['tasa_fuente']
+
+/** Fila del historial `compra_correcciones` (solo admin), con sus líneas. */
+export interface CorreccionCompra {
+  id: string
+  proveedor_anterior: Pick<Proveedor, 'id' | 'nombre'>
+  proveedor_nuevo: Pick<Proveedor, 'id' | 'nombre'>
+  fecha_anterior: string
+  fecha_nueva: string
+  condicion_anterior: CondicionPago
+  condicion_nueva: CondicionPago
+  moneda_anterior: Moneda
+  moneda_nueva: Moneda
+  tasa_anterior: number
+  tasa_nueva: number
+  tasa_origen_anterior: OrigenTasaOperacion
+  tasa_origen_nueva: OrigenTasaOperacion
+  tasa_fuente_anterior: FuenteTasaOperacion
+  tasa_fuente_nueva: FuenteTasaOperacion
+  tasa_referencial_anterior: number | null
+  tasa_referencial_nueva: number | null
+  notas_anterior: string | null
+  notas_nueva: string | null
+  subtotal_anterior_usd: number
+  subtotal_nuevo_usd: number
+  pagado_anterior_usd: number
+  pagado_nuevo_usd: number
+  /** Σ pagos registrados al editar (explica saldo a favor y D1–D3). */
+  pagos_registrados_usd: number
+  estado_anterior: EstadoCompraVigente
+  estado_nuevo: EstadoCompraVigente
+  contrato_id: string | null
+  contrato_numero: number | null
+  propagacion: PropagacionCosto
+  motivo: string
+  usuario_id: string
+  usuario_nombre: string | null
+  created_at: string
+  items: CorreccionCompraItem[]
+}
+
+/** Cabecera de la compra en la ficha, con su proveedor. */
+export interface CompraFichaDetalle extends Omit<Compra, 'proveedor_id'> {
+  created_at: string
+  proveedor: Pick<Proveedor, 'id' | 'nombre' | 'rif_ci' | 'activo' | 'bloqueado' | 'motivo_bloqueo'>
+}
+
+export type PagoProveedorDetalle = Pick<
+  PagoProveedor,
+  'id' | 'fecha' | 'monto_usd' | 'moneda_pago' | 'tasa_pago' | 'metodo' | 'ganancia_cambiaria_bs'
+>
+
+/** Resultado de la RPC `detalle_compra` (solo admin): ficha `/compras/[id]` y vista previa. */
+export interface DetalleCompra {
+  compra: CompraFichaDetalle
+  /** Σ pagos a proveedores registrados (sin el pago implícito del contado). */
+  pagos_registrados_usd: number
+  /** Primera salida de los lotes de la compra: tope de la fecha (D5). */
+  primera_salida: string | null
+  /** Líneas y facturas (no anuladas) con kg del árbol de lotes, sin repetir. */
+  ventas_arbol: { lineas: number; facturas: number }
+  lineas: LineaCompraDetalle[]
+  pagos: PagoProveedorDetalle[]
+  /** Contrato activo con la marca derivada de 17/19. */
+  contrato: ContratoFactura | null
+  /** De la más reciente a la más antigua. */
+  correcciones: CorreccionCompra[]
+}
+
+/** Respuesta de `editar_compra` (sin costos de lotes). */
+export interface ResultadoEdicionCompra {
+  correccion_id: string
+  subtotal_usd: number
+  pagado_usd: number
+  saldo_usd: number
+  saldo_a_favor_usd: number
+  estado: EstadoCompraVigente
+  contrato: { id: string; numero: number; estado: EstadoContrato } | null
+  lotes: { lote_id: string; codigo: string; delta_kg: number }[]
+  propagacion: { lotes_recalculados: number; procesamientos: number; lineas_factura: number; facturas: number }
+}
+
+/** Totales de la compra en la vista previa. */
+export interface TotalesCompraPrevia {
+  total_usd: number
+  pagado_usd: number
+  /** Pendiente (≥ 0). */
+  saldo_usd: number
+  /** A favor del negocio (≥ 0). */
+  saldo_a_favor_usd: number
+  estado: EstadoCompraVigente
+}
+
+/** Línea de la vista previa: costo USD/kg y kg antes → después. */
+export interface LineaPreviaCompra {
+  compra_item_id: string
+  producto_nombre: string
+  lote_codigo: string | null
+  costo_antes_usd_kg: number
+  costo_despues_usd_kg: number
+  peso_antes_kg: number
+  peso_despues_kg: number
+  delta_kg: number
+  /** Kg ya consumidos del lote: mínimo del peso nuevo (0 sin lote). */
+  minimo_kg: number
+  bajo_minimo: boolean
+  /** Sube kg en un lote cerrado o agotado: se reabre (D7). */
+  reabre: boolean
+}
+
+/** Lote hijo con su costo/kg antes → después. */
+export interface HijoPrevioCompra {
+  lote_id: string
+  codigo: string
+  producto_nombre: string
+  costo_antes_usd_kg: number
+  costo_despues_usd_kg: number
+}
+
+export type TipoAvisoEdicionCompra =
+  | 'pagos'
+  | 'saldo_a_favor'
+  | 'contrato'
+  | 'condicion_a_contado'
+  | 'condicion_a_credito'
+  | 'proveedor'
+  | 'reabre_lote'
+  | 'tasa_usd'
+  | 'tasa_bs'
+  | 'moneda'
+  | 'ganancia_cambiaria'
+
+export interface AvisoEdicionCompra {
+  tipo: TipoAvisoEdicionCompra
+  severidad: 'info' | 'warning'
+  mensaje: string
+}
+
+/** Resultado de `previsualizarEdicionCompra` (función pura, misma cuenta que la RPC). */
+export interface PrevisualizacionEdicionCompra {
+  lineas: LineaPreviaCompra[]
+  antes: TotalesCompraPrevia
+  despues: TotalesCompraPrevia
+  hijos: HijoPrevioCompra[]
+  /** Costo de lo vendido (facturas no anuladas) del árbol de lotes. */
+  costo_vendido: { antes_usd: number; despues_usd: number; lineas: number; facturas: number }
+  sin_cambios: boolean
+  bajo_minimo: boolean
+  /** Algún costo USD de línea cambia (se propaga). */
+  cambia_costo: boolean
+  avisos: AvisoEdicionCompra[]
 }
 
 /* ==================== Dashboard (15) ==================== */

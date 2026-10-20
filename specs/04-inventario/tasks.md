@@ -78,3 +78,11 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
   - `movimientos_tipo_check` suma `correccion_venta`, el movimiento de stock cuando el admin corrige el peso de una línea de factura.
   - `config_negocio` suma `tolerancia_precio_ref_pct` (0–100, default 0), editable en `ConfigNegocioForm` en una `FormSection` "Señales de facturas" y validada en `configFormSchema`.
   - Migración `20261019100000_correccion_facturas_esquema.sql` de ese módulo. Las RLS de `config_negocio` no cambian.
+- **19-edicion-compras (2026-10-19)**: el admin puede editar una compra registrada. Cambia el esquema y el comportamiento de este módulo:
+  - `compra_items` suma `costo_kg_pactado` (costo/kg en la moneda de la compra; hoy solo se guardaba el USD), con relleno de las filas existentes; `compra_items_view` lo da en `null` al operador.
+  - `registrar_compra` se recrea (misma firma) para guardarlo, y `compraService.crearCompra` lo envía.
+  - `movimientos_tipo_check` suma `correccion_compra`.
+  - `compras`, `compra_items` y sus lotes cambian después del alta **solo** por la RPC `editar_compra`.
+  - `proveedorBalanceService.getSaldoPendiente` descuenta los saldos a favor (compras con `pagado > subtotal`).
+  - `ComprasTable`: fila abrible y `⋮` "Ver detalle" / "Editar compra" (admin) hacia la ficha nueva `/compras/[id]`; saldo negativo como «a favor».
+  - Migraciones `20261019120000`–`20261019120200` de ese módulo.

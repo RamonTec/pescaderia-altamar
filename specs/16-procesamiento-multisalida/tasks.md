@@ -129,3 +129,4 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "NN-modulo necesita … — agregado el <fecha>")_
+- **19-edicion-compras (2026-10-19)**: si el admin edita el costo de una compra, el costo de los procesamientos ya registrados de sus lotes se recalcula: `procesamientos.costo_total_usd`, `proceso_items.costo_total_usd` y el costo de los lotes hijos, con las funciones internas de reparto de este módulo, el `reparto_costo` guardado y el snapshot `precio_referencia_usd_kg` (no el catálogo). Kg y prorrateo de entrada no cambian. En empate de pesos el residuo va a la salida de menor `proceso_items.id` (no hay orden guardado). `costingService` suma `recalcularRepartoProceso`. Solo lo hace la RPC `editar_compra`; la regla "el precio del catálogo no recalcula procesamientos pasados" sigue igual.

@@ -5,6 +5,7 @@ import type {
   MovimientosArbolLote,
 } from './interfaces'
 import type {
+  CorreccionCompraLote,
   DevolucionLote,
   EstadoDoc,
   EstadoNotaCredito,
@@ -156,10 +157,10 @@ export function makeLoteRepository(db: SupabaseClient = createClient()): ILoteRe
 
     async getMovimientosArbol(lotes) {
       const ids = lotes.map((l) => l.id)
-      const vacio: MovimientosArbolLote = { procesos: [], ventas: [], perdidas: [], devoluciones: [] }
+      const vacio: MovimientosArbolLote = { procesos: [], ventas: [], perdidas: [], devoluciones: [], correcciones_compra: [] }
       if (ids.length === 0) return vacio
 
-      const [procesosRes, filRes, perdidasRes, devolucionesRes] = await Promise.all([
+      const [procesosRes, filRes, perdidasRes, devolucionesRes, correccionesRes] = await Promise.all([
         db
           .from('proceso_items_view')
           .select(
@@ -180,8 +181,16 @@ export function makeLoteRepository(db: SupabaseClient = createClient()): ILoteRe
             'id, lote_id, peso_kg, item:nota_credito_items(id, precio_usd_kg, factura_item_id, nota:notas_credito(id, numero, fecha, estado, factura_id))'
           )
           .in('lote_id', ids),
+        // 19: kg ± por ediciones de la compra (sin costos: `movimientos_view`).
+        db
+          .from('movimientos_view')
+          .select('id, lote_id, fecha, peso_kg, ref_id')
+          .eq('tipo', 'correccion_compra')
+          .in('lote_id', ids)
+          .order('fecha', { ascending: true }),
       ])
       if (procesosRes.error) throw procesosRes.error
+      if (correccionesRes.error) throw correccionesRes.error
       if (filRes.error) throw filRes.error
       if (perdidasRes.error) throw perdidasRes.error
       if (devolucionesRes.error) throw devolucionesRes.error
@@ -318,12 +327,36 @@ export function makeLoteRepository(db: SupabaseClient = createClient()): ILoteRe
         peso_kg: num(p.peso_kg),
       }))
 
+      // Motivo de cada edición: `compra_correcciones` solo la lee el admin (RLS);
+      // al operador le llegan 0 filas y el motivo queda en `null`.
+      const filasCorreccion = (correccionesRes.data ?? []) as {
+        id: string
+        lote_id: string
+        fecha: string
+        peso_kg: number | string
+        ref_id: string
+      }[]
+      const refIds = [...new Set(filasCorreccion.map((f) => f.ref_id))]
+      const { data: motivosData } = refIds.length
+        ? await db.from('compra_correcciones').select('id, motivo').in('id', refIds)
+        : { data: [] }
+      const motivos = new Map(((motivosData ?? []) as { id: string; motivo: string }[]).map((m) => [m.id, m.motivo]))
+      const correcciones_compra: CorreccionCompraLote[] = filasCorreccion.map((f) => ({
+        id: f.id,
+        lote_id: f.lote_id,
+        correccion_id: f.ref_id,
+        fecha: f.fecha,
+        peso_kg: num(f.peso_kg),
+        motivo: motivos.get(f.ref_id) ?? null,
+      }))
+
       const porFecha = <T extends { fecha: string }>(a: T, b: T) => a.fecha.localeCompare(b.fecha)
       return {
         procesos: procesos.sort(porFecha),
         ventas: ventas.sort(porFecha),
         perdidas,
         devoluciones: devoluciones.sort(porFecha),
+        correcciones_compra,
       }
     },
 

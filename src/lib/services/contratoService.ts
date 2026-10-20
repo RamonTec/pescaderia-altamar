@@ -110,12 +110,17 @@ function elegibilidad(
   }
   const resultado = new Map<string, ElegibilidadContrato>()
   for (const o of origenes) {
-    // Contado: sin opciones de contrato (no entra en el mapa).
-    if (o.condicion !== 'credito') continue
     const activo = activoPorOrigen.get(o.id)
     const contratoActivo = activo
       ? { id: activo.id, numero: activo.numero, estado: activo.estado, desactualizado: activo.desactualizado }
       : undefined
+    // Contado: sin opciones de contrato (no entra en el mapa), salvo que
+    // tenga un contrato activo de cuando era a crédito (19: compra editada a
+    // contado). Entonces solo se puede verlo (y anularlo desde /contratos).
+    if (o.condicion !== 'credito') {
+      if (contratoActivo) resultado.set(o.id, { puedeGenerar: false, contratoActivo })
+      continue
+    }
     if (o.estado === 'anulada') {
       resultado.set(o.id, { puedeGenerar: false, motivo: MSG_DOCUMENTO_ANULADO, contratoActivo })
     } else if (contratoActivo) {

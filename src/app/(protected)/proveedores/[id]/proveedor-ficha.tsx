@@ -9,6 +9,7 @@ import Divider from '@mui/material/Divider'
 import Fade from '@mui/material/Fade'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
+import { accionesFichaCompra, hrefCompra } from '@/components/organisms/ComprasTable'
 import type { GridColDef } from '@mui/x-data-grid'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
@@ -117,8 +118,10 @@ export function ProveedorFicha({
   const contratoAcciones = useContratoAcciones()
   const { accionesDeOrigen } = contratoAcciones
   const accionesCompra = React.useCallback(
-    (c: CompraFicha): RowAction[] =>
-      accionesDeOrigen(
+    (c: CompraFicha): RowAction[] => [
+      // 19: ficha de la compra (ver detalle / editar).
+      ...accionesFichaCompra(c, (editar) => router.push(hrefCompra(c.id, editar))),
+      ...accionesDeOrigen(
         {
           tipo: 'compra_credito',
           id: c.id,
@@ -127,7 +130,8 @@ export function ProveedorFicha({
         },
         contratos[c.id]
       ),
-    [accionesDeOrigen, contratos, proveedor.nombre]
+    ],
+    [accionesDeOrigen, contratos, proveedor.nombre, router]
   )
   // `⋮` del historial solo para el admin (las opciones de contrato son suyas).
   const columnasCompras = React.useMemo(
@@ -427,6 +431,7 @@ export function ProveedorFicha({
                   searchable={false}
                   pageParam="pcompras"
                   embedded
+                  getRowHref={esAdmin ? (c) => hrefCompra(c.id) : undefined}
                   emptyState={{ title: 'Aún no hay compras' }}
                   mobileCard={(c) => {
                     const accionesFila = esAdmin ? accionesCompra(c) : []
@@ -451,8 +456,13 @@ export function ProveedorFicha({
           <Box sx={{ display: 'grid', gap: 2, minWidth: 0 }}>
             <FichaSeccion titulo="Saldo pendiente">
               <Box>
-                <Typography variant="h5" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {formatUsd(saldo)}
+                {/* 19: saldo negativo = saldo a favor del negocio (una edición dejó pagado > total). */}
+                <Typography
+                  variant="h5"
+                  component="p"
+                  sx={{ fontVariantNumeric: 'tabular-nums', color: saldo < 0 ? 'success.main' : undefined }}
+                >
+                  {saldo < 0 ? `${formatUsd(-saldo)} a favor` : formatUsd(saldo)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {abiertas > 0

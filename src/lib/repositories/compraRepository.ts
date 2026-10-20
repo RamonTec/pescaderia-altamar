@@ -7,6 +7,7 @@ import type {
 } from './interfaces'
 import type { Compra, CompraItem, PagoProveedor, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
+import { mapearDetalleCompra, mapearResultadoEdicionCompra } from './compraDetalleMapper'
 
 const SELECT_RESUMEN = '*, proveedor:proveedores(id, nombre, rif_ci, bloqueado)'
 const SELECT_INNER = '*, proveedor:proveedores!inner(id, nombre, rif_ci, bloqueado)'
@@ -105,6 +106,31 @@ export function makeCompraRepository(db: SupabaseClient = createClient()): IComp
         .eq('estado', 'abierta')
       if (error) throw error
       return (data ?? []) as Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]
+    },
+    async listPagadasByProveedor(proveedorId) {
+      const { data, error } = await db
+        .from('compras')
+        .select('id, subtotal_usd, pagado_usd')
+        .eq('proveedor_id', proveedorId)
+        .eq('estado', 'pagada')
+      if (error) throw error
+      return (data ?? []) as Pick<Compra, 'id' | 'subtotal_usd' | 'pagado_usd'>[]
+    },
+    // 19: ficha y edición, solo por RPC (security definer, solo admin).
+    async getDetalle(id) {
+      const { data, error } = await db.rpc('detalle_compra', { p_compra_id: id })
+      if (error) throw error
+      return mapearDetalleCompra(data)
+    },
+    async editar(input) {
+      const { data, error } = await db.rpc('editar_compra', {
+        p_compra_id: input.compra_id,
+        p_cabecera: input.cabecera,
+        p_items: input.items,
+        p_motivo: input.motivo,
+      })
+      if (error) throw error
+      return mapearResultadoEdicionCompra(data)
     },
     async registrarPago(pago) {
       const { data, error } = await db.rpc('registrar_pago_proveedor', { p_pago: pago })

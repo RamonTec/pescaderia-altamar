@@ -10,7 +10,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 |---|---|
 | Moneda base de registro | **USD** (referente estable); Bs como moneda operativa |
 | Tasa de cambio | Automática: **BCV oficial por scraping de www.bcv.org.ve (USD y EUR)**, con dolarapi como respaldo y como fuente de la paralela; tasa del día manual (admin). En cada operación, referencial por defecto o **manual** (cualquier usuario, queda registrado quién y cuánto difería). EUR solo de referencia. Escritura de `tasas` solo admin; las automáticas van con `service_role` desde el servidor. *(Ampliado el 2026-10-07, ver `specs/08-tasas`.)* |
-| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. La corrección de una factura (`specs/17-trazabilidad-y-correccion-facturas`) cambia peso y precio de una línea, o activa o quita el IVA (`specs/18-iva-opcional`), **nunca la tasa**. |
+| Snapshot de tasa | Toda transacción guarda la tasa usada y su procedencia (referencial/manual, fuente, referencial vigente); **nunca se recalcula historia**. Tasa vigente para una fecha = última publicada con fecha valor ≤ esa fecha. La corrección de una factura (`specs/17-trazabilidad-y-correccion-facturas`) cambia peso y precio de una línea, o activa o quita el IVA (`specs/18-iva-opcional`), **nunca la tasa**. Excepción: el admin puede **editar una compra** (`specs/19-edicion-compras`), incluidas su moneda y su tasa, con motivo e historial; el costo resultante se propaga a sus lotes, procesados y líneas vendidas, sin tocar la tasa, los precios ni los totales de facturas y pagos. *(Ampliado el 2026-10-19.)* |
 | Costeo de inventario | **Por lote** (costo propio de cada lote; PEPS sugerido al vender). *Reabierto el 2026-10-07: antes era promedio ponderado por kg. Ver `specs/07-lotes`.* |
 | Crédito | Deuda pactada en USD; cada abono usa la **tasa del día del pago** → ganancia/pérdida cambiaria |
 | Facturación | Interna (no fiscal SENIAT), con **IVA desglosado al % configurable** (default 16%) **o sin IVA**: sí/no por cliente (`clientes.aplica_iva`), editable en cada venta; sin IVA = `iva_pct` 0. *(Antes: IVA desglosado configurable aplicado a toda venta; reemplazado el 2026-10-19, ver `specs/18-iva-opcional`.)* |
@@ -30,13 +30,15 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - `tipo`: `crudo` (entero, tal como llega del proveedor) o `procesado` (limpio/filete).
 - Stock siempre en kg con 3 decimales.
 - **Lotes**: cada recepción (línea de compra) es un lote físico separado, con código propio, aunque sea del mismo producto y proveedor. Stock del producto = Σ stock de sus lotes.
-- **Costo por lote**: cada lote conserva su costo/kg USD, moneda y tasa de compra; toda salida (proceso, venta, pérdida) usa el costo del lote del que sale. *(Antes: promedio ponderado; reemplazado el 2026-10-07.)*
+- **Costo por lote**: cada lote conserva su costo/kg USD, moneda y tasa de compra; toda salida (proceso, venta, pérdida) usa el costo del lote del que sale. *(Antes: promedio ponderado; reemplazado el 2026-10-07.)* Si se edita la compra (§4.2), el costo nuevo del lote se recalcula hacia abajo (lotes hijos, ledger y líneas vendidas). *(Agregado el 2026-10-19.)*
 - Valor del inventario: `Σ(stock_lote × costo_lote)` en USD, y en Bs a tasa vigente.
 - Pérdidas fuera del procesamiento (dañado, vencido, faltante) se registran por lote con motivo.
 
 ### 4.2 Compras (recepción)
 - Proveedor entrega producto crudo → se **pesa**, se registra costo por kg en la moneda pactada (USD o Bs) y se **congela la tasa** del día.
 - Condición: `contado` (pagada al registrar) o `credito` (genera cuenta por pagar en USD).
+- Cada línea guarda también el costo/kg pactado en la moneda de la compra (`compra_items.costo_kg_pactado`).
+- **Edición de compra** (solo admin, motivo obligatorio, historial solo admin): kg y costo/kg de cada línea, y proveedor, fecha, notas, condición, moneda y tasa. Los kg no bajan de lo ya consumido del lote. El costo nuevo se propaga a procesados (reparto con el snapshot de precios), ledger y `costo_usd_kg` de líneas vendidas; precios y totales de facturas no cambian. Si lo pagado supera el total queda saldo a favor con el proveedor; el contrato queda desactualizado; las anuladas no se editan. *(Agregado el 2026-10-19, ver `specs/19-edicion-compras`.)*
 
 ### 4.3 Procesamiento (limpieza)
 - Entrada: **un lote** de producto crudo (elegido por el operador) + **un** peso de entrada. Salidas: **N productos procesados distintos** de ese crudo, cada uno con su peso_kg → **un lote procesado por salida**, ligado al lote padre. No se mezclan lotes crudos: otro lote = otro registro. *(Antes: un lote crudo daba un lote procesado; reemplazado el 2026-10-19, ver `specs/16-procesamiento-multisalida`.)*
@@ -61,7 +63,7 @@ Sistema de gestión interna para una pescadería pequeña en Venezuela que cubre
 - Las compras a crédito a proveedores funcionan igual (cuentas por pagar).
 
 ### 4.6 COGS y margen
-- Cada `factura_item` guarda `costo_usd_kg` snapshot (promedio de los lotes asignados) y su detalle por lote (`factura_item_lotes`) → margen real por venta, por producto y **por lote**, con resultado en USD y en Bs a las tasas de compra y de venta. Una corrección de peso (§4.4) actualiza la asignación y recalcula ese promedio. *(Agregado el 2026-10-19.)*
+- Cada `factura_item` guarda `costo_usd_kg` snapshot (promedio de los lotes asignados) y su detalle por lote (`factura_item_lotes`) → margen real por venta, por producto y **por lote**, con resultado en USD y en Bs a las tasas de compra y de venta. Una corrección de peso (§4.4) actualiza la asignación y recalcula ese promedio. *(Agregado el 2026-10-19.)* La edición de una compra (§4.2) recalcula el costo de sus lotes y, con él, el de esas líneas y su margen. *(Agregado el 2026-10-19.)*
 
 ## 5. Esquema de datos (Postgres/Supabase)
 
@@ -73,7 +75,8 @@ productos           (codigo, nombre, tipo crudo|procesado, categoria, controla_s
 clientes            (nombre, rif_ci, telefono, notas, activo, aplica_iva)  -- aplica_iva: precarga el IVA de la venta (18, 2026-10-19)
 proveedores         (nombre, rif_ci, telefono, notas, activo)
 compras            (proveedor_id, fecha, condicion, moneda, tasa_snapshot, estado, subtotal_usd, pagado_usd)
-compra_items       (compra_id, producto_id, peso_kg, costo_usd_kg)
+compra_items       (compra_id, producto_id, peso_kg, costo_usd_kg, costo_kg_pactado [moneda de la compra; 19])
+compra_correcciones (compra_id, proveedor/fecha/condicion/moneda/tasa(+procedencia)/notas anterior y nuevo, subtotal y pagado anterior y nuevo, pagos_registrados_usd, estado anterior y nuevo, contrato_id?, propagacion jsonb, motivo, usuario_id, created_at) + compra_correccion_items (correccion_id, compra_item_id, lote_id?, peso, costo pactado y costo USD anterior y nuevo)  -- 19, 2026-10-19; historial solo admin, escritura solo por RPC
 pagos_proveedores  (compra_id, fecha, monto_usd, moneda_pago, tasa_pago, metodo, ganancia_cambiaria_bs)
 procesamientos     (fecha, notas, lote_origen_id, peso_entrada_kg, costo_total_usd, reparto_costo valor|peso)  -- cabecera: entrada única (16, 2026-10-19)
 proceso_items      (procesamiento_id, producto_origen_id, lote_origen_id, peso_entrada_kg [prorrateo por kg], producto_destino_id, peso_salida_kg, costo_total_usd [costo asignado], precio_referencia_usd_kg [snapshot])  -- una fila por salida
@@ -83,7 +86,7 @@ pedido_items       (pedido_id, producto_id, peso_estimado_kg, peso_entregado_kg,
 facturas           (numero, cliente_id, pedido_id?, fecha, dias_credito, fecha_vencimiento, condicion, tasa_snapshot, iva_pct, subtotal_usd, iva_usd, total_usd, pagado_usd, estado)
 factura_items      (factura_id, producto_id, peso_kg, precio_usd_kg, costo_usd_kg)
 pagos              (factura_id, fecha, monto_usd, moneda_pago, tasa_pago, metodo, ganancia_cambiaria_bs)
-movimientos        (producto_id, lote_id, fecha, tipo compra|proceso_in|proceso_out|venta|ajuste|perdida|correccion_venta, peso_kg, costo_usd_kg, ref_id)  -- ledger auditable; correccion_venta: 17, 2026-10-19
+movimientos        (producto_id, lote_id, fecha, tipo compra|proceso_in|proceso_out|venta|ajuste|perdida|correccion_venta|correccion_compra, peso_kg, costo_usd_kg, ref_id)  -- ledger auditable (los kg nunca se reescriben; el costo sigue al del lote); correccion_venta: 17, correccion_compra: 19, 2026-10-19
 factura_correcciones (factura_id, tipo linea|iva, factura_item_id?, peso/precio/costo anterior y nuevo [linea], iva_pct y créditos de notas anterior y nuevo [iva], totales anterior y nuevo, pagado_usd, estado anterior y nuevo, contrato_id?, motivo, usuario_id, created_at)  -- 17; tipo iva: 18 (2026-10-19); historial solo admin, escritura solo por RPC
 lotes              (codigo, producto_id, origen compra|proceso|inicial, compra_item_id?, proceso_item_id?, lote_padre_id?, proveedor_id, fecha_ingreso, peso_inicial_kg, costo_usd_kg, moneda, tasa_snapshot, estado abierto|agotado|cerrado)
 factura_item_lotes (factura_item_id, lote_id, peso_kg, costo_usd_kg)
