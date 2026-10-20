@@ -23,6 +23,7 @@ export function PedidosScreen({
   productos,
   configTasas,
   diasCreditoDefault,
+  ivaPct,
 }: {
   pedidos: PedidoResumen[]
   totalPedidos: number
@@ -31,6 +32,8 @@ export function PedidosScreen({
   configTasas: TasaSelectorConfig
   /** Días de crédito por defecto del negocio (09-cuentas-por-cobrar). */
   diasCreditoDefault: number
+  /** `config_negocio.iva_pct` vigente (18-iva-opcional). */
+  ivaPct: number
 }) {
   const notify = useNotify()
   const confirm = useConfirm()
@@ -89,6 +92,7 @@ export function PedidosScreen({
         productos={productos}
         configTasas={configTasas}
         diasCreditoDefault={diasCreditoDefault}
+        ivaPct={ivaPct}
       />
 
       <EntregaPedidoDialog
@@ -96,6 +100,7 @@ export function PedidosScreen({
         pedido={entregando}
         configTasas={configTasas}
         diasCreditoDefault={diasCreditoDefault}
+        ivaPct={ivaPct}
         productos={productos}
         onClose={() => setEntregando(null)}
       />

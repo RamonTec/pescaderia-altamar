@@ -41,6 +41,8 @@ export const clienteFormSchema = z
       .min(0, 'No puede ser negativo')
       .max(365, 'Máximo 365 días')
       .nullable(),
+    /** "Aplica IVA" (18): precarga el interruptor de la venta. Default `true` en el alta. */
+    aplica_iva: z.boolean(),
     representantes: z.array(representanteSchema),
   })
   .superRefine((data, ctx) => {

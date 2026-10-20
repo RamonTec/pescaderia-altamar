@@ -34,6 +34,11 @@ export interface EntregarPedidoInput {
   dias_credito?: number | null
   /** Tasa elegida en la entrega; resuelta en el servidor para la fecha de entrega. */
   tasa?: EntradaTasaOperacion
+  /**
+   * IVA de la factura (18): el pedido no guarda IVA, se decide al entregar.
+   * Sin valor, el `aplica_iva` actual del cliente.
+   */
+  aplica_iva?: boolean
 }
 
 export async function crearPedido(
@@ -97,6 +102,7 @@ export async function entregarPedido(
         fecha: input.fecha,
         forzar_limite: input.forzar_limite,
         dias_credito: input.dias_credito,
+        aplica_iva: input.aplica_iva,
         pesos_reales: input.pesos_reales.map((p) => ({
           pedido_item_id: p.pedido_item_id,
           peso_kg: p.peso_kg,

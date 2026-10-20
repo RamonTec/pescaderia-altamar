@@ -1,9 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { ResultadoCorreccion } from '@/types/domain'
+import type { ResultadoCambioIva, ResultadoCorreccion } from '@/types/domain'
 import { makeFacturaRepository } from '@/lib/repositories/facturaRepository'
 import { createClient } from '@/lib/supabase/server'
-import { corregirLineaSchema } from '@/lib/correccionFacturaValidation'
-import { previsualizarCorreccion } from '@/lib/facturas/correccion'
+import { makeConfigNegocioRepository } from '@/lib/repositories/configRepository'
+import { cambiarIvaSchema, corregirLineaSchema } from '@/lib/correccionFacturaValidation'
+import { previsualizarCambioIva, previsualizarCorreccion } from '@/lib/facturas/correccion'
 import { requireAdmin } from './authService'
 import { getSaldoPendiente } from './clienteBalanceService'
 import { LimiteCreditoExcedido } from './invoiceService'
@@ -18,6 +19,11 @@ import { LimiteCreditoExcedido } from './invoiceService'
  *      de 05 §4.1) salvo `forzar_limite`. El bloqueo del cliente no impide
  *      corregir: no es una venta nueva.
  *   3. Llama a la RPC (atómica, con lock) y traduce sus `hint` a campos.
+ *
+ * 18-iva-opcional: `cambiarIvaFactura` activa (al % vigente) o quita el IVA
+ * de una factura emitida, con las mismas reglas (solo admin, aviso de límite
+ * al activar a crédito, RPC atómica `cambiar_iva_factura`). Único que usa
+ * `IFacturaRepository.cambiarIva`.
  */
 
 export type CampoCorreccion = 'peso_kg' | 'precio_usd_kg' | 'motivo'
@@ -113,5 +119,67 @@ export async function corregirLinea(input: unknown, db?: SupabaseClient): Promis
     })
   } catch (e) {
     throw errorDeCorreccion(e)
+  }
+}
+
+/**
+ * Activa o quita el IVA de una factura emitida (18). `motivo_requerido` va al
+ * campo; `factura_anulada`, `sin_cambios` e `iva_config_cero`, al `Alert`.
+ */
+export async function cambiarIvaFactura(input: unknown, db?: SupabaseClient): Promise<ResultadoCambioIva> {
+  if (!(await requireAdmin())) throw new CorreccionFacturaError(MSG_SOLO_ADMIN)
+
+  const safe = cambiarIvaSchema.safeParse(input)
+  if (!safe.success) {
+    const issue = safe.error.issues[0]
+    throw new CorreccionFacturaError(
+      issue?.message ?? 'Datos inválidos',
+      issue?.path[0] === 'motivo' ? 'motivo' : undefined
+    )
+  }
+  const v = safe.data
+
+  const client = db ?? (await createClient())
+  const repo = makeFacturaRepository(client)
+
+  // Aviso blando de límite de crédito: solo al activar, a crédito y si el saldo sube.
+  if (v.aplica_iva && !v.forzar_limite) {
+    const [traza, config] = await Promise.all([
+      repo.getTrazabilidad(v.factura_id),
+      makeConfigNegocioRepository(client).get(),
+    ])
+    if (!traza) throw new CorreccionFacturaError('La factura no existe')
+    const { factura } = traza
+    const limite = factura.cliente.limite_credito_usd
+    if (factura.condicion === 'credito' && factura.estado !== 'anulada' && limite != null && limite > 0) {
+      const vista = previsualizarCambioIva(
+        factura,
+        traza.notas_credito.filter((n) => n.estado === 'emitida'),
+        true,
+        Number(config?.iva_pct ?? 0)
+      )
+      const aumento = vista.saldo_despues_usd - vista.saldo_antes_usd
+      if (!vista.bloqueo && aumento > 0) {
+        const saldo = await getSaldoPendiente(factura.cliente.id, client)
+        if (saldo + aumento > limite) {
+          throw new LimiteCreditoExcedido({
+            limite_usd: limite,
+            saldo_actual_usd: redondea2(saldo),
+            nuevo_total_usd: redondea2(aumento),
+            excedente_usd: redondea2(saldo + aumento - limite),
+          })
+        }
+      }
+    }
+  }
+
+  try {
+    return await repo.cambiarIva({ factura_id: v.factura_id, aplica_iva: v.aplica_iva, motivo: v.motivo })
+  } catch (e) {
+    const err = errorDeCorreccion(e)
+    if (err instanceof CorreccionFacturaError && (e as { code?: string }).code === '42501') {
+      throw new CorreccionFacturaError('Solo un administrador puede cambiar el IVA de una factura')
+    }
+    throw err
   }
 }

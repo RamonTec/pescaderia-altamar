@@ -86,3 +86,11 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
 
   Se verifica en la tarea 26 de ese módulo.
 - **18-iva-opcional (2026-10-19)**: hay ventas sin IVA (`iva_pct = 0`) y el admin puede activar o quitar el IVA de una emitida. **No cambia ninguna RPC `dashboard_*`**: ninguna lee `iva_usd` ni `iva_pct`. Las ventas, el margen, el ticket y la mezcla son sin IVA y no se mueven. CxC, aging, flujo y exposición usan el `total_usd` vigente, así que reflejan el cambio; los saldos a favor quedan fuera por el filtro `saldo_usd > 0.005`. Se verifica en la tarea 23 de ese módulo.
+- **19-edicion-compras (2026-10-19)**: el admin puede editar una compra (costo, kg, proveedor, fecha, condición, moneda y tasa) y el costo se propaga. **No cambia ninguna RPC `dashboard_*`** (por su decisión D1, una compra de contado nunca queda con saldo):
+  - valor del inventario y antigüedad de lotes leen los lotes vigentes;
+  - margen, spread y productos con salida leen `factura_items.costo_usd_kg` recalculado, en el período de la **fecha de cada factura**;
+  - merma y rendimiento por proveedor (B7) leen el costo y el `lotes.proveedor_id` nuevos, en el período del **procesamiento**;
+  - pérdidas por motivo usan el costo del lote; CxP, aging y flujo usan el total y la fecha nuevos, y los saldos a favor con proveedores (compra `pagada`) quedan fuera;
+  - `dashboard_resultado_cambiario` no cambia (pagos intactos).
+
+  Se verifica en la tarea 27 de ese módulo.

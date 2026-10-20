@@ -82,3 +82,9 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`. La
   - `factura_item_lotes` y `factura_items.costo_usd_kg` pueden cambiar después de la venta, **solo** por la RPC `corregir_linea_factura`, bajo el lock de la fila del lote.
   - `resultadoLote` y la trazabilidad leen `factura_item_lotes`, así que reflejan los kg corregidos sin cambios.
   - En `LoteTimeline`, el número de factura de una venta enlaza a `/facturas/[id]` cuando el usuario es admin.
+- **19-edicion-compras (2026-10-19)**: el admin puede editar una compra ya registrada.
+  - `peso_inicial_kg`, `costo_usd_kg`, `moneda`, `tasa_snapshot`, `proveedor_id` y `fecha_ingreso` de un lote de compra pueden cambiar después del alta (los hijos heredan proveedor, moneda, tasa y costo recalculado), **solo** por la RPC `editar_compra`, bajo el lock de los lotes. El `codigo` no cambia.
+  - Nuevo tipo de movimiento `correccion_compra` (kg ±, `ref_id` = la corrección). El costo de **todas** las filas de `movimientos` y `factura_item_lotes` de un lote sigue siendo el del lote (se reescribe el costo, nunca los kg).
+  - Bajar kg no puede dejar el lote negativo; subir kg en un lote `cerrado` o `agotado` lo reabre (D7 de 19, aprobada el 2026-10-19).
+  - `LoteTimeline`: para admin, la compra enlaza a `/compras/[id]`, y se agrega el evento "Corrección de compra".
+  - `resultadoLote` refleja la edición sin cambios. La anulación de compras sigue fuera de alcance.

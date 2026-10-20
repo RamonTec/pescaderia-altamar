@@ -6,7 +6,7 @@ import type {
 } from './interfaces'
 import type { Factura, FacturaItem, NotaCredito, Pago, Producto } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
-import { mapearResultadoCorreccion, mapearTrazabilidad } from './trazabilidadFacturaMapper'
+import { mapearResultadoCambioIva, mapearResultadoCorreccion, mapearTrazabilidad } from './trazabilidadFacturaMapper'
 
 /**
  * Implementación Supabase del repositorio de facturas.
@@ -117,6 +117,16 @@ export function makeFacturaRepository(db: SupabaseClient = createClient()): IFac
       })
       if (error) throw error
       return mapearResultadoCorreccion(data)
+    },
+
+    async cambiarIva(input) {
+      const { data, error } = await db.rpc('cambiar_iva_factura', {
+        p_factura_id: input.factura_id,
+        p_aplica_iva: input.aplica_iva,
+        p_motivo: input.motivo,
+      })
+      if (error) throw error
+      return mapearResultadoCambioIva(data)
     },
   }
 }

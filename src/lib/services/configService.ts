@@ -16,3 +16,9 @@ export async function getDiasCreditoDefault(db?: SupabaseClient): Promise<number
   const config = await getConfigNegocio(db)
   return Number(config?.dias_credito_default ?? DIAS_CREDITO_DEFAULT)
 }
+
+/** % de IVA vigente (18-iva-opcional): el que se aplica a las ventas con IVA. */
+export async function getIvaPct(db?: SupabaseClient): Promise<number> {
+  const config = await getConfigNegocio(db)
+  return Number(config?.iva_pct ?? 16)
+}

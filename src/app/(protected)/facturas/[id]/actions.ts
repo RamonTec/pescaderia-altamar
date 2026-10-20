@@ -3,17 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/services/authService'
-import { corregirLinea, CorreccionFacturaError } from '@/lib/services/correccionFacturaService'
+import { cambiarIvaFactura, corregirLinea, CorreccionFacturaError } from '@/lib/services/correccionFacturaService'
 import { LimiteCreditoExcedido } from '@/lib/services/invoiceService'
 import { lotesAbiertosDe } from '@/lib/services/loteService'
-import { corregirLineaSchema } from '@/lib/correccionFacturaValidation'
+import { cambiarIvaSchema, corregirLineaSchema } from '@/lib/correccionFacturaValidation'
 import { numeroFactura } from '@/lib/repositories/carteraRepository'
 import { toActionError } from '@/lib/actionState'
 import type { CorreccionActionState } from '@/components/organisms/CorregirLineaFacturaDialog'
 
 /**
  * Server Actions de la ficha de factura (17, solo admin): corrección de una
- * línea y stock disponible para el aviso previo del diálogo.
+ * línea y stock disponible para el aviso previo del diálogo. 18: cambio de
+ * IVA de la factura (`cambiarIvaFacturaAction`).
  */
 
 function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
@@ -55,6 +56,37 @@ export async function corregirLineaFacturaAction(
   revalidatePath('/inventario/lotes/[id]', 'page')
   revalidatePath('/contratos')
   return { error: null, success: `Factura ${numeroFactura(numero)} corregida` }
+}
+
+/** Activa o quita el IVA de la factura (18, solo admin; el rol lo exige también la RPC). */
+export async function cambiarIvaFacturaAction(
+  payload: unknown,
+  numero: number
+): Promise<CorreccionActionState> {
+  if (!(await requireAdmin())) {
+    return { error: 'Solo un administrador puede cambiar el IVA de una factura', success: null }
+  }
+  const safe = cambiarIvaSchema.safeParse(payload)
+  if (!safe.success) {
+    return { error: 'Revisa los campos marcados', success: null, fieldErrors: fieldErrorsDeZod(safe.error) }
+  }
+
+  try {
+    await cambiarIvaFactura(safe.data)
+  } catch (e) {
+    if (e instanceof LimiteCreditoExcedido) return { error: null, success: null, advertenciaLimite: e.advertencia }
+    if (e instanceof CorreccionFacturaError) {
+      return { error: e.message, success: null, fieldErrors: e.campo ? { [e.campo]: e.message } : undefined }
+    }
+    const { error, fieldErrors } = toActionError(e)
+    return { error, success: null, fieldErrors }
+  }
+
+  revalidatePath(`/facturas/${safe.data.factura_id}`)
+  revalidatePath('/cobros')
+  revalidatePath('/clientes/[id]', 'page')
+  revalidatePath('/contratos')
+  return { error: null, success: `IVA de la factura ${numeroFactura(numero)} actualizado` }
 }
 
 const uuid = z.string().uuid()

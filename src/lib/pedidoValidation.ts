@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { camposTasaOpcionales, validarTasa } from './tasaValidation'
 import { asignacionesLoteSchema, validarAsignacion } from './loteValidation'
+import { MSG_APLICA_IVA_REQUERIDO } from './validationMessages'
 
 /**
  * Validación de pedidos y venta directa (05-ventas).
@@ -68,6 +69,12 @@ export const pedidoFormSchema = z
     condicion: z.enum(['contado', 'credito']),
     dias_credito: diasCreditoSchema,
     notas: z.string(),
+    /**
+     * IVA de la factura (18): precargado con `clientes.aplica_iva`, cambia
+     * solo esta venta. Solo cuenta con entrega inmediata (el pedido agendado
+     * no guarda IVA: se decide al entregar).
+     */
+    aplica_iva: z.boolean().optional(),
     ...camposTasaOpcionales,
     items: z.array(pedidoItemFormSchema).min(1, 'Agrega al menos un producto'),
   })
@@ -82,6 +89,9 @@ export const pedidoFormSchema = z
     // La tasa solo se exige en la venta directa: el pedido agendado congela
     // la vigente al momento de la entrega.
     if (v.entrega_inmediata) validarTasa(v, ctx)
+    if (v.entrega_inmediata && v.aplica_iva === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['aplica_iva'], message: MSG_APLICA_IVA_REQUERIDO })
+    }
   })
 
 export type PedidoFormInput = z.input<typeof pedidoFormSchema>
@@ -94,6 +104,8 @@ export const entregaPedidoSchema = z
     fecha: z.string().regex(FECHA_REGEX, 'Fecha inválida'),
     condicion: z.enum(['contado', 'credito']),
     dias_credito: diasCreditoSchema,
+    /** IVA de la factura (18): precargado con el `aplica_iva` actual del cliente del pedido. */
+    aplica_iva: z.boolean({ message: MSG_APLICA_IVA_REQUERIDO }),
     ...camposTasaOpcionales,
     pesos_reales: z
       .array(

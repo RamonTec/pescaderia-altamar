@@ -8,13 +8,14 @@ import type {
   NotaCreditoTrazabilidad,
   PagoTrazabilidad,
   ProcesoOrigenLote,
+  ResultadoCambioIva,
   ResultadoCorreccion,
   TrazabilidadFactura,
 } from '@/types/domain'
 
 /**
  * Mapeo del JSON de las RPC `trazabilidad_factura` / `corregir_linea_factura`
- * (17) a los tipos de dominio. Sin lógica de negocio: solo forma y números
+ * (17) / `cambiar_iva_factura` (18) a los tipos de dominio. Sin lógica de negocio: solo forma y números
  * (PostgREST devuelve `numeric` como número o como texto según el caso).
  * Sin imports de Supabase: lo usan el repositorio y los scripts de prueba.
  */
@@ -149,17 +150,10 @@ function movimientos(v: unknown) {
   return arr(v).map((m) => ({ lote_id: strONull(m.lote_id), codigo: strONull(m.codigo), peso_kg: num(m.peso_kg) }))
 }
 
+/** Correcciones por `tipo` (18): `linea` (17, el default de filas viejas) o `iva`. */
 function correccion(j: Json): CorreccionFactura {
-  return {
+  const comun = {
     id: str(j.id),
-    factura_item_id: str(j.factura_item_id),
-    producto_nombre: str(j.producto_nombre),
-    peso_anterior_kg: num(j.peso_anterior_kg),
-    peso_nuevo_kg: num(j.peso_nuevo_kg),
-    precio_anterior_usd_kg: num(j.precio_anterior_usd_kg),
-    precio_nuevo_usd_kg: num(j.precio_nuevo_usd_kg),
-    costo_anterior_usd_kg: num(j.costo_anterior_usd_kg),
-    costo_nuevo_usd_kg: num(j.costo_nuevo_usd_kg),
     subtotal_anterior_usd: num(j.subtotal_anterior_usd),
     subtotal_nuevo_usd: num(j.subtotal_nuevo_usd),
     iva_anterior_usd: num(j.iva_anterior_usd),
@@ -175,6 +169,29 @@ function correccion(j: Json): CorreccionFactura {
     usuario_id: str(j.usuario_id),
     usuario_nombre: strONull(j.usuario_nombre),
     created_at: str(j.created_at),
+  }
+  if (j.tipo === 'iva') {
+    return {
+      ...comun,
+      tipo: 'iva',
+      factura_item_id: null,
+      iva_pct_anterior: num(j.iva_pct_anterior),
+      iva_pct_nuevo: num(j.iva_pct_nuevo),
+      creditos_anterior_usd: num(j.creditos_anterior_usd),
+      creditos_nuevo_usd: num(j.creditos_nuevo_usd),
+    }
+  }
+  return {
+    ...comun,
+    tipo: 'linea',
+    factura_item_id: str(j.factura_item_id),
+    producto_nombre: str(j.producto_nombre),
+    peso_anterior_kg: num(j.peso_anterior_kg),
+    peso_nuevo_kg: num(j.peso_nuevo_kg),
+    precio_anterior_usd_kg: num(j.precio_anterior_usd_kg),
+    precio_nuevo_usd_kg: num(j.precio_nuevo_usd_kg),
+    costo_anterior_usd_kg: num(j.costo_anterior_usd_kg),
+    costo_nuevo_usd_kg: num(j.costo_nuevo_usd_kg),
     movimientos: movimientos(j.movimientos),
   }
 }
@@ -247,5 +264,24 @@ export function mapearResultadoCorreccion(data: unknown): ResultadoCorreccion {
     estado: str(j.estado) as ResultadoCorreccion['estado'],
     contrato: ct ? { id: str(ct.id), numero: num(ct.numero), estado: str(ct.estado) as ContratoFactura['estado'] } : null,
     lotes: movimientos(j.lotes),
+  }
+}
+
+/** JSON de `cambiar_iva_factura` (18) → `ResultadoCambioIva`. */
+export function mapearResultadoCambioIva(data: unknown): ResultadoCambioIva {
+  const j = obj(data) ?? {}
+  const ct = obj(j.contrato)
+  return {
+    correccion_id: str(j.correccion_id),
+    iva_pct: num(j.iva_pct),
+    subtotal_usd: num(j.subtotal_usd),
+    iva_usd: num(j.iva_usd),
+    total_usd: num(j.total_usd),
+    pagado_usd: num(j.pagado_usd),
+    creditos_usd: num(j.creditos_usd),
+    saldo_usd: num(j.saldo_usd),
+    saldo_a_favor_usd: num(j.saldo_a_favor_usd),
+    estado: str(j.estado) as ResultadoCambioIva['estado'],
+    contrato: ct ? { id: str(ct.id), numero: num(ct.numero), estado: str(ct.estado) as ContratoFactura['estado'] } : null,
   }
 }

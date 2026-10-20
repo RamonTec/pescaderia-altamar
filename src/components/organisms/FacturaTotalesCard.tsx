@@ -2,11 +2,14 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { NivelSenalChip } from '@/components/atoms/SenalFacturaChip'
 import { FichaSeccion } from '@/components/molecules/FichaSeccion'
 import { textoConteoSenales } from '@/lib/facturas/senales'
+import { etiquetaIva, facturaConIva, formatIvaPct } from '@/lib/facturas/iva'
 import { formatBs, formatPct, formatTasa, formatUsd } from '@/lib/format'
 import type { DetalleFactura } from '@/types/domain'
 
@@ -14,6 +17,10 @@ const NUM = { fontVariantNumeric: 'tabular-nums' } as const
 
 export interface FacturaTotalesCardProps {
   detalle: DetalleFactura
+  /** `config_negocio.iva_pct` vigente: el que aplica «Aplicar IVA» (18). */
+  ivaPctConfig?: number
+  /** Abre `CambiarIvaFacturaDialog` (18); sin él no se muestra la acción. */
+  onCambiarIva?: () => void
 }
 
 interface Fila {
@@ -29,13 +36,15 @@ interface Fila {
  * Resumen de una factura (17, solo admin): subtotal, IVA, total, abonado,
  * notas de crédito y saldo (o saldo a favor del cliente, en verde), en USD y
  * en Bs a la tasa de la factura; margen neto y nivel de señales.
+ * 18-iva-opcional: «Sin IVA» si `iva_pct = 0` y acción secundaria «Quitar
+ * IVA» / «Aplicar IVA (16 %)», deshabilitada con tooltip si está anulada.
  */
-export function FacturaTotalesCard({ detalle }: FacturaTotalesCardProps) {
+export function FacturaTotalesCard({ detalle, ivaPctConfig, onCambiarIva }: FacturaTotalesCardProps) {
   const { factura, saldo, margen, senales } = detalle
   const tasa = factura.tasa_snapshot
   const filas: Fila[] = [
     { label: 'Subtotal', usd: factura.subtotal_usd },
-    { label: `IVA (${factura.iva_pct.toLocaleString('es-VE')} %)`, usd: factura.iva_usd },
+    { label: etiquetaIva(factura.iva_pct), usd: factura.iva_usd },
     { label: 'Total', usd: factura.total_usd, fuerte: true },
     { label: 'Abonado', usd: factura.pagado_usd },
   ]
@@ -54,8 +63,24 @@ export function FacturaTotalesCard({ detalle }: FacturaTotalesCardProps) {
 
   const conteo = textoConteoSenales(senales.conteo)
 
+  const anulada = factura.estado === 'anulada'
+  const conIva = facturaConIva(factura)
+  const etiquetaAccion = conIva
+    ? 'Quitar IVA'
+    : `Aplicar IVA${ivaPctConfig != null && ivaPctConfig > 0 ? ` (${formatIvaPct(ivaPctConfig)})` : ''}`
+  const accionIva = onCambiarIva ? (
+    <Tooltip title={anulada ? 'La factura está anulada: no se puede cambiar su IVA' : ''}>
+      {/* El span recibe el hover cuando el botón está deshabilitado. */}
+      <span>
+        <Button size="small" variant="text" onClick={onCambiarIva} disabled={anulada}>
+          {etiquetaAccion}
+        </Button>
+      </span>
+    </Tooltip>
+  ) : null
+
   return (
-    <FichaSeccion titulo="Resumen">
+    <FichaSeccion titulo="Resumen" accion={accionIva}>
       <Box
         component="dl"
         sx={{

@@ -11,9 +11,9 @@ import { createClient } from '@/lib/supabase/client'
  * Implementación Supabase del repositorio de pedidos.
  * La escritura (pedido + items) va por RPC (0014) en una sola transacción.
  */
-const SELECT_RESUMEN = '*, cliente:clientes(id, nombre, rif_ci, bloqueado, dias_credito)'
+const SELECT_RESUMEN = '*, cliente:clientes(id, nombre, rif_ci, bloqueado, dias_credito, aplica_iva)'
 
-const SELECT_INNER = '*, cliente:clientes!inner(id, nombre, rif_ci, bloqueado, dias_credito)'
+const SELECT_INNER = '*, cliente:clientes!inner(id, nombre, rif_ci, bloqueado, dias_credito, aplica_iva)'
 
 export function makePedidoRepository(db: SupabaseClient = createClient()): IPedidoRepository {
   return {

@@ -84,6 +84,8 @@ export async function crearPedidoAction(
         dias_credito: v.condicion === 'credito' ? v.dias_credito : 0,
         fecha: v.fecha,
         forzar_limite: forzarLimite,
+        // 18: interruptor de IVA de esta venta (precargado con el cliente).
+        aplica_iva: v.aplica_iva,
         tasa: entradaTasaDe(v),
         items: v.items.map((i) => ({
           producto_id: i.producto_id,
@@ -145,6 +147,7 @@ export async function entregarPedidoAction(
       fecha: v.fecha,
       forzar_limite: forzarLimite,
       pesos_reales: v.pesos_reales,
+      aplica_iva: v.aplica_iva,
       tasa: entradaTasaDe(v),
     })
     revalidatePath('/pedidos')

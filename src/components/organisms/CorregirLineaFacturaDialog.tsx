@@ -17,6 +17,7 @@ import {
   type CorregirLineaValues,
 } from '@/lib/correccionFacturaValidation'
 import { previsualizarCorreccion, repartoBajaPeso } from '@/lib/facturas/correccion'
+import { etiquetaIva } from '@/lib/facturas/iva'
 import { numeroFactura } from '@/lib/repositories/carteraRepository'
 import { numeroContrato } from '@/lib/contratos/textos'
 import { formatKg, formatUsd } from '@/lib/format'
@@ -286,7 +287,7 @@ export function CorregirLineaFacturaDialog({
               valor={`${formatUsd(vista.antes.subtotal_usd)} → ${formatUsd(vista.despues.subtotal_usd)}`}
             />
             <FilaPrevia
-              label={`IVA (${factura.iva_pct.toLocaleString('es-VE')} %)`}
+              label={etiquetaIva(factura.iva_pct)}
               valor={`${formatUsd(vista.antes.iva_usd)} → ${formatUsd(vista.despues.iva_usd)}`}
             />
             <FilaPrevia
@@ -361,7 +362,8 @@ export function CorregirLineaFacturaDialog({
   )
 }
 
-function FilaPrevia({
+/** Fila `dt`/`dd` de la vista previa de una corrección (17; también la usa el cambio de IVA, 18). */
+export function FilaPrevia({
   label,
   valor,
   color,

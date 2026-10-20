@@ -18,6 +18,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { PedidoItemsFieldArray, pedidoItemVacio } from '@/components/molecules/PedidoItemsFieldArray'
 import { DiasCreditoField } from '@/components/molecules/DiasCreditoField'
+import { IvaVentaSwitch } from '@/components/molecules/IvaVentaSwitch'
+import { TotalesVenta, totalesVenta } from '@/components/molecules/TotalesVenta'
 import { LotesLineaVenta } from '@/components/organisms/LotesLineaVenta'
 import {
   pedirConfirmacionTasaManual,
@@ -27,13 +29,12 @@ import {
 } from '@/components/organisms/TasaSelector'
 import { pedidoFormSchema, type PedidoFormInput, type PedidoFormValues } from '@/lib/pedidoValidation'
 import { fechaHoy, formatBs, formatUsd } from '@/lib/format'
+import { ivaPctVenta } from '@/lib/facturas/iva'
 import type { AdvertenciaLimiteCredito } from '@/lib/services/invoiceService'
 import type { Cliente, Producto } from '@/types/domain'
 import { crearPedidoAction } from '@/app/(protected)/pedidos/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
-
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
 
 export interface PedidoFormProps {
   open: boolean
@@ -44,6 +45,8 @@ export interface PedidoFormProps {
   configTasas: TasaSelectorConfig
   /** Días de crédito del negocio para clientes sin días propios (09). */
   diasCreditoDefault: number
+  /** `config_negocio.iva_pct` vigente: el % de las ventas con IVA (18). */
+  ivaPct: number
 }
 
 function vacio(): PedidoFormInput {
@@ -55,6 +58,8 @@ function vacio(): PedidoFormInput {
     condicion: 'contado',
     dias_credito: null,
     notas: '',
+    // 18: se precarga con el "Aplica IVA" del cliente al elegirlo.
+    aplica_iva: true,
     // 08-tasas Fase D: `TasaSelector` resuelve la referencial por fecha y
     // completa origen/fuente/valor; solo la venta directa la exige.
     tasa_origen: 'referencial',
@@ -70,6 +75,12 @@ function vacio(): PedidoFormInput {
  * - `entrega_inmediata = true`: venta directa (peso real → factura al guardar);
  *   la tasa se elige con `TasaSelector` (referencial por fecha o manual).
  *
+ * 18-iva-opcional: con entrega inmediata, `IvaVentaSwitch` (precargado con
+ * el "Aplica IVA" del cliente) decide el IVA de esa factura; los totales, la
+ * equivalencia en Bs y el aviso de crédito usan el total con o sin IVA. En el
+ * pedido agendado el IVA se decide al entregar: el total es estimado con lo
+ * habitual del cliente.
+ *
  * Si una venta a crédito excede el límite del cliente, el servidor devuelve la
  * advertencia estructurada y aquí se pide confirmación; al confirmar se reintenta
  * con `forzar_limite = true`.
@@ -81,6 +92,7 @@ export function PedidoForm({
   productos,
   configTasas,
   diasCreditoDefault,
+  ivaPct,
 }: PedidoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
@@ -95,9 +107,9 @@ export function PedidoForm({
   })
   const { control, register, handleSubmit, setError, setValue, formState } = methods
 
-  const [clienteId, entregaInmediata, condicion, fecha, items, diasCredito] = useWatch({
+  const [clienteId, entregaInmediata, condicion, fecha, items, diasCredito, aplicaIva] = useWatch({
     control,
-    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'fecha', 'items', 'dias_credito'],
+    name: ['cliente_id', 'entrega_inmediata', 'condicion', 'fecha', 'items', 'dias_credito', 'aplica_iva'],
   })
   const cliente = clientes.find((c) => c.id === clienteId) ?? null
   // 09: días habituales del cliente (o el default) para precargar la venta a crédito.
@@ -117,10 +129,11 @@ export function PedidoForm({
   }, [])
   const hayFaltante = entregaInmediata && Object.values(sinStock).some(Boolean)
 
-  const totalUsd = (items ?? []).reduce(
-    (s, i) => s + (i.peso_kg != null && i.precio_usd_kg != null ? i.peso_kg * i.precio_usd_kg : 0),
-    0
-  )
+  // 18: IVA efectivo de la factura (agendado: lo habitual del cliente, estimado).
+  const aplicaIvaEfectivo = entregaInmediata ? aplicaIva !== false : (cliente?.aplica_iva ?? true)
+  const ivaPctEfectivo = ivaPctVenta(aplicaIvaEfectivo, ivaPct)
+  const totales = totalesVenta(items, ivaPctEfectivo)
+  const totalUsd = totales.total_usd
 
   const pedirCierre = async () => {
     if (formState.isDirty) {
@@ -227,6 +240,8 @@ export function PedidoForm({
                         if (next?.bloqueado) setValue('condicion', 'contado')
                         // Precarga los días del nuevo cliente (editables).
                         setValue('dias_credito', next?.dias_credito ?? diasCreditoDefault)
+                        // 18: y su "Aplica IVA" (editable solo para esta venta).
+                        setValue('aplica_iva', next?.aplica_iva ?? true)
                       }}
                       onBlur={field.onBlur}
                       getOptionLabel={(c) => (c.rif_ci ? `${c.nombre} · ${c.rif_ci}` : c.nombre)}
@@ -357,6 +372,18 @@ export function PedidoForm({
               />
             ) : null}
 
+            {entregaInmediata ? (
+              <IvaVentaSwitch
+                value={aplicaIva !== false}
+                onChange={(v) => setValue('aplica_iva', v, { shouldDirty: true })}
+                ivaPct={ivaPct}
+                habitualCliente={cliente ? cliente.aplica_iva : null}
+                disabled={isPending}
+                error={!!formState.errors.aplica_iva}
+                helperText={formState.errors.aplica_iva?.message}
+              />
+            ) : null}
+
             {!entregaInmediata ? (
               <TextField
                 label="Notas"
@@ -425,14 +452,11 @@ export function PedidoForm({
                 justifyContent: 'flex-end',
               }}
             >
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Total USD
-                </Typography>
-                <Typography variant="h6" sx={MONO}>
-                  {formatUsd(totalUsd)}
-                </Typography>
-              </Box>
+              <TotalesVenta
+                totales={totales}
+                ivaPct={ivaPctEfectivo}
+                etiquetaTotal={entregaInmediata ? 'Total USD' : 'Total estimado USD'}
+              />
             </Box>
           </FormSection>
 

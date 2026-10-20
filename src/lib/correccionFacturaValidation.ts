@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import {
+  MSG_APLICA_IVA_REQUERIDO,
+  MSG_MOTIVO_CAMBIO_IVA,
   MSG_MOTIVO_CORRECCION,
   MSG_MOTIVO_MAX_500,
   MSG_PESO_3_DECIMALES,
@@ -55,3 +57,18 @@ export const corregirLineaSchema = z.object({
 
 export type CorregirLineaInput = z.input<typeof corregirLineaSchema>
 export type CorregirLineaValues = z.output<typeof corregirLineaSchema>
+
+/**
+ * Cambio de IVA de una factura emitida (18): activar (al % vigente) o
+ * quitar, con motivo obligatorio. La RPC repite las validaciones.
+ */
+export const cambiarIvaSchema = z.object({
+  factura_id: z.string().uuid('Factura inválida'),
+  aplica_iva: z.boolean({ message: MSG_APLICA_IVA_REQUERIDO }),
+  motivo: z.string().trim().min(5, MSG_MOTIVO_CAMBIO_IVA).max(500, MSG_MOTIVO_MAX_500),
+  /** Confirmación del aviso de límite de crédito al activar (05 §4.1). */
+  forzar_limite: z.boolean().optional(),
+})
+
+export type CambiarIvaInput = z.input<typeof cambiarIvaSchema>
+export type CambiarIvaValues = z.output<typeof cambiarIvaSchema>

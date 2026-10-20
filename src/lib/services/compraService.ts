@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { entradaTasaDe } from '@/lib/tasaValidation'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { resolverTasaOperacion, type ResultadoTasaOperacion } from './tasaService'
+import { costoUsdKg, redondea6, subtotalUsd } from '@/lib/compras/costo'
 import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditService'
 
 /**
@@ -18,7 +19,8 @@ import { gananciaCambiariaBs, saldoPendiente, usdEquivalentes } from './creditSe
  * Registrar una compra:
  *   1. Proveedor activo; si es a crédito, no bloqueado (03-proveedores).
  *   2. Items de productos crudos activos.
- *   3. Costo por kg convertido a USD con la tasa congelada (`tasa_snapshot`).
+ *   3. Costo por kg convertido a USD con la tasa congelada (`tasa_snapshot`);
+ *      se guarda también el costo tecleado (`costo_kg_pactado`, 19).
  *   4. Compra + items + un lote y un movimiento `compra` por item, en una
  *      transacción (RPC `registrar_compra`, 07-lotes). Devuelve los códigos
  *      de lote para rotular los recipientes.
@@ -44,16 +46,9 @@ export class CompraError extends Error {
 /** Tolerancia al convertir un abono en Bs a USD (redondeo de la tasa). */
 const TOLERANCIA_PAGO_USD = 0.01
 
-const redondea6 = (n: number) => Math.round(n * 1e6) / 1e6
-
-/** Costo/kg en USD a partir del costo en la moneda de la compra. */
-export function costoUsdKg(costoKg: number, moneda: 'usd' | 'bs', tasa: number): number {
-  return redondea6(usdEquivalentes(costoKg, moneda, tasa))
-}
-
-export function subtotalUsd(items: Pick<CompraItemNuevo, 'peso_kg' | 'costo_usd_kg'>[]): number {
-  return redondea6(items.reduce((s, i) => s + i.peso_kg * i.costo_usd_kg, 0))
-}
+// 19: las funciones de costo viven en `lib/compras/costo` (puras, también
+// las usa la vista previa de la edición); se reexportan por compatibilidad.
+export { costoUsdKg, subtotalUsd }
 
 /** Resuelve la tasa de la operación en el servidor (sin `sin_referencial`). */
 type TasaResuelta = {
@@ -117,6 +112,8 @@ export async function crearCompra(input: CompraFormValues): Promise<{
     producto_id: i.producto_id,
     peso_kg: Math.round(i.peso_kg * 1000) / 1000,
     costo_usd_kg: costoUsdKg(i.costo_kg, input.moneda, tasa.tasa_snapshot),
+    // 19: el costo tecleado en la moneda de la compra (base para editar la tasa).
+    costo_kg_pactado: redondea6(i.costo_kg),
   }))
   const subtotal = subtotalUsd(items)
   const contado = input.condicion === 'contado'

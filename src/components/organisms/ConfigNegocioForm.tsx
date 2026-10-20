@@ -104,11 +104,11 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
         <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: 'grid', gap: 2.5 }}>
           <FormSection
             titulo="Configuración del negocio"
-            ayuda="IVA por defecto, fuente de tasa preferida, umbrales, vencimiento de las ventas a crédito y datos de los recordatorios de cobro."
+            ayuda="IVA de las ventas con IVA, fuente de tasa preferida, umbrales, vencimiento de las ventas a crédito y datos de los recordatorios de cobro."
             primera
           >
           <NumberField
-            label="IVA por defecto (%) *"
+            label="IVA (%) *"
             fullWidth
             size="small"
             decimals={2}
@@ -116,7 +116,10 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             value={ivaPct}
             onChange={(v) => methods.setValue('iva_pct', v ?? 0, { shouldDirty: true })}
             error={!!formState.errors.iva_pct}
-            helperText={formState.errors.iva_pct?.message}
+            helperText={
+              formState.errors.iva_pct?.message ??
+              'Se aplica a las ventas con IVA. Las ventas sin IVA van al 0 %.'
+            }
           />
 
           <TextField

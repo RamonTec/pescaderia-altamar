@@ -41,6 +41,7 @@ function toFormValues(cliente: Cliente | null): ClienteFormValues {
       notas: '',
       limite_credito_usd: null,
       dias_credito: null,
+      aplica_iva: true,
       representantes: [],
     }
   }
@@ -54,6 +55,7 @@ function toFormValues(cliente: Cliente | null): ClienteFormValues {
     notas: cliente.notas ?? '',
     limite_credito_usd: cliente.limite_credito_usd,
     dias_credito: cliente.dias_credito ?? null,
+    aplica_iva: cliente.aplica_iva ?? true,
     representantes: [],
   }
 }

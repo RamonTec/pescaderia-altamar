@@ -18,8 +18,14 @@ import {
   senalesLinea,
   textoConteoSenales,
 } from '../src/lib/facturas/senales'
-import { previsualizarCorreccion, repartoBajaPeso, type FacturaParaCorreccion } from '../src/lib/facturas/correccion'
-import { corregirLineaSchema } from '../src/lib/correccionFacturaValidation'
+import {
+  previsualizarCambioIva,
+  previsualizarCorreccion,
+  repartoBajaPeso,
+  type FacturaParaCorreccion,
+} from '../src/lib/facturas/correccion'
+import { etiquetaIva, facturaConIva, ivaPctVenta } from '../src/lib/facturas/iva'
+import { cambiarIvaSchema, corregirLineaSchema } from '../src/lib/correccionFacturaValidation'
 import { mapearTrazabilidad } from '../src/lib/repositories/trazabilidadFacturaMapper'
 import type { EslabonLoteVendido, LineaTrazabilidad } from '../src/types/domain'
 
@@ -334,6 +340,137 @@ function linea(
     }
   }
   verdadero('paridad subtotalItems / ivaSobre con SQL en 200 casos', diferencias === 0, `${diferencias} diferencias: ${ejemplos.join(' | ')}`)
+}
+
+// ---------- IVA opcional (18) ----------
+console.log('\nIVA opcional (18):')
+{
+  igual('ivaPctVenta sí', ivaPctVenta(true, 16), 16)
+  igual('ivaPctVenta no', ivaPctVenta(false, 16), 0)
+  igual('ivaPctVenta sí con config 0', ivaPctVenta(true, 0), 0)
+  igual('facturaConIva 16', facturaConIva({ iva_pct: 16 }), true)
+  igual('facturaConIva 0', facturaConIva({ iva_pct: 0 }), false)
+  igual('etiquetaIva 16', etiquetaIva(16), 'IVA (16 %)')
+  igual('etiquetaIva 12,5', etiquetaIva(12.5), 'IVA (12,5 %)')
+  igual('etiquetaIva 0', etiquetaIva(0), 'Sin IVA')
+  igual('venta sin IVA 2 × 50', totalesDe([{ peso_kg: 2, precio_usd_kg: 50 }], ivaPctVenta(false, 16)), {
+    subtotal_usd: 100,
+    iva_usd: 0,
+    total_usd: 100,
+  })
+
+  const f116 = { subtotal_usd: 100, iva_usd: 16, total_usd: 116, iva_pct: 16, pagado_usd: 0 }
+  const quitar = previsualizarCambioIva(f116, [], false, 16)
+  igual('quitar IVA de 116 → total 100', [quitar.bloqueo, quitar.despues.total_usd, quitar.despues.iva_usd, quitar.iva_pct_despues], [null, 100, 0, 0])
+  igual('quitar IVA: delta −16', quitar.delta_total_usd, -16)
+
+  const pagada = previsualizarCambioIva({ ...f116, pagado_usd: 116 }, [], false, 16)
+  igual('pagada con 116 → saldo a favor 16', [pagada.saldo_despues_usd, pagada.saldo_a_favor_despues_usd, pagada.estado_despues], [0, 16, 'pagada'])
+
+  const contado = previsualizarCambioIva(
+    { subtotal_usd: 100, iva_usd: 0, total_usd: 100, iva_pct: 0, pagado_usd: 100 },
+    [],
+    true,
+    16
+  )
+  igual('activar en contado pagada → saldo 16, abierta', [contado.saldo_despues_usd, contado.estado_despues, contado.despues.total_usd], [16, 'abierta', 116])
+
+  const conNota = previsualizarCambioIva(f116, [{ subtotal_usd: 25, total_usd: 29 }], false, 16)
+  igual('nota 25 + 4: créditos 29 → 25', [conNota.creditos_antes_usd, conNota.creditos_despues_usd], [29, 25])
+  igual('nota: saldo 116 − 29 = 87 → 100 − 25 = 75', [conNota.saldo_antes_usd, conNota.saldo_despues_usd], [87, 75])
+
+  const caso15 = previsualizarCambioIva({ subtotal_usd: 80, iva_usd: 0, total_usd: 80, iva_pct: 0, pagado_usd: 116 }, [], true, 15)
+  igual('caso del cliente: aplicar al 15 % → 92, a favor 24', [caso15.despues.total_usd, caso15.saldo_a_favor_despues_usd, caso15.iva_pct_despues], [92, 24, 15])
+
+  const sinCambiosA = previsualizarCambioIva(f116, [], true, 15)
+  igual('sin_cambios: aplicar con IVA (no re-tasa)', [sinCambiosA.bloqueo, sinCambiosA.despues.total_usd, sinCambiosA.iva_pct_despues], ['sin_cambios', 116, 16])
+  const sinCambiosQ = previsualizarCambioIva({ ...f116, iva_usd: 0, total_usd: 100, iva_pct: 0 }, [], false, 16)
+  igual('sin_cambios: quitar sin IVA', sinCambiosQ.bloqueo, 'sin_cambios')
+  const cero = previsualizarCambioIva({ ...f116, iva_usd: 0, total_usd: 100, iva_pct: 0 }, [], true, 0)
+  igual('iva_config_cero', [cero.bloqueo, cero.despues.total_usd], ['iva_config_cero', 100])
+
+  const motivoCorto = cambiarIvaSchema.safeParse({ factura_id: '00000000-0000-4000-8000-000000000001', aplica_iva: false, motivo: ' ab ' })
+  igual('cambiarIvaSchema: motivo corto', motivoCorto.success ? null : motivoCorto.error.issues[0].path, ['motivo'])
+  const motivoOk = cambiarIvaSchema.safeParse({ factura_id: '00000000-0000-4000-8000-000000000001', aplica_iva: true, motivo: '  exento  ' })
+  igual('cambiarIvaSchema: trim', motivoOk.success ? motivoOk.data.motivo : null, 'exento')
+
+  // Mapper: correcciones por tipo.
+  const traza = mapearTrazabilidad({
+    factura: { id: 'f', numero: 1, iva_pct: 0, cliente: {} },
+    correcciones: [
+      { id: 'c2', tipo: 'iva', factura_item_id: null, producto_nombre: null, iva_pct_anterior: '16.00', iva_pct_nuevo: '0.00', creditos_anterior_usd: '29', creditos_nuevo_usd: '25', total_anterior_usd: 116, total_nuevo_usd: 100, movimientos: [] },
+      { id: 'c1', tipo: 'linea', factura_item_id: 'fi', producto_nombre: 'Pargo', peso_anterior_kg: 2, peso_nuevo_kg: 2, precio_anterior_usd_kg: 50, precio_nuevo_usd_kg: 45, movimientos: [] },
+      { id: 'c0', factura_item_id: 'fi', producto_nombre: 'Pargo', peso_anterior_kg: 2, peso_nuevo_kg: 1, movimientos: [] },
+    ],
+  })
+  const [cIva, cLinea, cLegada] = traza?.correcciones ?? []
+  igual(
+    'mapper: fila iva',
+    cIva?.tipo === 'iva' ? [cIva.factura_item_id, cIva.iva_pct_anterior, cIva.iva_pct_nuevo, cIva.creditos_anterior_usd, cIva.creditos_nuevo_usd] : null,
+    [null, 16, 0, 29, 25]
+  )
+  igual('mapper: fila linea', cLinea?.tipo === 'linea' ? [cLinea.producto_nombre, cLinea.precio_nuevo_usd_kg] : null, ['Pargo', 45])
+  igual('mapper: fila sin tipo = linea', cLegada?.tipo, 'linea')
+
+  // Paridad con la fórmula SQL de cambiar_iva_factura (decimal exacto, mitad lejos de cero).
+  const redondeaDiv = (n: bigint, d: bigint) => (n >= BigInt(0) ? (n + d / BigInt(2)) / d : -((-n + d / BigInt(2)) / d))
+  // subtotal en millonésimas, pct en centésimas → iva en millonésimas.
+  const ivaSql = (sub: bigint, pctCent: bigint) => redondeaDiv(sub * pctCent, BigInt(10000))
+  let semilla = 18
+  const azar = () => {
+    semilla = (semilla * 1103515245 + 12345) % 2147483648
+    return semilla / 2147483648
+  }
+  let diferencias = 0
+  const ejemplos: string[] = []
+  for (let k = 0; k < 200; k++) {
+    const seis = k % 4 === 0
+    const subM = BigInt(seis ? Math.floor(azar() * 5e9) : Math.floor(azar() * 500000) * 10000)
+    const pctCent = BigInt([1600, 800, 1250, 1500][Math.floor(azar() * 4)])
+    const aplicar = azar() < 0.5
+    const pagadoM = BigInt(Math.floor(azar() * 6e9))
+    const notas = Array.from({ length: Math.floor(azar() * 3) }, () => BigInt(Math.floor(azar() * 1e9)))
+    const pctAntes = aplicar ? BigInt(0) : pctCent
+    const pctDespues = aplicar ? pctCent : BigInt(0)
+    const ivaAntes = ivaSql(subM, pctAntes)
+    const ivaDespues = ivaSql(subM, pctDespues)
+    const notaTotal = (n: bigint, p: bigint) => n + ivaSql(n, p)
+    const credAntes = notas.reduce((s, n) => s + notaTotal(n, pctAntes), BigInt(0))
+    const credDespues = notas.reduce((s, n) => s + notaTotal(n, pctDespues), BigInt(0))
+    const totalDespues = subM + ivaDespues
+    const saldo = totalDespues - pagadoM - credDespues
+    const esperado = {
+      iva: Number(ivaDespues),
+      total: Number(totalDespues),
+      cred: Number(credDespues),
+      credAntes: Number(credAntes),
+      saldo: Number(saldo > BigInt(0) ? saldo : BigInt(0)),
+      aFavor: Number(saldo < BigInt(0) ? -saldo : BigInt(0)),
+      estado: totalDespues - pagadoM <= BigInt(1) ? 'pagada' : 'abierta',
+    }
+    const m = (v: bigint) => Number(v) / 1e6
+    const r = previsualizarCambioIva(
+      { subtotal_usd: m(subM), iva_usd: m(ivaAntes), total_usd: m(subM + ivaAntes), iva_pct: Number(pctAntes) / 100, pagado_usd: m(pagadoM) },
+      notas.map((n) => ({ subtotal_usd: m(n), total_usd: m(notaTotal(n, pctAntes)) })),
+      aplicar,
+      Number(pctCent) / 100
+    )
+    const u = (v: number) => Math.round(v * 1e6)
+    const obtenido = {
+      iva: u(r.despues.iva_usd),
+      total: u(r.despues.total_usd),
+      cred: u(r.creditos_despues_usd),
+      credAntes: u(r.creditos_antes_usd),
+      saldo: u(r.saldo_despues_usd),
+      aFavor: u(r.saldo_a_favor_despues_usd),
+      estado: r.estado_despues,
+    }
+    if (r.bloqueo !== null || JSON.stringify(obtenido) !== JSON.stringify(esperado)) {
+      diferencias++
+      if (ejemplos.length < 3) ejemplos.push(JSON.stringify({ subM: String(subM), pctCent: String(pctCent), aplicar, esperado, obtenido }))
+    }
+  }
+  verdadero('paridad previsualizarCambioIva con SQL en 200 casos', diferencias === 0, `${diferencias} diferencias: ${ejemplos.join(' | ')}`)
 }
 
 // ---------- Opcional: señales de JSON reales de `trazabilidad_factura` ----------

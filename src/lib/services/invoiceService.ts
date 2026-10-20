@@ -12,15 +12,21 @@ import { sumaAsignacion, TOLERANCIA_KG } from '@/lib/loteValidation'
 import { resolverTasaOperacion } from './tasaService'
 // 17: los totales viven en `lib/facturas/totales.ts` (puros, usables en la UI).
 import { ivaSobre, redondea6, subtotalItems } from '@/lib/facturas/totales'
+import { ivaPctVenta } from '@/lib/facturas/iva'
 import { getSaldoPendiente } from './clienteBalanceService'
 
 /**
  * InvoiceService (SRP): emisión de facturas internas con IVA desglosado y
  * snapshot de tasa y costo (/SPEC.md §4.4 y §4.6).
  *
+ * 18-iva-opcional: el IVA es sí/no por factura (`aplica_iva`, precargado con
+ * `clientes.aplica_iva`): sí = `config_negocio.iva_pct`, no = 0 %. El
+ * trigger `facturas_validar_iva` rechaza cualquier otro % o importes
+ * incoherentes (`iva_invalido`).
+ *
  * Responsabilidades:
  *   - Validar cliente activo y, para crédito, no bloqueado (bloqueo duro).
- *   - Obtener `iva_pct` de `config_negocio`.
+ *   - Resolver `iva_pct` (`ivaPctVenta`: config o 0 según `aplica_iva`).
  *   - Calcular subtotal/IVA/total.
  *   - Verificar el límite de crédito del cliente contra su saldo pendiente.
  *   - Delegar la escritura atómica (factura + items + asignación por lote +
@@ -97,6 +103,18 @@ export function erroresDeLote(e: unknown): InvoiceError | null {
   return new InvoiceError(pg.message, m ? `items.${m[1]}.${campo}` : 'items')
 }
 
+/**
+ * `iva_invalido` del trigger `facturas_validar_iva` (18): el % de IVA cambió
+ * en la configuración mientras se emitía, o los importes no cuadran.
+ */
+function errorDeIva(e: unknown): InvoiceError | null {
+  const pg = (e ?? {}) as { hint?: string }
+  if (pg.hint !== 'iva_invalido') return null
+  return new InvoiceError(
+    'El IVA de la factura no coincide con la configuración vigente. Recarga la página e intenta de nuevo.'
+  )
+}
+
 export interface CrearFacturaInput {
   cliente_id: string
   pedido_id?: string
@@ -105,6 +123,11 @@ export interface CrearFacturaInput {
   fecha?: string
   /** Confirmación explícita de la UI cuando excede el límite de crédito. */
   forzar_limite?: boolean
+  /**
+   * IVA de esta factura (18). Sin valor, el `aplica_iva` del cliente.
+   * Cambiarlo afecta solo esta factura, no al cliente.
+   */
+  aplica_iva?: boolean
   pesos_reales?: { pedido_item_id: string; peso_kg: number }[]
   /**
    * Días de crédito de esta factura (09-cuentas-por-cobrar). Sin valor, los
@@ -201,7 +224,7 @@ export async function crearFactura(
     throw new InvoiceError('Agrega al menos un producto', 'items')
   }
 
-  const ivaPct = Number(config?.iva_pct ?? 16)
+  const ivaPct = ivaPctVenta(input.aplica_iva ?? cliente.aplica_iva, Number(config?.iva_pct ?? 16))
 
   const productosMap = new Map(productos.map((p) => [p.id, p]))
   for (let index = 0; index < input.items.length; index++) {
@@ -279,8 +302,8 @@ export async function crearFactura(
     tasa_referencial: tasaOperacion.tasa_referencial,
   }
 
-  // Soft-warning de límite de crédito: si la venta es a crédito y excede el
-  // límite, se lanza `LimiteCreditoExcedido` ANTES de escribir, para que la UI
+  // Soft-warning de límite de crédito (con el total con o sin IVA según el
+  // interruptor): si la venta es a crédito y excede el límite, se lanza `LimiteCreditoExcedido` ANTES de escribir, para que la UI
   // confirme y reintente con `forzar_limite = true`.
   if (input.condicion === 'credito' && !input.forzar_limite) {
     const advertencia = await verificarLimiteCredito(cliente, total, client)
@@ -296,7 +319,7 @@ export async function crearFactura(
       input.pesos_reales
     )
   } catch (e) {
-    throw erroresDeLote(e) ?? e
+    throw erroresDeLote(e) ?? errorDeIva(e) ?? e
   }
 
   return { factura_id: facturaId, advertencia: null, aviso: resultado.aviso }
