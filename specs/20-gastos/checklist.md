@@ -11,7 +11,7 @@
 - [ ] `/SPEC.md` (§5, §7, §9) con nota del 2026-10-22; `specs/README.md` con orden y cambio de alcance; tarea agregada en `15-dashboard/tasks.md` y en `08-tasas/tasks.md` (P5 aprobada). — Fase E, otra rama (las tareas agregadas en 15 y 08 ya se anotaron al planificar).
 
 ## Datos y seguridad (migraciones + RLS)
-- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` aplicada en Supabase por el usuario el 2026-10-22. Fase D: `20261022000300_dashboard_gastos.sql` escrita y probada, pendiente de aplicar en Supabase por el usuario.
+- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` aplicada. Fase D: `20261022000300_dashboard_gastos.sql` aplicada en Supabase por el usuario el 2026-10-22.
 - [x] `categorias_gasto`, `empleados`, `gastos` y `gastos_recurrentes` en `snake_case` y español, con las columnas, checks e índices de `spec.md`; dinero y tasas `numeric(14,6)`. — Fases A, B, C y D.
 - [ ] RLS en las cuatro: `select`/`insert`/`update` solo `es_admin()`, sin `delete`, `revoke` de `anon` y de `delete`/`truncate` de `authenticated`. Operador: 0 filas y escrituras fallan. — Fase A y B probadas. Fase C: `gastos_recurrentes` con RLS solo admin y sin delete en la migración C.
 - [x] Auditoría: `created_by`/`created_at` inmutables, `updated_by`/`updated_at` por `fija_auditoria()`; `confirmado_*` y `anulado_*` los fija `gastos_guard`; `tasa_registrada_por` por `fija_tasa_registrada_por()`. — Postgres local: cambiar `created_by` no tiene efecto (se restaura en silencio), `updated_by` se fija al editar. Fase B: `empleados` usa `fija_auditoria()`. Fase C: `gastos_recurrentes` usa `fija_auditoria()`.
@@ -59,7 +59,7 @@
 
 ## Pendientes / deuda técnica
 - _(anotar aquí con fecha lo que se difiera, sin borrar ítems)_
-- **2026-10-22 — Migración de la Fase D sin aplicar en Supabase**: `20261022000300_dashboard_gastos.sql` está escrita y validada en código. **Aplicarla antes de desplegar este código**: hasta entonces el dashboard para admin mostrará error en el bloque de gastos y pendientes si las RPCs no existen.
+- **2026-10-22 — Resuelto el mismo día**: el usuario aplicó la migración D en Supabase y realizó las pruebas en navegador. Nota original — **Migración de la Fase D sin aplicar en Supabase**: `20261022000300_dashboard_gastos.sql` está escrita y validada en código.
 - **2026-10-22 — Notas de la Fase D**:
   - `dashboard_gastos` y `dashboard_gastos_pendientes` creadas con `dashboard_exigir_admin()` (42501 para operador).
   - Función pura `utilidadNeta(margenBruto, gastos, ventas)` en `src/lib/dashboard/utilidad.ts` con 40 casos pasando en `scripts/probar-dashboard.ts`.
