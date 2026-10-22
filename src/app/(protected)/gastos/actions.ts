@@ -6,6 +6,7 @@ import { getSession, requireAdmin } from '@/lib/services/authService'
 import {
   GastoError,
   anularGasto,
+  confirmarGasto,
   descartarGasto,
   editarGasto,
   getGastoDetalle,
@@ -19,6 +20,13 @@ import {
   cambiarActivoCategoria,
   guardarCategoria,
 } from '@/lib/services/categoriaGastoService'
+import {
+  GastoRecurrenteError,
+  cambiarEstadoRecurrente,
+  crearRecurrente,
+  editarRecurrente,
+  generarPendientes,
+} from '@/lib/services/gastoRecurrenteService'
 import { TasaError } from '@/lib/services/tasaService'
 import {
   anularGastoSchema,
@@ -28,6 +36,7 @@ import {
   pagoNominaSchema,
   solapadosNominaSchema,
 } from '@/lib/gastoValidation'
+import { gastoRecurrenteSchema } from '@/lib/gastoRecurrenteValidation'
 import { activarCategoriaGastoSchema, categoriaGastoSchema } from '@/lib/categoriaGastoValidation'
 import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError, type ActionState } from '@/lib/actionState'
@@ -50,7 +59,12 @@ function fieldErrorsDeZod(error: z.ZodError): Record<string, string> {
 }
 
 function errorDeDominio(e: unknown): ActionState {
-  if (e instanceof GastoError || e instanceof CategoriaGastoError || e instanceof TasaError) {
+  if (
+    e instanceof GastoError ||
+    e instanceof CategoriaGastoError ||
+    e instanceof TasaError ||
+    e instanceof GastoRecurrenteError
+  ) {
     return {
       error: e.message,
       success: null,
@@ -228,3 +242,73 @@ export async function cambiarActivoCategoriaGastoAction(input: unknown): Promise
     return errorDeDominio(e)
   }
 }
+
+export async function confirmarGastoAction(id: string, input: unknown): Promise<ActionState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  const safe = gastoFormSchema.safeParse(input)
+  if (!safe.success) return { error: INVALIDO, success: null, fieldErrors: fieldErrorsDeZod(safe.error) }
+  try {
+    const { aviso } = await confirmarGasto(id, safe.data)
+    revalidar()
+    return {
+      error: null,
+      success: 'Gasto confirmado',
+      info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+    }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+
+export async function generarPendientesAction(): Promise<ActionState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  try {
+    const res = await generarPendientes()
+    revalidar()
+    return {
+      error: null,
+      success:
+        res.generados > 0
+          ? `Se generaron ${res.generados} gasto${res.generados === 1 ? '' : 's'} pendiente${res.generados === 1 ? '' : 's'}`
+          : 'Todos los gastos recurrentes están al día',
+    }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+
+export async function guardarRecurrenteAction(input: unknown): Promise<ActionState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  const raw = input as { id?: string }
+  const safe = gastoRecurrenteSchema.safeParse(input)
+  if (!safe.success) return { error: INVALIDO, success: null, fieldErrors: fieldErrorsDeZod(safe.error) }
+  try {
+    if (raw.id) {
+      await editarRecurrente(raw.id, safe.data)
+      revalidar()
+      return { error: null, success: 'Plantilla recurrente actualizada' }
+    } else {
+      await crearRecurrente(safe.data)
+      revalidar()
+      return { error: null, success: 'Plantilla recurrente creada' }
+    }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+
+export async function cambiarActivoRecurrenteAction(id: string, activo: boolean): Promise<ActionState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  try {
+    const r = await cambiarEstadoRecurrente(id, activo)
+    revalidar()
+    return { error: null, success: `Plantilla ${r.nombre} ${activo ? 'activada' : 'desactivada'}` }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+

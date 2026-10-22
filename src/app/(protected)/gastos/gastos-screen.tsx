@@ -2,15 +2,17 @@
 
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
-import Button from '@mui/material/Button'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { KpiCard } from '@/components/molecules/KpiCard'
 import { RangoFechasSelector } from '@/components/molecules/RangoFechasSelector'
@@ -21,21 +23,34 @@ import { AnularGastoDialog } from '@/components/organisms/AnularGastoDialog'
 import { GastoDetalleDialog } from '@/components/organisms/GastoDetalleDialog'
 import { CategoriasGastoPanel } from '@/components/organisms/CategoriasGastoPanel'
 import { EmpleadosTable } from '@/components/organisms/EmpleadosTable'
+import { GastosRecurrentesTable } from '@/components/organisms/GastosRecurrentesTable'
+import { GastoRecurrenteForm } from '@/components/organisms/GastoRecurrenteForm'
 import type { TasaSelectorConfig } from '@/components/organisms/TasaSelector'
 import { filtroEstadoDesdeParam, type FiltroEstadoGasto } from '@/lib/gastoValidation'
 import { formatEntero, formatUsd } from '@/lib/format'
+import { useNotify } from '@/lib/useNotify'
+import { cambiarActivoRecurrenteAction, generarPendientesAction } from './actions'
 import { useEmpleadoAcciones } from './empleados/useEmpleadoAcciones'
-import type { CategoriaGasto, Empleado, EstadoGasto, Gasto, RangoFechas, ResumenGastos } from '@/types/domain'
+import type {
+  CategoriaGasto,
+  Empleado,
+  EstadoGasto,
+  Gasto,
+  GastoRecurrente,
+  RangoFechas,
+  ResumenGastos,
+} from '@/types/domain'
 
-type TabGastos = 'gastos' | 'empleados' | 'categorias'
+type TabGastos = 'gastos' | 'recurrentes' | 'empleados' | 'categorias'
 
 function tabDesdeParam(v: string | null): TabGastos {
-  return v === 'categorias' || v === 'empleados' ? v : 'gastos'
+  return v === 'recurrentes' || v === 'categorias' || v === 'empleados' ? v : 'gastos'
 }
 
-/** Chips de estado (Fase A). "Pendientes" llega con los recurrentes (Fase C). */
+/** Chips de estado (Fase A y C). */
 const FILTROS_ESTADO: { value: FiltroEstadoGasto; label: string }[] = [
   { value: 'confirmado', label: 'Confirmados' },
+  { value: 'pendiente', label: 'Pendientes' },
   { value: 'cerrados', label: 'Anulados / descartados' },
   { value: 'todos', label: 'Todos' },
 ]
@@ -63,6 +78,8 @@ export interface GastosScreenProps {
   empleados: Empleado[]
   /** USD pagado a cada empleado en el mes en curso (confirmados). */
   pagadoMes: Record<string, number>
+  /** Plantillas de gastos recurrentes (Fase C). */
+  recurrentes: GastoRecurrente[]
 }
 
 /**
@@ -82,17 +99,26 @@ export function GastosScreen({
   configTasas,
   empleados,
   pagadoMes,
+  recurrentes,
 }: GastosScreenProps) {
+  const notify = useNotify()
   const searchParams = useSearchParams()
   const tab = tabDesdeParam(searchParams.get('tab'))
   const filtroEstado = filtroEstadoDesdeParam(searchParams.get('estado') ?? undefined)
   const categoriaParam = searchParams.get('categoria')
   const categoriaFiltro = categorias.find((c) => c.id === categoriaParam) ?? null
 
+  const [, startTransition] = React.useTransition()
   const [dialogo, setDialogo] = React.useState<DialogoGasto>(null)
   const [anular, setAnular] = React.useState<Gasto | null>(null)
+  const [descartar, setDescartar] = React.useState<Gasto | null>(null)
   const [detalleId, setDetalleId] = React.useState<string | null>(null)
+  const [recurrenteDialogo, setRecurrenteDialogo] = React.useState<GastoRecurrente | null | 'nuevo'>(null)
+  const [recurrentePendienteId, setRecurrentePendienteId] = React.useState<string | null>(null)
+  const [generando, setGenerando] = React.useState(false)
   const empleadoAcciones = useEmpleadoAcciones()
+
+  const pendientes = React.useMemo(() => gastos.filter((g) => g.estado === 'pendiente'), [gastos])
 
   const filtrados = React.useMemo(() => {
     const estados = ESTADOS_DE_FILTRO[filtroEstado]
@@ -120,6 +146,26 @@ export function GastosScreen({
     setDialogo({ modo: g.empleado_id ? 'nomina' : 'registrar_de_nuevo', gasto: g })
   const cambiarTab = (_: React.SyntheticEvent, next: TabGastos) =>
     writeUrlParams({ tab: next === 'gastos' ? null : next })
+
+  const toggleActivoRecurrente = (r: GastoRecurrente) => {
+    setRecurrentePendienteId(r.id)
+    startTransition(async () => {
+      const res = await cambiarActivoRecurrenteAction(r.id, !r.activo)
+      setRecurrentePendienteId(null)
+      if (res.error) notify.error(res.error)
+      else notify.success(res.success ?? 'Estado actualizado')
+    })
+  }
+
+  const generarPendientesClick = () => {
+    setGenerando(true)
+    startTransition(async () => {
+      const res = await generarPendientesAction()
+      setGenerando(false)
+      if (res.error) notify.error(res.error)
+      else notify.success(res.success ?? 'Pendientes generados')
+    })
+  }
 
   const filtros = (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
@@ -169,6 +215,7 @@ export function GastosScreen({
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tab} onChange={cambiarTab} aria-label="Secciones de gastos">
           <Tab value="gastos" label="Gastos" />
+          <Tab value="recurrentes" label="Recurrentes" />
           <Tab value="empleados" label="Empleados" />
           <Tab value="categorias" label="Categorías" />
         </Tabs>
@@ -176,6 +223,18 @@ export function GastosScreen({
 
       {tab === 'gastos' ? (
         <Box sx={{ display: 'grid', gap: 2.5, pb: { xs: 8, sm: 0 } }}>
+          {pendientes.length > 0 && filtroEstado !== 'pendiente' ? (
+            <Alert
+              severity="info"
+              action={
+                <Button color="inherit" size="small" onClick={() => writeUrlParams({ estado: 'pendiente' })}>
+                  Ver pendientes
+                </Button>
+              }
+            >
+              Tienes {pendientes.length} gasto{pendientes.length === 1 ? '' : 's'} pendiente{pendientes.length === 1 ? '' : 's'} de confirmar.
+            </Alert>
+          ) : null}
           <RangoFechasSelector rango={rango} hoy={hoy} />
           <Box
             sx={{
@@ -215,6 +274,39 @@ export function GastosScreen({
             onEditar={(g) => setDialogo({ modo: 'editar', gasto: g })}
             onAnular={(g) => setAnular(g)}
             onRegistrarDeNuevo={registrarDeNuevo}
+            onConfirmar={(g) => setDialogo({ modo: 'confirmar', gasto: g })}
+            onDescartar={(g) => setDescartar(g)}
+          />
+        </Box>
+      ) : tab === 'recurrentes' ? (
+        <Box sx={{ pb: { xs: 8, sm: 0 }, display: 'grid', gap: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<AutorenewOutlinedIcon />}
+              loading={generando}
+              onClick={generarPendientesClick}
+            >
+              Generar pendientes
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddOutlinedIcon />}
+              onClick={() => setRecurrenteDialogo('nuevo')}
+            >
+              Nueva plantilla
+            </Button>
+          </Box>
+          <GastosRecurrentesTable
+            recurrentes={recurrentes}
+            pendienteId={recurrentePendienteId}
+            onEditar={(r) => setRecurrenteDialogo(r)}
+            onCambiarActivo={toggleActivoRecurrente}
+            accionVacio={
+              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setRecurrenteDialogo('nuevo')}>
+                Nueva plantilla
+              </Button>
+            }
           />
         </Box>
       ) : tab === 'empleados' ? (
@@ -243,7 +335,7 @@ export function GastosScreen({
       )}
 
       <GastoForm
-        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? dialogo.empleadoId ?? 'nuevo'}` : 'cerrado'}
+        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? dialogo.empleadoId ?? 'nuevo-gasto'}` : 'cerrado-gasto'}
         open={!!dialogo}
         modo={dialogo?.modo ?? 'crear'}
         gasto={dialogo?.gasto ?? null}
@@ -254,7 +346,16 @@ export function GastosScreen({
         onClose={() => setDialogo(null)}
       />
       <AnularGastoDialog gasto={anular} onClose={() => setAnular(null)} />
+      <AnularGastoDialog gasto={descartar} modo="descartar" onClose={() => setDescartar(null)} />
       <GastoDetalleDialog gastoId={detalleId} onClose={() => setDetalleId(null)} />
+      <GastoRecurrenteForm
+        key={recurrenteDialogo === 'nuevo' ? 'nuevo-current' : recurrenteDialogo ? recurrenteDialogo.id : 'cerrado-current'}
+        open={!!recurrenteDialogo}
+        recurrente={recurrenteDialogo === 'nuevo' ? null : recurrenteDialogo}
+        categorias={categorias}
+        empleados={empleados}
+        onClose={() => setRecurrenteDialogo(null)}
+      />
       {empleadoAcciones.dialogo}
     </>
   )
