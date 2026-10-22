@@ -11,8 +11,8 @@
 - [ ] `/SPEC.md` (§5, §7, §9) con nota del 2026-10-22; `specs/README.md` con orden y cambio de alcance; tarea agregada en `15-dashboard/tasks.md` y en `08-tasas/tasks.md` (P5 aprobada). — Fase E, otra rama (las tareas agregadas en 15 y 08 ya se anotaron al planificar).
 
 ## Datos y seguridad (migraciones + RLS)
-- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` aplicada en Supabase por el usuario el 2026-10-22. D: Fase D, otra rama.
-- [ ] `categorias_gasto`, `empleados`, `gastos` y `gastos_recurrentes` en `snake_case` y español, con las columnas, checks e índices de `spec.md`; dinero y tasas `numeric(14,6)`. — Fase A: `categorias_gasto` y `gastos`. Fase B: `empleados` y `gastos.empleado_id`. Fase C: `gastos_recurrentes` y `gastos.recurrente_id` con índice único parcial `(recurrente_id, periodo_desde)`. D: dashboard.
+- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` aplicada. Fase D: `20261022000300_dashboard_gastos.sql` aplicada en Supabase por el usuario el 2026-10-22.
+- [x] `categorias_gasto`, `empleados`, `gastos` y `gastos_recurrentes` en `snake_case` y español, con las columnas, checks e índices de `spec.md`; dinero y tasas `numeric(14,6)`. — Fases A, B, C y D.
 - [ ] RLS en las cuatro: `select`/`insert`/`update` solo `es_admin()`, sin `delete`, `revoke` de `anon` y de `delete`/`truncate` de `authenticated`. Operador: 0 filas y escrituras fallan. — Fase A y B probadas. Fase C: `gastos_recurrentes` con RLS solo admin y sin delete en la migración C.
 - [x] Auditoría: `created_by`/`created_at` inmutables, `updated_by`/`updated_at` por `fija_auditoria()`; `confirmado_*` y `anulado_*` los fija `gastos_guard`; `tasa_registrada_por` por `fija_tasa_registrada_por()`. — Postgres local: cambiar `created_by` no tiene efecto (se restaura en silencio), `updated_by` se fija al editar. Fase B: `empleados` usa `fija_auditoria()`. Fase C: `gastos_recurrentes` usa `fija_auditoria()`.
 - [x] Checks de `gastos`: tasa coherente, confirmado completo, `monto_usd` = regla de compras, período ambos-o-ninguno, motivo de anulación 5–500. — Postgres local: cada check falla con su caso. Desvío: `gastos_confirmado_completo` exceptúa `pendiente` **y `descartado`** (un descartado viene de un pendiente sin tasa; con la redacción de la spec no se podía descartar).
@@ -32,16 +32,16 @@
 - [ ] Casos de la tarea 26 con las cifras esperadas ($100,000000 y $91,250000; $200 de 1.ª quincena). — Fase E, otra rama. Adelantado: $100 y $91,25 (A) y $200 de 1.ª quincena de un salario de $400 (B, `montoNominaPeriodo`) cuadran en el script y en Postgres local.
 
 ## Dashboard (15)
-- [ ] `dashboard_gastos` y `dashboard_gastos_pendientes` con el patrón de seguridad de 15 (`42501` al operador). Ninguna RPC `dashboard_*` existente cambió. — Fase D, otra rama.
-- [ ] Utilidad neta = margen bruto (B3) − gastos confirmados del rango; % sobre ventas; resultado cambiario Bs aparte (no se suma). — Fase D, otra rama.
-- [ ] Gastos por categoría cuadran con `/gastos` en el mismo rango; KPI de pendientes solo si hay. — Fase D, otra rama.
-- [ ] El operador no recibe el bloque de gastos (no se llaman las RPC nuevas). — Fase D, otra rama.
+- [x] `dashboard_gastos` y `dashboard_gastos_pendientes` con el patrón de seguridad de 15 (`42501` al operador). Ninguna RPC `dashboard_*` existente cambió. — Fase D: ambas en `20261022000300_dashboard_gastos.sql` con `dashboard_exigir_admin()`.
+- [x] Utilidad neta = margen bruto (B3) − gastos confirmados del rango; % sobre ventas; resultado cambiario Bs aparte (no se suma). — Fase D: función pura `utilidadNeta` en `lib/dashboard/utilidad.ts` y tarjeta `UtilidadNetaCard`.
+- [x] Gastos por categoría cuadran con `/gastos` en el mismo rango; KPI de pendientes solo si hay. — Fase D: `GastosCategoriaChart` con desglose por categoría/subcategoría y enlace a `/gastos`; `KpiCard` de pendientes en `KpisDiaRow` condicionado a `n > 0`.
+- [x] El operador no recibe el bloque de gastos (no se llaman las RPC nuevas). — Fase D: `getAnalitica` y `getGastosPendientes` retornan `undefined` sin invocar Supabase cuando rol no es admin.
 
 ## Repositorios y servicios
-- [ ] `ICategoriaGastoRepository`, `IGastoRepository`, `IEmpleadoRepository`, `IGastoRecurrenteRepository` (+ métodos de `IDashboardRepository`) solo acceden y mapean; sin lógica de negocio. — Fases A, B y C (`IGastoRecurrenteRepository` + `gastoRecurrenteRepository.ts`). D: dashboard.
-- [ ] `categoriaGastoService`, `gastoService`, `empleadoService`, `gastoRecurrenteService` con `requireAdmin()` en cada función (operador falla antes de tocar Supabase) y mapeo de `hint` a campos. — Fases A, B y C (`gastoRecurrenteService.ts` con `requireAdmin()` en CRUD y generación).
-- [ ] Funciones puras (`lib/gastos/montos.ts`, `lib/gastos/periodos.ts`, `lib/dashboard/utilidad.ts`) sin imports de Supabase ni React; `scripts/probar-gastos.ts` (con paridad TS ↔ SQL de montos y períodos) y `scripts/probar-dashboard.ts` pasan. — Fases A, B y C (`periodosRecurrente` y `proximasFechas` en `lib/gastos/periodos.ts` con todos los casos pasando). D: `utilidad.ts`.
-- [ ] Validación zod en `src/lib/gastoValidation.ts`, `categoriaGastoValidation.ts`, `empleadoValidation.ts`, `gastoRecurrenteValidation.ts`; tasa con `camposTasa` + `validarTasa`; mensajes en `validationMessages.ts`. — Fases A, B y C (`gastoRecurrenteSchema` en `gastoRecurrenteValidation.ts`).
+- [x] `ICategoriaGastoRepository`, `IGastoRepository`, `IEmpleadoRepository`, `IGastoRecurrenteRepository` (+ métodos de `IDashboardRepository`) solo acceden y mapean; sin lógica de negocio. — Fases A, B, C y D (`IDashboardRepository.gastos` y `gastosPendientes`).
+- [x] `categoriaGastoService`, `gastoService`, `empleadoService`, `gastoRecurrenteService` con `requireAdmin()` en cada función (operador falla antes de tocar Supabase) y mapeo de `hint` a campos. — Fases A, B, C y D (`gastoRecurrenteService.ts` con `requireAdmin()` en CRUD y generación).
+- [x] Funciones puras (`lib/gastos/montos.ts`, `lib/gastos/periodos.ts`, `lib/dashboard/utilidad.ts`) sin imports de Supabase ni React; `scripts/probar-gastos.ts` (con paridad TS ↔ SQL de montos y períodos) y `scripts/probar-dashboard.ts` pasan. — Fases A, B, C y D (`utilidad.ts` con 40 casos pasando en `probar-dashboard.ts`).
+- [x] Validación zod en `src/lib/gastoValidation.ts`, `categoriaGastoValidation.ts`, `empleadoValidation.ts`, `gastoRecurrenteValidation.ts`; tasa con `camposTasa` + `validarTasa`; mensajes en `validationMessages.ts`. — Fases A, B, C y D (`gastoRecurrenteSchema` en `gastoRecurrenteValidation.ts`).
 
 ## UI (Atomic Design y `00-estandares-ui`)
 - [x] `/gastos` y `/gastos/empleados/[id]` solo admin (`requireAdmin()` → `notFound()`), con `loading`, `error` (y `not-found` en la ficha); `page.tsx` solo compone organisms/templates. — Fases A, B y C (`page.tsx` de `/gastos` genera pendientes oportunamente antes de listar).
@@ -49,16 +49,23 @@
 - [x] Tabs en `?tab=`, rango en `?desde`/`?hasta`, estado en `?estado=` (persisten al navegar). — Fases B y C: tabs `gastos`, `recurrentes`, `empleados`, `categorias` persistentes en URL. Chips de estado incluyen `pendiente`.
 - [x] Listados en `AppDataGrid`; diálogos en `AppDialog` (`GastoForm` md, `fullScreen` en `xs`); ficha con `FichaHeader`; `TasaSelector` de 08 y procedencia de la tasa visible; `useForm({ disabled })`, `Button loading`, cierre protegido con `dirty`. — Fase C: `GastosRecurrentesTable` con `AppDataGrid`, `GastoRecurrenteForm` en `AppDialog sm`, `GastoForm` con modo `confirmar`.
 - [x] Confirmaciones con `useConfirm`/`ConfirmDialog` y toasts con `useNotify` (nunca `window.alert`/`confirm`); estados vacíos y de error con `EmptyState`/`ErrorState`. — Acciones y avisos con `useNotify` y `useConfirm`.
-- [ ] Números con `lib/format.ts`, cifras tabulares, montos a la derecha; colores del dashboard solo del theme (sin hex). — Fases A, B y C cumplidas en tablas y formularios. Fase D: colores de charts.
+- [x] Números con `lib/format.ts`, cifras tabulares, montos a la derecha; colores del dashboard solo del theme (sin hex). — Fases A, B, C y D (`coloresGrafico`, `ChartLegendTable`, `UtilidadNetaCard`).
 - [ ] Componentes genéricos nuevos registrados en "Componentes compartidos" de `00-estandares-ui/spec.md` (o anotado que no hubo). — Fase E, otra rama.
 - [ ] Modo claro/oscuro y responsive (375/768/1024/1440). — Fase E, otra rama.
 
 ## Tipos y calidad
-- [ ] Tipos de la spec en `src/types/domain.ts`, sin `any` sin justificar. — Fases A, B y C (`FrecuenciaGasto`, `GastoRecurrente`, `PeriodoRecurrente`, `Gasto.recurrente_id`, `GastoDetalle.recurrente_id`, `GastoDetalle.recurrente_nombre`). D: dashboard.
-- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores. — Fases A, B y C en verde.
+- [x] Tipos de la spec en `src/types/domain.ts`, sin `any` sin justificar. — Fases A, B, C y D (`GastosPendientesResumen`, `UtilidadNeta`, `DashboardGastos`).
+- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores. — Fases A, B, C y D en verde.
 
 ## Pendientes / deuda técnica
 - _(anotar aquí con fecha lo que se difiera, sin borrar ítems)_
+- **2026-10-22 — Resuelto el mismo día**: el usuario aplicó la migración D en Supabase y realizó las pruebas en navegador. Nota original — **Migración de la Fase D sin aplicar en Supabase**: `20261022000300_dashboard_gastos.sql` está escrita y validada en código.
+- **2026-10-22 — Notas de la Fase D**:
+  - `dashboard_gastos` y `dashboard_gastos_pendientes` creadas con `dashboard_exigir_admin()` (42501 para operador).
+  - Función pura `utilidadNeta(margenBruto, gastos, ventas)` en `src/lib/dashboard/utilidad.ts` con 40 casos pasando en `scripts/probar-dashboard.ts`.
+  - Tarjeta `UtilidadNetaCard` y gráfico horizontal `GastosCategoriaChart` integrados en la sección "Ventas y margen" del dashboard.
+  - KPI de pendientes en `KpisDiaRow` visible solo si `n > 0` para rol admin.
+  - Operador no recibe el bloque de gastos ni llama a las RPCs nuevas.
 - **2026-10-22 — Resuelto el mismo día**: el usuario aplicó la migración C en Supabase y realizó las pruebas en navegador. Nota original — **Migración de la Fase C sin aplicar en Supabase**: `20261022000200_gastos_recurrentes.sql` está escrita y validada en código y pruebas de dominio.
 - **2026-10-22 — Desvíos y notas de la Fase C**:
   - `gasto_recurrente_monto` y `generar_gastos_recurrentes` respetan exactamente la spec: períodos mensuales con `dia_mes` o fin de mes, períodos quincenales (1–15 y 16–fin de mes), tope 12 por plantilla, ignora empleados inactivos.

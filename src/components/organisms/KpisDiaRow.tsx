@@ -8,6 +8,7 @@ import { TasaChip } from '@/components/molecules/TasaChip'
 import type {
   BloqueDashboard,
   DashboardOperativo,
+  GastosPendientesResumen,
   KpisDia,
   TasasDelDia,
   TasaVigente,
@@ -26,6 +27,7 @@ export interface KpisDiaRowProps {
   operativo: BloqueDashboard<DashboardOperativo>
   /** `undefined` para el operador: no ve ventas, margen, CxC, CxP ni valor del inventario. */
   kpis?: BloqueDashboard<KpisDia>
+  gastosPendientes?: BloqueDashboard<GastosPendientesResumen>
 }
 
 const plural = (n: number, uno: string, varios: string) => `${formatEntero(n)} ${n === 1 ? uno : varios}`
@@ -46,7 +48,7 @@ function chipTasa(t: TasaVigente | null, fuente: 'bcv' | 'paralela') {
  * próximos. Grid de 1 columna en `xs`, 2 en `sm` y 4 en `md+`. Un bloque con
  * error muestra su tarjeta con el mensaje; las demás siguen.
  */
-export function KpisDiaRow({ tasas, operativo, kpis }: KpisDiaRowProps) {
+export function KpisDiaRow({ tasas, operativo, kpis, gastosPendientes }: KpisDiaRowProps) {
   const op = operativo.ok ? operativo.data : null
   const k = kpis?.ok ? kpis.data : null
   const errorKpis = kpis && !kpis.ok ? kpis.error : null
@@ -144,6 +146,21 @@ export function KpisDiaRow({ tasas, operativo, kpis }: KpisDiaRowProps) {
             : `${formatBs(d.inventario_bs)} · ${formatKg(d.inventario_kg)}`,
         href: '/inventario',
       }))}
+
+      {/* Gastos pendientes de confirmar (admin, solo si hay) */}
+      {kpis && gastosPendientes?.ok && gastosPendientes.data.n > 0 ? (
+        <KpiCard
+          title="Gastos pendientes"
+          value={formatEntero(gastosPendientes.data.n)}
+          secondary={
+            gastosPendientes.data.monto_usd_estimado !== null
+              ? `~ ${formatUsd(gastosPendientes.data.monto_usd_estimado)} est. · por confirmar`
+              : `${plural(gastosPendientes.data.n, 'gasto', 'gastos')} por confirmar`
+          }
+          tone="warning"
+          href="/gastos?estado=pendiente"
+        />
+      ) : null}
 
       {/* Alertas de stock (todos) */}
       {op ? (

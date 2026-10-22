@@ -1602,6 +1602,7 @@ export interface DashboardAnalitica {
   perdidas: BloqueDashboard<PerdidaPorMotivo[]>
   mezcla: BloqueDashboard<MezclaVentas>
   top_clientes: BloqueDashboard<TopClientesPareto>
+  gastos: BloqueDashboard<DashboardGastos>
 }
 
 /** Cartera, flujo, riesgo, inventario valorizado y contratos (C + D, admin; foto a hoy). */
@@ -1621,6 +1622,7 @@ export interface Dashboard {
   tasas: BloqueDashboard<TasasDelDia>
   operativo: DashboardOperativoBloques
   kpisDia?: BloqueDashboard<KpisDia>
+  gastosPendientes?: BloqueDashboard<GastosPendientesResumen>
   analitica?: DashboardAnalitica
   cartera?: DashboardCartera
 }
@@ -1721,6 +1723,34 @@ export interface ResumenGastos {
   total_usd: number
   n_gastos: number
   por_categoria: GastoPorCategoria[]
+}
+
+/** `dashboard_gastos_pendientes()` (20-gastos, Fase D). */
+export interface GastosPendientesResumen {
+  n: number
+  /** Suma de importes de los pendientes en USD; `null` si no hay pendientes en USD. */
+  monto_usd_estimado: number | null
+}
+
+/**
+ * Cálculo de utilidad neta para el dashboard (`lib/dashboard/utilidad.ts`).
+ * Utilidad neta = margen bruto (B3) − gastos confirmados del período.
+ * El resultado cambiario no se suma (regla de 15).
+ */
+export interface UtilidadNeta {
+  ventas_usd: number
+  margen_bruto_usd: number
+  gastos_usd: number
+  utilidad_neta_usd: number
+  /** Fracción sobre ventas (para `formatPct`). `null` si ventas es 0 o negativo. */
+  margen_neto_pct: number | null
+}
+
+/** Bloque de gastos y utilidad neta en la analítica del dashboard (15 + 20). */
+export interface DashboardGastos {
+  utilidad: UtilidadNeta
+  por_categoria: GastoPorCategoria[]
+  total_gastos_usd: number
 }
 
 /**
