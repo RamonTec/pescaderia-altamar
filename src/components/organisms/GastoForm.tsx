@@ -2,11 +2,13 @@
 
 import * as React from 'react'
 import { useTransition } from 'react'
-import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form'
+import { Controller, FormProvider, useForm, useWatch, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import Grid from '@mui/material/Grid'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
@@ -27,25 +29,33 @@ import {
   METODOS_PAGO_GASTO,
   editarGastoSchema,
   gastoFormSchema,
+  pagoNominaSchema,
   type EditarGastoInput,
   type EditarGastoValues,
-  type GastoFormInput,
-  type GastoFormValues,
+  type PagoNominaInput,
+  type PagoNominaValues,
 } from '@/lib/gastoValidation'
-import { montoUsdGasto } from '@/lib/gastos/montos'
+import { montoNominaPeriodo, montoUsdGasto } from '@/lib/gastos/montos'
+import { atajosPeriodo, tipoPeriodoNomina } from '@/lib/gastos/periodos'
 import { mapaCategorias, rutaCategoria, textoTasaGasto } from '@/lib/gastos/textos'
 import { ETIQUETA_METODO } from '@/lib/dashboard/etiquetas'
 import { fechaHoy, formatBs, formatFecha, formatUsd } from '@/lib/format'
 import { useConfirm } from '@/lib/useConfirm'
 import { useNotify } from '@/lib/useNotify'
-import { editarGastoAction, registrarGastoAction } from '@/app/(protected)/gastos/actions'
-import type { CategoriaGasto, Gasto, MetodoPago } from '@/types/domain'
+import {
+  editarGastoAction,
+  pagosSolapadosAction,
+  registrarGastoAction,
+  registrarPagoNominaAction,
+} from '@/app/(protected)/gastos/actions'
+import type { CategoriaGasto, Empleado, Gasto, MetodoPago } from '@/types/domain'
 
 /**
- * Modos de `GastoForm` en la Fase A. `confirmar` (pendientes) llega en la
- * Fase C y `nomina` (empleado + período) en la Fase B.
+ * Modos de `GastoForm`. `nomina` (Fase B): pago de nómina con empleado y
+ * período (también "Registrar de nuevo" de un pago de nómina). `confirmar`
+ * (pendientes) llega en la Fase C.
  */
-export type ModoGastoForm = 'crear' | 'editar' | 'registrar_de_nuevo'
+export type ModoGastoForm = 'crear' | 'editar' | 'registrar_de_nuevo' | 'nomina'
 
 export interface GastoFormProps {
   open: boolean
@@ -55,6 +65,10 @@ export interface GastoFormProps {
   /** Árbol de categorías (primer nivel con `subcategorias`). */
   categorias: CategoriaGasto[]
   configTasas: TasaSelectorConfig
+  /** Empleados (modo `nomina`; solo los activos son elegibles). */
+  empleados?: Empleado[]
+  /** Empleado preseleccionado en modo `nomina` (ficha "Registrar pago"). */
+  empleadoInicial?: string | null
   onClose: () => void
 }
 
@@ -72,6 +86,12 @@ export interface GastoFormProps {
  *   categoría se muestran de solo lectura; cambian descripción,
  *   beneficiario, referencia y notas. Para corregir el importe: anular y
  *   registrar de nuevo.
+ * - `nomina` (Fase B): la categoría es Nómina (la fija el servidor), con
+ *   empleado activo y período (atajos 1.ª quincena / 2.ª quincena / Mes del
+ *   mes de la fecha). Elegir empleado o período precarga monto y moneda con
+ *   `montoNominaPeriodo` (P3: mes → salario, quincena → mitad), editables.
+ *   Si otro pago confirmado del empleado tiene período solapado, se avisa
+ *   (no se bloquea).
  */
 export function GastoForm(props: GastoFormProps) {
   if (props.modo === 'editar' && props.gasto) {
@@ -101,12 +121,17 @@ function opcionesCategoria(arbol: readonly CategoriaGasto[]): OpcionCategoria[] 
   return opciones
 }
 
-function valoresIniciales(gasto: Gasto | null | undefined, opciones: readonly OpcionCategoria[]): GastoFormInput {
+function valoresIniciales(
+  gasto: Gasto | null | undefined,
+  opciones: readonly OpcionCategoria[],
+  nomina: { categoriaId: string; empleadoId: string } | null
+): PagoNominaInput {
   const hoy = fechaHoy()
   if (!gasto) {
     return {
       fecha: hoy,
-      categoria_id: '',
+      categoria_id: nomina?.categoriaId ?? '',
+      empleado_id: nomina?.empleadoId ?? '',
       descripcion: '',
       beneficiario: '',
       moneda: 'bs',
@@ -124,7 +149,12 @@ function valoresIniciales(gasto: Gasto | null | undefined, opciones: readonly Op
   const manual = gasto.tasa_origen === 'manual'
   return {
     fecha: gasto.fecha <= hoy ? gasto.fecha : hoy,
-    categoria_id: opciones.some((o) => o.id === gasto.categoria_id) ? gasto.categoria_id : '',
+    categoria_id: nomina
+      ? nomina.categoriaId
+      : opciones.some((o) => o.id === gasto.categoria_id)
+        ? gasto.categoria_id
+        : '',
+    empleado_id: nomina?.empleadoId ?? '',
     descripcion: gasto.descripcion,
     beneficiario: gasto.beneficiario ?? '',
     moneda: gasto.moneda,
@@ -142,34 +172,136 @@ function valoresIniciales(gasto: Gasto | null | undefined, opciones: readonly Op
 
 /* ============================ Alta ============================ */
 
-function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: GastoFormProps) {
+/** Precarga a 2 decimales (lo que captura la UI), mitad hacia arriba. */
+const a2Decimales = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
+
+const MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+/** «Nómina 1.ª quincena oct 2026», «Nómina oct 2026» o «Nómina 01/10/2026 – 20/10/2026». */
+function descripcionNomina(desde: string, hasta: string): string {
+  const tipo = tipoPeriodoNomina(desde, hasta)
+  if (!tipo) return `Nómina ${formatFecha(desde)} – ${formatFecha(hasta)}`
+  const [y, m] = desde.split('-').map(Number)
+  const mes = MES_CORTO.format(new Date(Date.UTC(y, m - 1, 1))).replace('.', '')
+  const etiqueta = tipo === 'mes' ? '' : tipo === 'primera_quincena' ? '1.ª quincena ' : '2.ª quincena '
+  return `Nómina ${etiqueta}${mes}`
+}
+
+function GastoAlta({
+  open,
+  modo,
+  gasto,
+  categorias,
+  configTasas,
+  empleados = [],
+  empleadoInicial = null,
+  onClose,
+}: GastoFormProps) {
   const notify = useNotify()
   const confirm = useConfirm()
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
+  const [avisoSolapado, setAvisoSolapado] = React.useState<string | null>(null)
+  const consultaSolapado = React.useRef(0)
   const opciones = React.useMemo(() => opcionesCategoria(categorias), [categorias])
   const hoy = fechaHoy()
 
-  const methods = useForm<GastoFormInput, unknown, GastoFormValues>({
-    resolver: zodResolver(gastoFormSchema),
+  const esNomina = modo === 'nomina'
+  const categoriaNomina = categorias.find((c) => c.clave === 'nomina') ?? null
+  const activos = React.useMemo(() => empleados.filter((e) => e.activo), [empleados])
+  const empleadoDeOrigen = gasto?.empleado_id ?? empleadoInicial ?? ''
+  const empleadoDeEntrada = esNomina ? (activos.find((e) => e.id === empleadoDeOrigen) ?? null) : null
+  // Autos de descripción y beneficiario: se reemplazan solo si el admin no los cambió.
+  const autoTextos = React.useRef({
+    descripcion: '',
+    beneficiario: !gasto && empleadoDeEntrada ? empleadoDeEntrada.nombre : '',
+  })
+
+  // Un solo formulario para el alta común y la nómina: en `crear` /
+  // `registrar_de_nuevo` el esquema común descarta `empleado_id` (no se
+  // envía); la salida solo se trata como pago de nómina en modo `nomina`.
+  const resolver = (esNomina ? zodResolver(pagoNominaSchema) : zodResolver(gastoFormSchema)) as unknown as Resolver<
+    PagoNominaInput,
+    unknown,
+    PagoNominaValues
+  >
+  const methods = useForm<PagoNominaInput, unknown, PagoNominaValues>({
+    resolver,
     mode: 'onSubmit',
-    defaultValues: valoresIniciales(modo === 'registrar_de_nuevo' ? gasto : null, opciones),
+    defaultValues: {
+      ...valoresIniciales(
+        modo === 'registrar_de_nuevo' || esNomina ? gasto : null,
+        opciones,
+        esNomina ? { categoriaId: categoriaNomina?.id ?? '', empleadoId: empleadoDeEntrada?.id ?? '' } : null
+      ),
+      ...(!gasto && empleadoDeEntrada ? { beneficiario: empleadoDeEntrada.nombre } : {}),
+    },
     disabled: isPending,
   })
-  const { control, register, handleSubmit, setError, formState } = methods
+  const { control, register, handleSubmit, setError, setValue, getValues, formState } = methods
   const [fecha, moneda, monto] = useWatch({ control, name: ['fecha', 'moneda', 'monto'] })
+
+  /** Aviso (sin bloqueo) de otro pago confirmado del empleado con período solapado. */
+  const revisarSolapado = (empleadoId: string, desde: string, hasta: string) => {
+    const n = ++consultaSolapado.current
+    if (!empleadoId || !desde || !hasta || desde > hasta) {
+      setAvisoSolapado(null)
+      return
+    }
+    void pagosSolapadosAction({ empleado_id: empleadoId, periodo_desde: desde, periodo_hasta: hasta }).then((r) => {
+      if (n === consultaSolapado.current) setAvisoSolapado(r.aviso ?? null)
+    })
+  }
+
+  /** Precarga monto, moneda, descripción y beneficiario al elegir empleado o período (P3). */
+  const precargarNomina = () => {
+    const { empleado_id, periodo_desde, periodo_hasta, descripcion, beneficiario } = getValues()
+    const emp = activos.find((e) => e.id === empleado_id)
+    revisarSolapado(empleado_id, periodo_desde, periodo_hasta)
+    if (!emp) return
+    const opts = { shouldDirty: true, shouldValidate: formState.isSubmitted }
+    if (periodo_desde && periodo_hasta && periodo_desde <= periodo_hasta) {
+      const sugerido = montoNominaPeriodo(emp.salario_base, periodo_desde, periodo_hasta)
+      if (sugerido !== null && sugerido > 0) {
+        setValue('moneda', emp.moneda, opts)
+        setValue('monto', a2Decimales(sugerido), opts)
+      }
+      const desc = descripcionNomina(periodo_desde, periodo_hasta)
+      if (descripcion.trim() === '' || descripcion === autoTextos.current.descripcion) {
+        setValue('descripcion', desc, opts)
+        autoTextos.current.descripcion = desc
+      }
+    }
+    if (beneficiario.trim() === '' || beneficiario === autoTextos.current.beneficiario) {
+      setValue('beneficiario', emp.nombre, opts)
+      autoTextos.current.beneficiario = emp.nombre
+    }
+  }
+
+  const aplicarAtajo = (desde: string, hasta: string) => {
+    const opts = { shouldDirty: true, shouldValidate: formState.isSubmitted }
+    setValue('periodo_desde', desde, opts)
+    setValue('periodo_hasta', hasta, opts)
+    precargarNomina()
+  }
+
+  const [periodoDesde, periodoHasta] = useWatch({ control, name: ['periodo_desde', 'periodo_hasta'] })
+  const regDesde = register('periodo_desde')
+  const regHasta = register('periodo_hasta')
+  const atajos = atajosPeriodo(fecha && fecha <= hoy ? fecha : hoy)
+  const empleadoActual = (id: string) => activos.find((e) => e.id === id) ?? null
 
   const onSubmit = handleSubmit(async (values) => {
     const ok = await pedirConfirmacionTasaManual(confirm, values, referencial, configTasas.umbral_desviacion_tasa_pct)
     if (!ok) return
     setServerError(null)
     startTransition(async () => {
-      const result = await registrarGastoAction(values)
+      const result = esNomina ? await registrarPagoNominaAction(values) : await registrarGastoAction(values)
       if (result.error) {
         setServerError(result.error)
         for (const [campo, mensaje] of Object.entries(result.fieldErrors ?? {})) {
-          if (campo in values) setError(campo as keyof GastoFormInput, { type: 'server', message: mensaje })
+          if (campo in values) setError(campo as keyof PagoNominaInput, { type: 'server', message: mensaje })
         }
         return
       }
@@ -197,25 +329,32 @@ function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: Gast
       open={open}
       onClose={onClose}
       size="md"
-      title={modo === 'registrar_de_nuevo' ? 'Registrar de nuevo' : 'Registrar gasto'}
+      title={esNomina ? (gasto ? 'Registrar de nuevo · nómina' : 'Pago de nómina') : modo === 'registrar_de_nuevo' ? 'Registrar de nuevo' : 'Registrar gasto'}
       subtitle={
-        modo === 'registrar_de_nuevo' && gasto
+        gasto && (modo === 'registrar_de_nuevo' || esNomina)
           ? `Nuevo gasto con los datos del ${formatFecha(gasto.fecha)} · ${gasto.descripcion}`
-          : 'Nace confirmado y cuenta en los totales del período por su fecha.'
+          : esNomina
+            ? 'Gasto de la categoría Nómina ligado al empleado y al período que cubre.'
+            : 'Nace confirmado y cuenta en los totales del período por su fecha.'
       }
       onSubmit={(e) => {
         onSubmit(e)
       }}
       pending={isPending}
-      dirty={formState.isDirty || modo === 'registrar_de_nuevo'}
+      dirty={formState.isDirty || !!gasto}
       error={serverError}
       primaryAction={
         <Button type="submit" variant="contained" loading={isPending}>
-          Registrar gasto
+          {esNomina ? 'Registrar pago' : 'Registrar gasto'}
         </Button>
       }
     >
       <FormProvider {...methods}>
+        {esNomina && avisoSolapado ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {avisoSolapado}. Puedes registrarlo igual.
+          </Alert>
+        ) : null}
         <FormSection titulo="Gasto" primera>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>
@@ -230,6 +369,42 @@ function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: Gast
                 slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: hoy } }}
               />
             </Grid>
+            {esNomina ? (
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <Controller
+                  control={control}
+                  name="empleado_id"
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={activos}
+                      getOptionLabel={(e) => `${e.nombre} · ${e.cedula}`}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      value={empleadoActual(field.value)}
+                      onChange={(_, e) => {
+                        field.onChange(e?.id ?? '')
+                        precargarNomina()
+                      }}
+                      onBlur={field.onBlur}
+                      disabled={formState.disabled}
+                      noOptionsText="Sin empleados activos"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Empleado *"
+                          size="small"
+                          inputRef={field.ref}
+                          error={!!formState.errors.empleado_id}
+                          helperText={
+                            formState.errors.empleado_id?.message ??
+                            (activos.length === 0 ? 'Registra un empleado en la pestaña Empleados.' : 'Categoría: Nómina.')
+                          }
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </Grid>
+            ) : (
             <Grid size={{ xs: 12, sm: 8 }}>
               <Controller
                 control={control}
@@ -259,6 +434,7 @@ function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: Gast
                 )}
               />
             </Grid>
+            )}
             <Grid size={{ xs: 12, sm: 7 }}>
               <TextField
                 label="Descripción *"
@@ -279,25 +455,58 @@ function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: Gast
                 helperText={formState.errors.beneficiario?.message ?? 'A quién se pagó.'}
               />
             </Grid>
+            {esNomina ? (
+              <Grid size={12}>
+                <Box role="group" aria-label="Atajos de período" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {atajos.map((a) => {
+                    const activo = periodoDesde === a.desde && periodoHasta === a.hasta
+                    return (
+                      <Chip
+                        key={a.tipo}
+                        label={a.label}
+                        variant={activo ? 'soft' : 'outlined'}
+                        color={activo ? 'primary' : 'default'}
+                        aria-pressed={activo}
+                        disabled={formState.disabled}
+                        onClick={() => aplicarAtajo(a.desde, a.hasta)}
+                      />
+                    )
+                  })}
+                </Box>
+              </Grid>
+            ) : null}
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                label="Período desde"
+                label={esNomina ? 'Período desde *' : 'Período desde'}
                 type="date"
                 fullWidth
                 size="small"
-                {...register('periodo_desde')}
+                {...regDesde}
+                onChange={(e) => {
+                  void regDesde.onChange(e).then(() => {
+                    if (esNomina) precargarNomina()
+                  })
+                }}
                 error={!!formState.errors.periodo_desde}
-                helperText={formState.errors.periodo_desde?.message ?? 'Opcional: período que cubre.'}
+                helperText={
+                  formState.errors.periodo_desde?.message ??
+                  (esNomina ? 'Período que cubre el pago.' : 'Opcional: período que cubre.')
+                }
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                label="Período hasta"
+                label={esNomina ? 'Período hasta *' : 'Período hasta'}
                 type="date"
                 fullWidth
                 size="small"
-                {...register('periodo_hasta')}
+                {...regHasta}
+                onChange={(e) => {
+                  void regHasta.onChange(e).then(() => {
+                    if (esNomina) precargarNomina()
+                  })
+                }}
                 error={!!formState.errors.periodo_hasta}
                 helperText={formState.errors.periodo_hasta?.message}
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -306,7 +515,14 @@ function GastoAlta({ open, modo, gasto, categorias, configTasas, onClose }: Gast
           </Grid>
         </FormSection>
 
-        <FormSection titulo="Monto y tasa" ayuda="Los totales se suman en USD con la tasa de este gasto.">
+        <FormSection
+          titulo="Monto y tasa"
+          ayuda={
+            esNomina
+              ? 'Precargado con el salario del empleado (mensual; la quincena, la mitad). Puedes ajustarlo.'
+              : 'Los totales se suman en USD con la tasa de este gasto.'
+          }
+        >
           <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <Box sx={{ display: 'grid', gap: 2 }}>

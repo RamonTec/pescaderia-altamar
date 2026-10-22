@@ -9,6 +9,7 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import Button from '@mui/material/Button'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { KpiCard } from '@/components/molecules/KpiCard'
@@ -19,15 +20,17 @@ import { GastoForm, type ModoGastoForm } from '@/components/organisms/GastoForm'
 import { AnularGastoDialog } from '@/components/organisms/AnularGastoDialog'
 import { GastoDetalleDialog } from '@/components/organisms/GastoDetalleDialog'
 import { CategoriasGastoPanel } from '@/components/organisms/CategoriasGastoPanel'
+import { EmpleadosTable } from '@/components/organisms/EmpleadosTable'
 import type { TasaSelectorConfig } from '@/components/organisms/TasaSelector'
 import { filtroEstadoDesdeParam, type FiltroEstadoGasto } from '@/lib/gastoValidation'
 import { formatEntero, formatUsd } from '@/lib/format'
-import type { CategoriaGasto, EstadoGasto, Gasto, RangoFechas, ResumenGastos } from '@/types/domain'
+import { useEmpleadoAcciones } from './empleados/useEmpleadoAcciones'
+import type { CategoriaGasto, Empleado, EstadoGasto, Gasto, RangoFechas, ResumenGastos } from '@/types/domain'
 
-type TabGastos = 'gastos' | 'categorias'
+type TabGastos = 'gastos' | 'empleados' | 'categorias'
 
 function tabDesdeParam(v: string | null): TabGastos {
-  return v === 'categorias' ? 'categorias' : 'gastos'
+  return v === 'categorias' || v === 'empleados' ? v : 'gastos'
 }
 
 /** Chips de estado (Fase A). "Pendientes" llega con los recurrentes (Fase C). */
@@ -44,7 +47,7 @@ const ESTADOS_DE_FILTRO: Record<FiltroEstadoGasto, readonly EstadoGasto[] | null
   todos: null,
 }
 
-type DialogoGasto = { modo: ModoGastoForm; gasto: Gasto | null } | null
+type DialogoGasto = { modo: ModoGastoForm; gasto: Gasto | null; empleadoId?: string | null } | null
 
 export interface GastosScreenProps {
   /** Gastos del rango, de cualquier estado (orden fecha desc). */
@@ -56,17 +59,30 @@ export interface GastosScreenProps {
   rango: RangoFechas
   hoy: string
   configTasas: TasaSelectorConfig
+  /** Empleados (activos e inactivos), Fase B. */
+  empleados: Empleado[]
+  /** USD pagado a cada empleado en el mes en curso (confirmados). */
+  pagadoMes: Record<string, number>
 }
 
 /**
- * Pantalla `/gastos` (20-gastos, Fase A): pestañas Gastos · Categorías en
- * `?tab=`. En Gastos: rango (`?desde`/`?hasta`, lo pide el servidor), chips
+ * Pantalla `/gastos` (20-gastos, Fases A y B): pestañas Gastos · Empleados ·
+ * Categorías en `?tab=`. "Pago de nómina" abre `GastoForm` en modo `nomina`. En Gastos: rango (`?desde`/`?hasta`, lo pide el servidor), chips
  * de estado (`?estado=`, Confirmados por defecto) y categoría
  * (`?categoria=`), KPIs del rango (total USD, n.º y top categoría, solo
  * confirmados) y `GastosTable`. Diálogos: registrar / editar (P1) /
  * registrar de nuevo, anular con motivo y detalle con trazabilidad.
  */
-export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTasas }: GastosScreenProps) {
+export function GastosScreen({
+  gastos,
+  categorias,
+  resumen,
+  rango,
+  hoy,
+  configTasas,
+  empleados,
+  pagadoMes,
+}: GastosScreenProps) {
   const searchParams = useSearchParams()
   const tab = tabDesdeParam(searchParams.get('tab'))
   const filtroEstado = filtroEstadoDesdeParam(searchParams.get('estado') ?? undefined)
@@ -76,6 +92,7 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
   const [dialogo, setDialogo] = React.useState<DialogoGasto>(null)
   const [anular, setAnular] = React.useState<Gasto | null>(null)
   const [detalleId, setDetalleId] = React.useState<string | null>(null)
+  const empleadoAcciones = useEmpleadoAcciones()
 
   const filtrados = React.useMemo(() => {
     const estados = ESTADOS_DE_FILTRO[filtroEstado]
@@ -97,6 +114,10 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
   }, [resumen])
 
   const registrar = () => setDialogo({ modo: 'crear', gasto: null })
+  const pagoNomina = (empleadoId: string | null = null) => setDialogo({ modo: 'nomina', gasto: null, empleadoId })
+  // "Registrar de nuevo" de un pago de nómina vuelve al modo nómina (empleado y período).
+  const registrarDeNuevo = (g: Gasto) =>
+    setDialogo({ modo: g.empleado_id ? 'nomina' : 'registrar_de_nuevo', gasto: g })
   const cambiarTab = (_: React.SyntheticEvent, next: TabGastos) =>
     writeUrlParams({ tab: next === 'gastos' ? null : next })
 
@@ -142,11 +163,13 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
         title="Gastos"
         subtitle="Gastos operativos de la empresa: mantenimiento, servicios, alquiler y más. Los totales van en USD."
         primaryAction={{ label: 'Registrar gasto', icon: <AddOutlinedIcon />, onClick: registrar }}
+        secondaryActions={[{ label: 'Pago de nómina', icon: <PaymentsOutlinedIcon />, onClick: () => pagoNomina() }]}
       />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tab} onChange={cambiarTab} aria-label="Secciones de gastos">
           <Tab value="gastos" label="Gastos" />
+          <Tab value="empleados" label="Empleados" />
           <Tab value="categorias" label="Categorías" />
         </Tabs>
       </Box>
@@ -180,6 +203,7 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
           <GastosTable
             gastos={filtrados}
             categorias={categorias}
+            empleados={empleados}
             filtros={filtros}
             filtrado={filtroEstado !== 'confirmado' || !!categoriaFiltro}
             accionVacio={
@@ -190,7 +214,28 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
             onDetalle={(g) => setDetalleId(g.id)}
             onEditar={(g) => setDialogo({ modo: 'editar', gasto: g })}
             onAnular={(g) => setAnular(g)}
-            onRegistrarDeNuevo={(g) => setDialogo({ modo: 'registrar_de_nuevo', gasto: g })}
+            onRegistrarDeNuevo={registrarDeNuevo}
+          />
+        </Box>
+      ) : tab === 'empleados' ? (
+        <Box sx={{ pb: { xs: 8, sm: 0 } }}>
+          <EmpleadosTable
+            empleados={empleados}
+            pagadoMes={pagadoMes}
+            pendienteId={empleadoAcciones.pendienteId}
+            acciones={
+              <Button variant="outlined" startIcon={<AddOutlinedIcon />} onClick={empleadoAcciones.nuevo}>
+                Nuevo empleado
+              </Button>
+            }
+            accionVacio={
+              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={empleadoAcciones.nuevo}>
+                Nuevo empleado
+              </Button>
+            }
+            onEditar={empleadoAcciones.editar}
+            onRegistrarPago={(e) => pagoNomina(e.id)}
+            onCambiarActivo={(e) => void empleadoAcciones.cambiarActivo(e)}
           />
         </Box>
       ) : (
@@ -198,16 +243,19 @@ export function GastosScreen({ gastos, categorias, resumen, rango, hoy, configTa
       )}
 
       <GastoForm
-        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? 'nuevo'}` : 'cerrado'}
+        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? dialogo.empleadoId ?? 'nuevo'}` : 'cerrado'}
         open={!!dialogo}
         modo={dialogo?.modo ?? 'crear'}
         gasto={dialogo?.gasto ?? null}
         categorias={categorias}
         configTasas={configTasas}
+        empleados={empleados}
+        empleadoInicial={dialogo?.empleadoId ?? null}
         onClose={() => setDialogo(null)}
       />
       <AnularGastoDialog gasto={anular} onClose={() => setAnular(null)} />
       <GastoDetalleDialog gastoId={detalleId} onClose={() => setDetalleId(null)} />
+      {empleadoAcciones.dialogo}
     </>
   )
 }

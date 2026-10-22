@@ -97,6 +97,7 @@ export function GastoDetalleDialog({ gastoId, onClose }: GastoDetalleDialogProps
             <Dato label="Fecha" value={formatFecha(d.fecha)} />
             <Dato label="Categoría" value={categoria} />
             <Dato label="Descripción" value={d.descripcion} />
+            {d.empleado_id ? <Dato label="Empleado" value={d.empleado_nombre ?? '—'} /> : null}
             <Dato label="Beneficiario" value={d.beneficiario ?? '—'} />
             <Dato label="Monto" value={d.moneda === 'bs' ? formatBs(d.monto) : formatUsd(d.monto)} numerico />
             <Dato label="Monto USD" value={d.monto_usd !== null ? formatUsd(d.monto_usd) : '—'} numerico />
