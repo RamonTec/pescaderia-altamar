@@ -7,6 +7,7 @@ import type {
   DashboardCartera,
   DashboardOperativoBloques,
   DiasFlujo,
+  GastosPendientesResumen,
   KpisDia,
   PuntoSpread,
   RangoFechas,
@@ -18,6 +19,7 @@ import type { IDashboardRepository } from '@/lib/repositories/interfaces'
 import { makeDashboardRepository } from '@/lib/repositories/dashboardRepository'
 import { createClient } from '@/lib/supabase/server'
 import { fechaHoy } from '@/lib/format'
+import { utilidadNeta } from '@/lib/dashboard/utilidad'
 import {
   granularidadSpread,
   mesesVentas,
@@ -144,6 +146,7 @@ export async function getAnalitica(
   if (rol !== 'admin') return undefined
   const r = await repo(db)
   const gran = granularidadSpread(rango)
+  const productosSalidaPromise = r.productosSalida(rango)
 
   const [
     ventas_mensuales,
@@ -155,6 +158,7 @@ export async function getAnalitica(
     perdidas,
     mezcla,
     top_clientes,
+    gastos,
   ] = await Promise.all([
     bloque('las ventas por mes', async () =>
       rellenarSerie(
@@ -164,7 +168,7 @@ export async function getAnalitica(
         (mes): VentaMensual => ({ mes, ventas_usd: 0, kg: 0, facturas: 0 })
       )
     ),
-    bloque('los productos con salida', () => r.productosSalida(rango)),
+    bloque('los productos con salida', () => productosSalidaPromise),
     bloque('el resultado cambiario', () => r.resultadoCambiario(rango)),
     bloque('el spread precio/costo', async () =>
       rellenarSerie(
@@ -189,6 +193,20 @@ export async function getAnalitica(
       const filas = await r.topClientes(rango, LIMITE_TOP)
       return paretoAcumulado(filas, filas[0]?.total_periodo_usd ?? 0, filas[0]?.clientes_periodo ?? 0)
     }),
+    bloque('los gastos del período', async () => {
+      const [prods, cats] = await Promise.all([
+        productosSalidaPromise,
+        r.gastos(rango),
+      ])
+      const ventas = prods.reduce((acc, p) => acc + p.ventas_usd, 0)
+      const margenBruto = prods.reduce((acc, p) => acc + p.margen_usd, 0)
+      const totalGastos = cats.reduce((acc, c) => acc + c.total_usd, 0)
+      return {
+        utilidad: utilidadNeta(margenBruto, totalGastos, ventas),
+        por_categoria: cats,
+        total_gastos_usd: totalGastos,
+      }
+    }),
   ])
 
   return {
@@ -204,7 +222,18 @@ export async function getAnalitica(
     perdidas,
     mezcla,
     top_clientes,
+    gastos,
   }
+}
+
+/** Gastos pendientes de confirmar hasta hoy (admin). `undefined` para el operador. */
+export async function getGastosPendientes(
+  rol: Rol | null,
+  db?: SupabaseClient
+): Promise<BloqueDashboard<GastosPendientesResumen> | undefined> {
+  if (rol !== 'admin') return undefined
+  const r = await repo(db)
+  return bloque('los gastos pendientes', () => r.gastosPendientes())
 }
 
 /** Cartera, flujo, riesgo, inventario valorizado y contratos (admin; foto a hoy). */
@@ -250,12 +279,13 @@ export async function getDashboard(params: {
   productoSpread?: string | null
 }): Promise<Dashboard> {
   const [rol, db] = await Promise.all([getRolDashboard(), createClient()])
-  const [tasas, operativo, kpisDia, analitica, cartera] = await Promise.all([
+  const [tasas, operativo, kpisDia, gastosPendientes, analitica, cartera] = await Promise.all([
     getTasasDelDia(db),
     getOperativo(db),
     getKpisDia(rol, db),
+    getGastosPendientes(rol, db),
     getAnalitica(rol, params.rango, params.productoSpread ?? null, db),
     getCartera(rol, params.diasFlujo, db),
   ])
-  return { rol, tasas, operativo, kpisDia, analitica, cartera }
+  return { rol, tasas, operativo, kpisDia, gastosPendientes, analitica, cartera }
 }
