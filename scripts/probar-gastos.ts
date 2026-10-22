@@ -9,14 +9,20 @@
  * aleatorios de `montoUsdGasto` y los compara con la expresión del check
  * `gastos_monto_usd` (`round(monto, 6)` / `round(monto / tasa, 6)` sobre
  * `numeric(14,6)`) en un Postgres con la migración `20261022000000`
- * (falla con una excepción si alguno difiere).
+ * (falla con una excepción si alguno difiere). Fase B: también 200 casos de
+ * `montoNominaPeriodo` contra la misma regla en SQL (mes completo →
+ * salario; quincena → `round(salario / 2, 6)`; otro período → `null`), la
+ * que usará `gasto_recurrente_monto` en la Fase C.
  */
-import { montoUsdGasto, redondea6Gasto } from '../src/lib/gastos/montos'
+import { montoNominaPeriodo, montoUsdGasto, redondea6Gasto, resumirCostoEmpleado } from '../src/lib/gastos/montos'
+import { atajosPeriodo, diasDelMes, mesesDelRango, periodosSeSolapan, tipoPeriodoNomina } from '../src/lib/gastos/periodos'
+import { empleadoSchema } from '../src/lib/empleadoValidation'
 import {
   anularGastoSchema,
   descartarGastoSchema,
   editarGastoSchema,
   gastoFormSchema,
+  pagoNominaSchema,
   type GastoFormInput,
 } from '../src/lib/gastoValidation'
 import { categoriaGastoSchema } from '../src/lib/categoriaGastoValidation'
@@ -79,6 +85,53 @@ function sqlMontoUsd(c: CasoMonto): number {
   return Number(q) / 1e6
 }
 
+interface CasoNomina {
+  salario: number
+  desde: string
+  hasta: string
+}
+
+/** Salarios con 2 a 6 decimales y períodos de mes, quincena u otros (incluye febreros bisiestos). */
+function casosNomina(n: number): CasoNomina[] {
+  semilla = 2020
+  const casos: CasoNomina[] = []
+  const pad = (x: number) => String(x).padStart(2, '0')
+  for (let k = 0; k < n; k++) {
+    const dec = 2 + Math.floor(azar() * 5)
+    const salario = Math.round(azar() * 20_000 * 10 ** dec) / 10 ** dec
+    const anio = 2024 + Math.floor(azar() * 5)
+    const mes = 1 + Math.floor(azar() * 12)
+    const ultimo = diasDelMes(anio, mes)
+    const f = (d: number) => `${anio}-${pad(mes)}-${pad(d)}`
+    const r = azar()
+    let desde: string
+    let hasta: string
+    if (r < 0.3) [desde, hasta] = [f(1), f(ultimo)]
+    else if (r < 0.55) [desde, hasta] = [f(1), f(15)]
+    else if (r < 0.8) [desde, hasta] = [f(16), f(ultimo)]
+    else {
+      const a = 1 + Math.floor(azar() * ultimo)
+      const b = a + Math.floor(azar() * (ultimo - a + 1))
+      ;[desde, hasta] = [f(a), f(b)]
+    }
+    casos.push({ salario, desde, hasta })
+  }
+  return casos
+}
+
+/** Misma regla que `montoNominaPeriodo`, en SQL (fechas y `numeric(14,6)`). */
+function sqlNomina(c: CasoNomina): string {
+  const d = `'${c.desde}'::date`
+  const h = `'${c.hasta}'::date`
+  const s = `${c.salario.toFixed(6)}::numeric(14,6)`
+  const fin = `(date_trunc('month', ${d}) + interval '1 month - 1 day')::date`
+  return (
+    `(case when ${d} = date_trunc('month', ${d})::date and ${h} = ${fin} then ${s}` +
+    ` when (extract(day from ${d}) = 1 and ${h} = ${d} + 14) or (extract(day from ${d}) = 16 and ${h} = ${fin})` +
+    ` then round(${s} / 2, 6) else null end)`
+  )
+}
+
 if (process.argv.includes('--sql')) {
   const casos = casosAleatorios(200)
   const lineas: string[] = [
@@ -96,7 +149,15 @@ if (process.argv.includes('--sql')) {
       `  if ${expr} <> ${ts.toFixed(6)}::numeric then raise exception 'caso ${k} difiere: % vs ${ts.toFixed(6)}', ${expr}; end if;`
     )
   })
-  lineas.push("  raise notice 'paridad SQL montoUsdGasto: 200 casos iguales';", 'end $$;')
+  lineas.push("  raise notice 'paridad SQL montoUsdGasto: 200 casos iguales';")
+  casosNomina(200).forEach((c, k) => {
+    const ts = montoNominaPeriodo(c.salario, c.desde, c.hasta)
+    const esperado = ts === null ? 'null' : `${ts.toFixed(6)}::numeric`
+    lineas.push(
+      `  if ${sqlNomina(c)} is distinct from ${esperado} then raise exception 'nómina ${k} difiere: % vs ${esperado}', ${sqlNomina(c)}; end if;`
+    )
+  })
+  lineas.push("  raise notice 'paridad SQL montoNominaPeriodo: 200 casos iguales';", 'end $$;')
   console.log(lineas.join('\n'))
   process.exit(0)
 }
@@ -208,6 +269,100 @@ igual(
   categoriaGastoSchema.safeParse({ id: '', nombre: 'Cava', categoria_padre_id: '', orden: null }).data?.orden,
   0
 )
+
+// ---------- Fase B: nómina (P3: salario mensual) ----------
+igual('quincena 1–15 de $400 → $200', montoNominaPeriodo(400, '2026-10-01', '2026-10-15'), 200)
+igual('2.ª quincena de octubre (31 días) → mitad', montoNominaPeriodo(400, '2026-10-16', '2026-10-31'), 200)
+igual('octubre completo (31 días) → salario', montoNominaPeriodo(400, '2026-10-01', '2026-10-31'), 400)
+igual('febrero 2026 completo (28 días) → salario', montoNominaPeriodo(400, '2026-02-01', '2026-02-28'), 400)
+igual('febrero 2028 completo (bisiesto, 29) → salario', montoNominaPeriodo(400, '2028-02-01', '2028-02-29'), 400)
+igual('2.ª quincena de febrero 2026 (16–28) → mitad', montoNominaPeriodo(400, '2026-02-16', '2026-02-28'), 200)
+igual('1 de febrero a 1 de marzo no es mes → null', montoNominaPeriodo(400, '2026-02-01', '2026-03-01'), null)
+igual('2.ª quincena de octubre hasta el 30 → null (otro período)', montoNominaPeriodo(400, '2026-10-16', '2026-10-30'), null)
+igual('período de dos meses → null', montoNominaPeriodo(400, '2026-09-01', '2026-10-31'), null)
+igual('Bs 14.600 en quincena → 7.300', montoNominaPeriodo(14600, '2026-09-01', '2026-09-15'), 7300)
+igual('mitad de 0,000001 → 0,000001 (mitad hacia arriba)', montoNominaPeriodo(0.000001, '2026-09-01', '2026-09-15'), 0.000001)
+igual('mitad de 333,33 → 166,665', montoNominaPeriodo(333.33, '2026-09-16', '2026-09-30'), 166.665)
+igual('salario 0 en mes → 0', montoNominaPeriodo(0, '2026-09-01', '2026-09-30'), 0)
+igual(
+  'atajos de febrero 2026',
+  atajosPeriodo('2026-02-10').map((a) => `${a.label}:${a.desde}..${a.hasta}`),
+  ['1.ª quincena:2026-02-01..2026-02-15', '2.ª quincena:2026-02-16..2026-02-28', 'Mes:2026-02-01..2026-02-28']
+)
+igual(
+  'atajos de octubre (31 días)',
+  atajosPeriodo('2026-10-31').map((a) => `${a.desde}..${a.hasta}`),
+  ['2026-10-01..2026-10-15', '2026-10-16..2026-10-31', '2026-10-01..2026-10-31']
+)
+igual('atajos de febrero 2028 (bisiesto)', atajosPeriodo('2028-02-01')[2].hasta, '2028-02-29')
+igual('tipo 1–15', tipoPeriodoNomina('2026-10-01', '2026-10-15'), 'primera_quincena')
+igual('tipo invertido → null', tipoPeriodoNomina('2026-10-15', '2026-10-01'), null)
+verdadero('solapan 1–15 y 10–31', periodosSeSolapan({ desde: '2026-10-01', hasta: '2026-10-15' }, { desde: '2026-10-10', hasta: '2026-10-31' }))
+verdadero('solapan quincena y mes', periodosSeSolapan({ desde: '2026-10-16', hasta: '2026-10-31' }, { desde: '2026-10-01', hasta: '2026-10-31' }))
+verdadero('1–15 y 16–31 no se solapan', !periodosSeSolapan({ desde: '2026-10-01', hasta: '2026-10-15' }, { desde: '2026-10-16', hasta: '2026-10-31' }))
+verdadero('comparten un día (15) → se solapan', periodosSeSolapan({ desde: '2026-10-01', hasta: '2026-10-15' }, { desde: '2026-10-15', hasta: '2026-10-20' }))
+igual('meses de octubre → 1', mesesDelRango('2026-10-01', '2026-10-31'), 1)
+igual('meses 15/09–10/10 → 2', mesesDelRango('2026-09-15', '2026-10-10'), 2)
+igual('meses dic–feb → 3', mesesDelRango('2025-12-01', '2026-02-28'), 3)
+igual(
+  'costo: 2 quincenas de $200 (USD y Bs) en 1 mes',
+  resumirCostoEmpleado(
+    [
+      { monto_usd: 200, tasa_snapshot: 36.5 },
+      { monto_usd: 200, tasa_snapshot: 40 },
+    ],
+    1
+  ),
+  { total_usd: 400, total_bs: 15300, n_pagos: 2, promedio_mensual_usd: 400 }
+)
+igual('costo sin pagos en 3 meses', resumirCostoEmpleado([], 3), { total_usd: 0, total_bs: 0, n_pagos: 0, promedio_mensual_usd: 0 })
+{
+  const casos = casosNomina(200)
+  const mitades = casos.filter((c) => {
+    const t = tipoPeriodoNomina(c.desde, c.hasta)
+    return t === 'primera_quincena' || t === 'segunda_quincena'
+  })
+  const malas = mitades.filter((c) => {
+    const m = montoNominaPeriodo(c.salario, c.desde, c.hasta) as number
+    // Espejo independiente: round(s/2, 6) con BigInt.
+    const s = big(c.salario, 6)
+    return m !== Number((s + BigInt(1)) / BigInt(2)) / 1e6
+  })
+  verdadero(`paridad de la mitad en ${mitades.length} quincenas aleatorias`, malas.length === 0, JSON.stringify(malas.slice(0, 3)))
+}
+
+const empleadoBase = { id: '', nombre: 'Pedro Pérez', cedula: 'V-12345678', cargo: '', salario_base: 400, moneda: 'usd' as const, notas: '' }
+verdadero('empleado válido pasa', empleadoSchema.safeParse(empleadoBase).success)
+igual('cédula «v-12345678 » se normaliza', empleadoSchema.safeParse({ ...empleadoBase, cedula: ' v-12345678 ' }).data?.cedula, 'V-12345678')
+igual('cédula J- → cedula', camposConError(empleadoSchema.safeParse({ ...empleadoBase, cedula: 'J-12345678' })), ['cedula'])
+igual('cédula corta → cedula', camposConError(empleadoSchema.safeParse({ ...empleadoBase, cedula: 'V-123' })), ['cedula'])
+igual('nombre de 1 → nombre', camposConError(empleadoSchema.safeParse({ ...empleadoBase, nombre: 'P' })), ['nombre'])
+igual('salario vacío → salario_base', camposConError(empleadoSchema.safeParse({ ...empleadoBase, salario_base: null })), ['salario_base'])
+igual('salario negativo → salario_base', camposConError(empleadoSchema.safeParse({ ...empleadoBase, salario_base: -1 })), ['salario_base'])
+verdadero('salario 0 pasa', empleadoSchema.safeParse({ ...empleadoBase, salario_base: 0 }).success)
+igual('cargo de 81 → cargo', camposConError(empleadoSchema.safeParse({ ...empleadoBase, cargo: 'x'.repeat(81) })), ['cargo'])
+
+const pagoBase = {
+  ...base,
+  moneda: 'usd' as const,
+  monto: 200,
+  empleado_id: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+  periodo_desde: '2026-10-01',
+  periodo_hasta: '2026-10-15',
+}
+verdadero('pago de nómina válido pasa', pagoNominaSchema.safeParse(pagoBase).success)
+igual('pago sin empleado → empleado_id', camposConError(pagoNominaSchema.safeParse({ ...pagoBase, empleado_id: '' })), ['empleado_id'])
+igual(
+  'pago sin período → periodo_desde',
+  camposConError(pagoNominaSchema.safeParse({ ...pagoBase, periodo_desde: '', periodo_hasta: '' })),
+  ['periodo_desde']
+)
+igual(
+  'pago con período incompleto → periodo_hasta',
+  camposConError(pagoNominaSchema.safeParse({ ...pagoBase, periodo_hasta: '' })),
+  ['periodo_hasta']
+)
+igual('pago con fecha futura → fecha', camposConError(pagoNominaSchema.safeParse({ ...pagoBase, fecha: sumarDias(hoy, 1) })), ['fecha'])
 
 if (fallas > 0) {
   console.log(`\n${fallas} caso(s) fallaron`)

@@ -1,4 +1,5 @@
 import type { Moneda } from '@/types/domain'
+import { tipoPeriodoNomina } from './periodos'
 
 /**
  * Montos de un gasto (20-gastos). Funciones puras: sin Supabase ni React.
@@ -48,4 +49,43 @@ export function montoUsdGasto(moneda: Moneda, monto: number, tasa: number): numb
 /** Equivalente en Bs de un monto en USD a la tasa snapshot del gasto (sin revaluar). */
 export function equivalenteBsGasto(montoUsd: number, tasa: number): number {
   return montoUsd * tasa
+}
+
+/**
+ * Monto precargado de un pago de nómina (P3: `salario_base` es mensual).
+ *
+ * - Mes calendario completo → el salario.
+ * - Quincena (1–15 o 16–último día) → `round(salario / 2, 6)` (mitad hacia
+ *   arriba, como `round` de Postgres sobre `numeric`).
+ * - Cualquier otro período → `null` (sin precarga: el admin indica el monto).
+ *
+ * Es solo una precarga: el monto es editable al registrar el pago.
+ */
+export function montoNominaPeriodo(salarioMensual: number, periodoDesde: string, periodoHasta: string): number | null {
+  const tipo = tipoPeriodoNomina(periodoDesde, periodoHasta)
+  if (tipo === null || !(salarioMensual >= 0)) return null
+  const s = aMicro(salarioMensual)
+  if (tipo === 'mes') return Number(s) / 1e6
+  // round(s / 2): exacto si es par; con resto, la mitad sube (positivos).
+  return Number((s + BigInt(1)) / DOS) / 1e6
+}
+
+/** Resumen del costo de un empleado a partir de sus pagos confirmados. */
+export function resumirCostoEmpleado(
+  pagos: readonly { monto_usd: number; tasa_snapshot: number | null }[],
+  meses: number
+): { total_usd: number; total_bs: number; n_pagos: number; promedio_mensual_usd: number } {
+  let usd = 0
+  let bs = 0
+  for (const p of pagos) {
+    usd += p.monto_usd
+    bs += p.tasa_snapshot === null ? 0 : equivalenteBsGasto(p.monto_usd, p.tasa_snapshot)
+  }
+  const total_usd = redondea6Gasto(usd)
+  return {
+    total_usd,
+    total_bs: Math.round(bs * 100) / 100,
+    n_pagos: pagos.length,
+    promedio_mensual_usd: redondea6Gasto(total_usd / Math.max(1, meses)),
+  }
 }

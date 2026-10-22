@@ -1670,6 +1670,8 @@ export interface Gasto {
   notas: string | null
   periodo_desde: string | null
   periodo_hasta: string | null
+  /** Pago de nómina (Fase B): no nulo ⇔ categoría Nómina. */
+  empleado_id: string | null
   estado: EstadoGasto
   confirmado_por: string | null
   confirmado_at: string | null
@@ -1688,6 +1690,8 @@ export interface GastoDetalle extends Gasto {
   categoria_nombre: string | null
   /** Nombre de la categoría padre si el gasto está en una subcategoría. */
   categoria_padre_nombre: string | null
+  /** Empleado del pago de nómina. */
+  empleado_nombre: string | null
   creado_por_nombre: string | null
   confirmado_por_nombre: string | null
   anulado_por_nombre: string | null
@@ -1713,4 +1717,43 @@ export interface ResumenGastos {
   total_usd: number
   n_gastos: number
   por_categoria: GastoPorCategoria[]
+}
+
+/**
+ * Fila de `empleados` (20-gastos, Fase B). Un pago de nómina es un gasto de
+ * la categoría Nómina con `empleado_id`. Se desactiva, no se borra.
+ */
+export interface Empleado {
+  id: string
+  nombre: string
+  /** `V-`/`E-` + dígitos (formato de `RifCiField`), única. */
+  cedula: string
+  cargo: string | null
+  /** Salario MENSUAL (P3) en `moneda`; la quincena precarga la mitad. */
+  salario_base: number
+  moneda: Moneda
+  activo: boolean
+  notas: string | null
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+}
+
+/**
+ * Costo de un empleado en un rango (`empleadoService.getCostoEmpleado`):
+ * solo pagos `confirmado` por `fecha` (P2); anulados fuera.
+ */
+export interface CostoEmpleado {
+  empleado_id: string
+  rango: RangoFechas
+  /** Σ `monto_usd` de los pagos confirmados. */
+  total_usd: number
+  /** Equivalente en Bs a la tasa de cada pago: Σ `monto_usd × tasa_snapshot`. */
+  total_bs: number
+  n_pagos: number
+  /** Meses calendario que toca el rango (mínimo 1). */
+  meses: number
+  /** `total_usd / meses`. */
+  promedio_mensual_usd: number
 }
