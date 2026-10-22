@@ -43,13 +43,13 @@
 
 ## UI (Atomic Design y `00-estandares-ui`)
 - [ ] `/gastos` y `/gastos/empleados/[id]` solo admin (`requireAdmin()` → `notFound()`), con `loading`, `error` (y `not-found` en la ficha); `page.tsx` solo compone organisms/templates. — Fase A: `/gastos` con `requireAdmin()` → `notFound()`, `loading` y `error`. La ficha `/gastos/empleados/[id]`: fase B, otra rama.
-- [x] Ítem de menú `/gastos` con `adminOnly: true`; el operador no lo ve. — `NAV_ITEMS` filtra `adminOnly` por rol. Pendiente confirmarlo en navegador con sesión de operador.
+- [x] Ítem de menú `/gastos` con `adminOnly: true`; el operador no lo ve. — `NAV_ITEMS` filtra `adminOnly` por rol. Verificado en navegador por el usuario el 2026-10-22.
 - [x] Tabs en `?tab=`, rango en `?desde`/`?hasta`, estado en `?estado=` (persisten al navegar). — Además `?categoria=`. Tab, estado y categoría con `writeUrlParams` (sin recargar, como `?pagina=`); el rango con `RangoFechasSelector` (lo pide el servidor).
 - [ ] Listados en `AppDataGrid`; diálogos en `AppDialog` (`GastoForm` md, `fullScreen` en `xs`); ficha con `FichaHeader`; `TasaSelector` de 08 y procedencia de la tasa visible; `useForm({ disabled })`, `Button loading`, cierre protegido con `dirty`. — Fase A cumplida en `GastosTable`, `GastoForm` (md, `fullScreen` en `xs` por `AppDialog`), `AnularGastoDialog`, `GastoDetalleDialog` y `CategoriaGastoForm`. La ficha con `FichaHeader`: fase B, otra rama.
 - [x] Confirmaciones con `useConfirm`/`ConfirmDialog` y toasts con `useNotify` (nunca `window.alert`/`confirm`); estados vacíos y de error con `EmptyState`/`ErrorState`. — Desactivar categoría y tasa manual con `useConfirm`; toasts con `useNotify`; `EmptyState` en la tabla y el panel; `ErrorState` en `error.tsx`.
 - [ ] Números con `lib/format.ts`, cifras tabulares, montos a la derecha; colores del dashboard solo del theme (sin hex). — Fase A: `lib/format.ts`, `tabular-nums` y montos a la derecha en tabla, diálogos y KPIs. Colores del dashboard: fase D, otra rama.
 - [ ] Componentes genéricos nuevos registrados en "Componentes compartidos" de `00-estandares-ui/spec.md` (o anotado que no hubo). — Fase E, otra rama. En Fase A no se creó ningún genérico (`AnularGastoDialog` no se generalizó; `lib/gastos/textos.ts` es del dominio).
-- [ ] Modo claro/oscuro y responsive (375/768/1024/1440). — Fase E, otra rama (revisión visual pendiente: requiere la migración aplicada en Supabase).
+- [ ] Modo claro/oscuro y responsive (375/768/1024/1440). — Fase E, otra rama (migración ya aplicada; revisión visual de claro/oscuro y tamaños pendiente).
 
 ## Tipos y calidad
 - [ ] Tipos de la spec en `src/types/domain.ts`, sin `any` sin justificar. — Fase A: `EstadoGasto`, `CategoriaGasto`, `Gasto`, `GastoDetalle`, `GastoPorCategoria` (+ `ResumenGastos`), sin `any`. Los de B/C/D: otra rama.
@@ -57,8 +57,8 @@
 
 ## Pendientes / deuda técnica
 - _(anotar aquí con fecha lo que se difiera, sin borrar ítems)_
-- **2026-10-22 — Migración sin aplicar en Supabase** (Fase A): `20261022000000_gastos_esquema.sql` está escrita y validada en un Postgres local desechable. **Aplicarla antes de desplegar este código**: hasta entonces `/gastos` falla (no existen `categorias_gasto` ni `gastos`).
-- **2026-10-22 — "Hecho" de las tareas 8 y 9 sin verificar en navegador**: registrar un gasto en Bs con tasa referencial y otro en USD con tasa manual (con la confirmación por desviación), anular uno con motivo y ver quién y cuándo, total del rango = Σ `monto_usd` confirmados; y con sesión de operador, sin ítem de menú y `/gastos` → 404. Requiere la migración aplicada; las reglas están probadas a nivel SQL y por código.
+- **2026-10-22 — Resuelto el mismo día**: el usuario aplicó la migración en Supabase. Nota original — **Migración sin aplicar en Supabase** (Fase A): `20261022000000_gastos_esquema.sql` está escrita y validada en un Postgres local desechable. **Aplicarla antes de desplegar este código**: hasta entonces `/gastos` falla (no existen `categorias_gasto` ni `gastos`).
+- **2026-10-22 — Resuelto el mismo día**: el usuario probó en navegador y todo funciona. Nota original — **"Hecho" de las tareas 8 y 9 sin verificar en navegador**: registrar un gasto en Bs con tasa referencial y otro en USD con tasa manual (con la confirmación por desviación), anular uno con motivo y ver quién y cuándo, total del rango = Σ `monto_usd` confirmados; y con sesión de operador, sin ítem de menú y `/gastos` → 404. Requiere la migración aplicada; las reglas están probadas a nivel SQL y por código.
 - **2026-10-22 — Desvíos de la Fase A** (conservadores, sin reabrir decisiones):
   - `gastos_confirmado_completo` exceptúa `pendiente` y `descartado` (la spec solo `pendiente`; sin esto un pendiente sin tasa no podía descartarse en la Fase C).
   - `categorias_gasto.created_by` admite `null` (= sembrada por la migración, sin sesión). En `gastos` es `not null` como dice la spec.
