@@ -127,7 +127,16 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     procesados, ledger y líneas vendidas sin tocar precios ni totales de
     facturas; ficha /compras/[id]. Spec del 2026-10-19; D1–D8 cerradas el mismo día)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar) → 19-edicion-compras (reutiliza el patrón de 17/18 y extiende su regla de contrato desactualizado; empezar después del commit de 18).
+20-gastos      → depende de 01-auth, 08-tasas y 15-dashboard (hechos);
+                 no cambia el esquema de otros módulos; agrega 2 RPC y UI a 15
+   (control de gastos operativos, NO contabilidad formal: categorías editables
+    con Nómina de sistema, gastos en USD/Bs con tasa snapshot de 08 normalizados
+    a USD, empleados y pagos de nómina por período, plantillas recurrentes con
+    pendiente de confirmar, anulación con motivo; solo admin; utilidad neta en
+    el dashboard. Spec del 2026-10-22; P1–P6 aprobadas el mismo día. Fases
+    A base · B nómina · C recurrentes · D dashboard, entregables por separado)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar) → 19-edicion-compras (reutiliza el patrón de 17/18 y extiende su regla de contrato desactualizado; empezar después del commit de 18) → 20-gastos (independiente de 16–19; empezar después del merge de 19 y con P1–P6 respondidas; la Fase D amplía 15).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -213,6 +222,17 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - ficha `/compras/[id]` solo admin, con historial y "Editar compra", y entradas desde el `⋮` de `/compras` y del historial del proveedor.
 
   Cambia `compra_items`, `movimientos` y `registrar_compra` (04/07) y `contratos_listado_view` (06), y recalcula datos de 16 y 17. Quedó anotado como tarea agregada en `03-proveedores`, `04-inventario`, `06-contratos`, `07-lotes`, `15-dashboard` (sin cambios de RPC), `16-procesamiento-multisalida` y `17-trazabilidad-y-correccion-facturas`. `/SPEC.md` §2, §4.1, §4.2, §4.6 y §5 se actualizaron con nota del 2026-10-19.
+
+- **Gastos operativos y nómina (2026-10-22, pedido del usuario)**: el negocio quiere llevar sus gastos (mantenimiento, nómina, servicios, etc.) para medirlos y tener trazabilidad. Es un **control de gastos operativos, no contabilidad formal**: `/SPEC.md` §9 ("Contabilidad formal (mayor, balance)" fuera de alcance) **no se reabre**; no hay plan de cuentas, asientos de partida doble, mayor ni balance. Decisiones cerradas por el usuario:
+  - Nómina = tabla `empleados` (nombre, cédula, cargo, salario base, moneda, activo) y cada pago es un gasto de la categoría Nómina ligado a un empleado y a un período; sin conceptos ni deducciones.
+  - Catálogo editable `categorias_gasto` con subcategoría opcional; Nómina es de sistema y no se borra.
+  - Cada gasto en USD o Bs con tasa snapshot y procedencia (resolución de 08, como compras) y monto normalizado a USD.
+  - Plantillas recurrentes que generan gastos pendientes de confirmar; el admin confirma (ajustando monto y tasa) o descarta.
+  - Solo admin (RLS `es_admin()` en todas las tablas nuevas y menú `adminOnly`).
+  - El dashboard suma los gastos confirmados del período y muestra utilidad neta = margen bruto − gastos, y gastos por categoría.
+  - Sin comprobante adjunto ni historial completo: `created_by`/`updated_by`, timestamps y anulación con motivo en lugar de borrado.
+
+  Nuevo módulo `20-gastos`, en cuatro fases entregables por separado. El mismo día el usuario aprobó P1–P6 de su `spec.md` con la recomendación de cada una (edición de un gasto confirmado o solo anular y re-registrar, fecha de imputación, salario base mensual, generación a demanda de recurrentes, gastos con tasa manual en `/tasas`, frecuencias). No cambia el esquema de otros módulos; amplía `15-dashboard` con dos RPC nuevas y su UI, sin tocar las existentes (tarea agregada en `15-dashboard/tasks.md`). Por P5, los gastos con tasa manual se suman a "Operaciones con tasa manual" de `/tasas` (tarea agregada en `08-tasas/tasks.md`, sin cambio de esquema). `/SPEC.md` §5, §7 y §9 se actualizan con nota en la Fase E del módulo.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 
