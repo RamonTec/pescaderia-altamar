@@ -30,6 +30,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import CurrencyExchangeOutlinedIcon from '@mui/icons-material/CurrencyExchangeOutlined'
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
@@ -100,6 +101,13 @@ const NAV_ITEMS: NavItem[] = [
     href: '/contratos',
     label: 'Contratos',
     icon: <DescriptionOutlinedIcon />,
+    adminOnly: true,
+  },
+  // 20-gastos: gastos operativos y nómina, solo admin.
+  {
+    href: '/gastos',
+    label: 'Gastos',
+    icon: <AccountBalanceWalletOutlinedIcon />,
     adminOnly: true,
   },
   {
