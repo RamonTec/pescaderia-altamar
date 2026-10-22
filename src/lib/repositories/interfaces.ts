@@ -1,5 +1,9 @@
 import type {
   CanalRecordatorioId,
+  CategoriaGasto,
+  EstadoGasto,
+  Gasto,
+  GastoDetalle,
   Cliente,
   ClienteInput,
   CondicionPago,
@@ -704,4 +708,78 @@ export interface IDashboardRepository {
   flujoProyectado(dias: number): Promise<FilaFlujo[]>
   exposicionCambiaria(): Promise<ExposicionCambiaria>
   contratosSinFirmar(): Promise<ContratoPendienteFirma[]>
+}
+
+/* ==================== Gastos operativos (20) ==================== */
+
+/** Alta de una categoría o subcategoría (`clave`/`es_sistema` solo los fija la migración). */
+export type CategoriaGastoNueva = Pick<CategoriaGasto, 'nombre' | 'categoria_padre_id' | 'orden'>
+
+export type CategoriaGastoCambios = Partial<
+  Pick<CategoriaGasto, 'nombre' | 'categoria_padre_id' | 'orden' | 'activo'>
+>
+
+/**
+ * Catálogo `categorias_gasto` (solo admin por RLS). Solo acceso y mapeo; los
+ * errores de Postgres (`hint` de `categorias_gasto_guard`, `23505`) se
+ * devuelven tal cual.
+ */
+export interface ICategoriaGastoRepository {
+  /** Todas (activas e inactivas), planas, por `orden` y `nombre`. */
+  list(): Promise<CategoriaGasto[]>
+  create(data: CategoriaGastoNueva): Promise<CategoriaGasto>
+  update(id: string, cambios: CategoriaGastoCambios): Promise<CategoriaGasto>
+}
+
+/** Columnas que el servicio escribe al registrar o confirmar un gasto. */
+export type GastoNuevo = Pick<
+  Gasto,
+  | 'fecha'
+  | 'categoria_id'
+  | 'descripcion'
+  | 'beneficiario'
+  | 'moneda'
+  | 'monto'
+  | 'tasa_snapshot'
+  | 'tasa_origen'
+  | 'tasa_fuente'
+  | 'tasa_referencial'
+  | 'monto_usd'
+  | 'metodo_pago'
+  | 'referencia'
+  | 'notas'
+  | 'periodo_desde'
+  | 'periodo_hasta'
+>
+
+export type GastoCambios = Partial<GastoNuevo> & { estado?: EstadoGasto }
+
+export interface FiltrosGastosRepo {
+  /** Rango de `fecha` (P2), inclusive. */
+  desde?: string
+  hasta?: string
+  estados?: EstadoGasto[]
+  /** Categoría y sus subcategorías (el servicio arma la lista). */
+  categoriaIds?: string[]
+  /** Fase B (`gastos.empleado_id`); no se usa hasta que exista la columna. */
+  empleadoId?: string
+}
+
+/**
+ * Tabla `gastos` (solo admin por RLS; sin `delete`). Escritura directa: las
+ * invariantes las hace cumplir `gastos_guard`. Solo acceso y mapeo
+ * `numeric → number`; los `hint` de Postgres se devuelven tal cual.
+ */
+export interface IGastoRepository {
+  /** Orden `fecha desc, created_at desc`. Trae todas las páginas de PostgREST. */
+  list(filtros: FiltrosGastosRepo): Promise<Gasto[]>
+  getById(id: string): Promise<Gasto | null>
+  /** Gasto con los nombres de categoría y de los usuarios (`perfiles`). */
+  getDetalle(id: string): Promise<GastoDetalle | null>
+  create(data: GastoNuevo): Promise<Gasto>
+  update(id: string, cambios: GastoCambios): Promise<Gasto>
+  /** `confirmado → anulado`; `anulado_por`/`anulado_at` los fija la base. */
+  anular(id: string, motivo: string): Promise<Gasto>
+  /** `pendiente → descartado` (motivo opcional). */
+  descartar(id: string, motivo: string | null): Promise<Gasto>
 }
