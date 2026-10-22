@@ -258,7 +258,7 @@ Para que los checks **bloqueen el merge**, en GitHub → *Settings → Rules* (o
 ## 9. Instalación y Puesta en Marcha Local
 
 ### Prerrequisitos
-* **Node.js**: `v20.x` o superior.
+* **Node.js**: `v22.x` o superior.
 * **npm**: `v10.x` o superior.
 * Un proyecto de **Supabase** activo (en la nube o local con Supabase CLI).
 
@@ -531,7 +531,7 @@ This project adheres strictly to **Spec-Driven Development (SDD)**:
 ## 9. Local Setup & Quickstart
 
 ### Prerequisites
-* **Node.js**: `v20.x` or higher.
+* **Node.js**: `v22.x` or higher.
 * **npm**: `v10.x` or higher.
 * An active **Supabase** instance (Cloud or local via Supabase CLI).
 
