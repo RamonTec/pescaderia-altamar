@@ -14,6 +14,8 @@ import {
   MSG_MAX_120,
   MSG_MAX_500,
   MSG_MAX_80,
+  MSG_NOMINA_EMPLEADO_REQUERIDO,
+  MSG_NOMINA_PERIODO_REQUERIDO,
 } from './validationMessages'
 
 /**
@@ -22,6 +24,7 @@ import {
  * - `gastoFormSchema`: alta manual (modos `crear` y `registrar_de_nuevo` de
  *   `GastoForm`). Tasa con `camposTasa` + `validarTasa` (08-tasas); el
  *   servidor la resuelve con `resolverTasaOperacion` y calcula `monto_usd`.
+ * - `pagoNominaSchema` (Fase B): lo mismo + empleado y período obligatorios.
  * - `editarGastoSchema`: edición de un confirmado según P1 (b): solo
  *   descripción, beneficiario, referencia y notas.
  * - `anularGastoSchema` (motivo 5–500) y `descartarGastoSchema` (motivo
@@ -54,44 +57,74 @@ const beneficiario = z.string().trim().max(120, MSG_MAX_120)
 const referencia = z.string().trim().max(80, MSG_MAX_80)
 const notas = z.string().trim().max(500, MSG_MAX_500)
 
-export const gastoFormSchema = z
-  .object({
-    fecha: fechaGasto,
-    categoria_id: z.string().uuid(MSG_GASTO_CATEGORIA_REQUERIDA),
-    descripcion,
-    beneficiario,
-    moneda: z.enum(['usd', 'bs']),
-    /** Monto en la moneda del gasto (la UI captura 2 decimales). */
-    monto: z
-      .number()
-      .positive(MSG_GASTO_MONTO_MAYOR_0)
-      .nullable()
-      .refine((v) => v !== null, MSG_GASTO_MONTO_REQUERIDO)
-      .transform((v) => v as number),
-    ...camposTasa,
-    metodo_pago: z.enum(METODOS_PAGO_GASTO).nullable(),
-    referencia,
-    notas,
-    periodo_desde: fechaOpcional,
-    periodo_hasta: fechaOpcional,
-  })
-  .superRefine((v, ctx) => {
-    validarTasa(v, ctx)
-    const conDesde = v.periodo_desde !== ''
-    const conHasta = v.periodo_hasta !== ''
-    if (conDesde !== conHasta) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [conDesde ? 'periodo_hasta' : 'periodo_desde'],
-        message: MSG_GASTO_PERIODO_INCOMPLETO,
-      })
-    } else if (conDesde && v.periodo_desde > v.periodo_hasta) {
-      ctx.addIssue({ code: 'custom', path: ['periodo_hasta'], message: MSG_GASTO_PERIODO_ORDEN })
-    }
-  })
+const gastoCampos = z.object({
+  fecha: fechaGasto,
+  categoria_id: z.string().uuid(MSG_GASTO_CATEGORIA_REQUERIDA),
+  descripcion,
+  beneficiario,
+  moneda: z.enum(['usd', 'bs']),
+  /** Monto en la moneda del gasto (la UI captura 2 decimales). */
+  monto: z
+    .number()
+    .positive(MSG_GASTO_MONTO_MAYOR_0)
+    .nullable()
+    .refine((v) => v !== null, MSG_GASTO_MONTO_REQUERIDO)
+    .transform((v) => v as number),
+  ...camposTasa,
+  metodo_pago: z.enum(METODOS_PAGO_GASTO).nullable(),
+  referencia,
+  notas,
+  periodo_desde: fechaOpcional,
+  periodo_hasta: fechaOpcional,
+})
+
+type GastoCamposValues = z.output<typeof gastoCampos>
+
+/** Reglas comunes: tasa (08) y período ambos-o-ninguno con `desde ≤ hasta`. */
+function refinarGasto(v: GastoCamposValues, ctx: z.RefinementCtx) {
+  validarTasa(v, ctx)
+  const conDesde = v.periodo_desde !== ''
+  const conHasta = v.periodo_hasta !== ''
+  if (conDesde !== conHasta) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [conDesde ? 'periodo_hasta' : 'periodo_desde'],
+      message: MSG_GASTO_PERIODO_INCOMPLETO,
+    })
+  } else if (conDesde && v.periodo_desde > v.periodo_hasta) {
+    ctx.addIssue({ code: 'custom', path: ['periodo_hasta'], message: MSG_GASTO_PERIODO_ORDEN })
+  }
+}
+
+export const gastoFormSchema = gastoCampos.superRefine(refinarGasto)
 
 export type GastoFormInput = z.input<typeof gastoFormSchema>
 export type GastoFormValues = z.output<typeof gastoFormSchema>
+
+/**
+ * Pago de nómina (Fase B, modo `nomina` de `GastoForm`): un gasto de la
+ * categoría Nómina con empleado y período obligatorios. El servidor fija la
+ * categoría Nómina (no confía en la del cliente) y la base exige empleado
+ * activo (`gastos_guard`).
+ */
+export const pagoNominaSchema = gastoCampos
+  .extend({ empleado_id: z.string().uuid(MSG_NOMINA_EMPLEADO_REQUERIDO) })
+  .superRefine((v, ctx) => {
+    refinarGasto(v, ctx)
+    if (v.periodo_desde === '' && v.periodo_hasta === '') {
+      ctx.addIssue({ code: 'custom', path: ['periodo_desde'], message: MSG_NOMINA_PERIODO_REQUERIDO })
+    }
+  })
+
+export type PagoNominaInput = z.input<typeof pagoNominaSchema>
+export type PagoNominaValues = z.output<typeof pagoNominaSchema>
+
+/** Consulta de pagos con período solapado (aviso sin bloqueo). */
+export const solapadosNominaSchema = z.object({
+  empleado_id: z.string().uuid(),
+  periodo_desde: z.string().regex(FECHA_REGEX),
+  periodo_hasta: z.string().regex(FECHA_REGEX),
+})
 
 /** P1 (b): un confirmado solo cambia estos campos. */
 export const editarGastoSchema = z.object({

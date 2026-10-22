@@ -15,7 +15,7 @@ import { EstadoChip, colAcciones, colFecha, colMonto } from '@/components/organi
 import { COLOR_ESTADO_GASTO } from '@/components/organisms/GastoDetalleDialog'
 import { ETIQUETA_ESTADO_GASTO, mapaCategorias, rutaCategoria, textoTasaGasto } from '@/lib/gastos/textos'
 import { formatBs, formatFecha, formatUsd } from '@/lib/format'
-import type { CategoriaGasto, Gasto } from '@/types/domain'
+import type { CategoriaGasto, Empleado, Gasto } from '@/types/domain'
 
 export interface GastosTableAcciones {
   onDetalle: (g: Gasto) => void
@@ -33,6 +33,8 @@ export interface GastosTableProps extends GastosTableAcciones {
   gastos: Gasto[]
   /** Árbol de categorías, para «Categoría › Subcategoría». */
   categorias: CategoriaGasto[]
+  /** Empleados (Fase B): el nombre del empleado de un pago de nómina va en el `caption`. */
+  empleados?: Empleado[]
   /** Chips de filtro (estado, categoría) a la derecha de la búsqueda. */
   filtros?: React.ReactNode
   /** Botón del estado vacío ("Registrar gasto"). */
@@ -41,13 +43,20 @@ export interface GastosTableProps extends GastosTableAcciones {
   filtrado?: boolean
 }
 
+/** «Empleado · beneficiario» sin repetir (caption de la descripción). */
+function subtitulo(g: Gasto, nombres: ReadonlyMap<string, string>): string | null {
+  const empleado = g.empleado_id ? (nombres.get(g.empleado_id) ?? null) : null
+  const partes = [empleado, g.beneficiario].filter((v): v is string => !!v)
+  return [...new Set(partes)].join(' · ') || null
+}
+
 function montoEnMoneda(g: Pick<Gasto, 'moneda' | 'monto'>): string {
   return g.moneda === 'bs' ? formatBs(g.monto) : formatUsd(g.monto)
 }
 
 /**
  * Listado de gastos (20-gastos), `AppDataGrid` en modo cliente: fecha,
- * categoría › subcategoría, descripción (+ beneficiario), monto en su
+ * categoría › subcategoría, descripción (+ empleado / beneficiario), monto en su
  * moneda, USD, tasa con su procedencia («36,50 · BCV» / «40,00 · manual») y
  * estado. `⋮`: Ver detalle, Editar (P1), Anular, Registrar de nuevo y, en
  * pendientes (Fase C), Confirmar / Descartar.
@@ -55,6 +64,7 @@ function montoEnMoneda(g: Pick<Gasto, 'moneda' | 'monto'>): string {
 export function GastosTable({
   gastos,
   categorias,
+  empleados,
   filtros,
   accionVacio,
   filtrado = false,
@@ -66,6 +76,7 @@ export function GastosTable({
   onDescartar,
 }: GastosTableProps) {
   const mapa = React.useMemo(() => mapaCategorias(categorias), [categorias])
+  const nombres = React.useMemo(() => new Map((empleados ?? []).map((e) => [e.id, e.nombre])), [empleados])
 
   const acciones = React.useCallback(
     (g: Gasto): RowAction[] => {
@@ -116,9 +127,9 @@ export function GastosTable({
             <Typography variant="body2" noWrap>
               {row.descripcion}
             </Typography>
-            {row.beneficiario ? (
+            {subtitulo(row, nombres) ? (
               <Typography variant="caption" color="text.secondary" noWrap>
-                {row.beneficiario}
+                {subtitulo(row, nombres)}
               </Typography>
             ) : null}
           </Box>
@@ -156,7 +167,7 @@ export function GastosTable({
       },
       colAcciones<Gasto>(acciones, { rowLabel: (row) => `gasto ${row.descripcion}` }),
     ],
-    [acciones, mapa]
+    [acciones, mapa, nombres]
   )
 
   return (
@@ -166,7 +177,13 @@ export function GastosTable({
       rows={gastos}
       columns={columns}
       searchPlaceholder="Buscar por descripción, beneficiario o referencia"
-      getSearchValues={(g) => [g.descripcion, g.beneficiario, g.referencia, rutaCategoria(mapa, g.categoria_id)]}
+      getSearchValues={(g) => [
+        g.descripcion,
+        g.beneficiario,
+        g.referencia,
+        rutaCategoria(mapa, g.categoria_id),
+        g.empleado_id ? nombres.get(g.empleado_id) : null,
+      ]}
       filters={filtros}
       initialSort={[{ field: 'fecha', sort: 'desc' }]}
       hideOnMobile={['tasa_snapshot', 'categoria_id']}

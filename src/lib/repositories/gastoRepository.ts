@@ -87,6 +87,17 @@ export function makeGastoRepository(db: SupabaseClient = createClient()): IGasto
         padreNombre = (padre as { nombre: string } | null)?.nombre ?? null
       }
 
+      let empleadoNombre: string | null = null
+      if (gasto.empleado_id) {
+        const { data: emp, error } = await db
+          .from('empleados')
+          .select('nombre')
+          .eq('id', gasto.empleado_id)
+          .maybeSingle()
+        if (error) throw error
+        empleadoNombre = (emp as { nombre: string } | null)?.nombre ?? null
+      }
+
       const ids = [gasto.created_by, gasto.confirmado_por, gasto.anulado_por, gasto.updated_by].filter(
         (v): v is string => Boolean(v)
       )
@@ -102,6 +113,7 @@ export function makeGastoRepository(db: SupabaseClient = createClient()): IGasto
         ...gasto,
         categoria_nombre: categoria?.nombre ?? null,
         categoria_padre_nombre: padreNombre,
+        empleado_nombre: empleadoNombre,
         creado_por_nombre: nombre(gasto.created_by),
         confirmado_por_nombre: nombre(gasto.confirmado_por),
         anulado_por_nombre: nombre(gasto.anulado_por),

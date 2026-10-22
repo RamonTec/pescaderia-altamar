@@ -9,7 +9,9 @@ import {
   descartarGasto,
   editarGasto,
   getGastoDetalle,
+  pagosSolapados,
   registrarGasto,
+  registrarPagoNomina,
 } from '@/lib/services/gastoService'
 import {
   CategoriaGastoError,
@@ -23,11 +25,14 @@ import {
   descartarGastoSchema,
   editarGastoSchema,
   gastoFormSchema,
+  pagoNominaSchema,
+  solapadosNominaSchema,
 } from '@/lib/gastoValidation'
 import { activarCategoriaGastoSchema, categoriaGastoSchema } from '@/lib/categoriaGastoValidation'
 import { MSG_TASA_REFERENCIAL_CAMBIO } from '@/lib/validationMessages'
 import { toActionError, type ActionState } from '@/lib/actionState'
-import type { GastoDetalle } from '@/types/domain'
+import { formatFecha } from '@/lib/format'
+import type { Gasto, GastoDetalle } from '@/types/domain'
 
 /**
  * Server Actions de gastos (20-gastos): `safeParse` con zod → servicio →
@@ -64,7 +69,19 @@ async function exigirAdmin(): Promise<ActionState | null> {
 
 function revalidar() {
   revalidatePath('/gastos')
+  // Fichas de empleado (Fase B): sus pagos y su costo.
+  revalidatePath('/gastos/empleados/[id]', 'page')
   revalidatePath('/')
+}
+
+/** «1 pago confirmado (01/10/2026 – 15/10/2026)» para el aviso de solapado. */
+function textoSolapados(lista: readonly Gasto[]): string {
+  const periodos = lista
+    .slice(0, 3)
+    .map((g) => `${formatFecha(g.periodo_desde)} – ${formatFecha(g.periodo_hasta)}`)
+    .join('; ')
+  const n = lista.length
+  return `Ya hay ${n} pago${n === 1 ? '' : 's'} confirmado${n === 1 ? '' : 's'} de este empleado con período solapado (${periodos}${n > 3 ? '…' : ''})`
 }
 
 const INVALIDO = 'Revisa los campos marcados'
@@ -82,6 +99,44 @@ export async function registrarGastoAction(input: unknown): Promise<ActionState>
       success: 'Gasto registrado',
       info: aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
     }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+
+/** Pago de nómina (Fase B): avisa (sin bloquear) si el período se solapa con otro pago. */
+export async function registrarPagoNominaAction(input: unknown): Promise<ActionState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  const safe = pagoNominaSchema.safeParse(input)
+  if (!safe.success) return { error: INVALIDO, success: null, fieldErrors: fieldErrorsDeZod(safe.error) }
+  try {
+    const { aviso, solapados } = await registrarPagoNomina(safe.data)
+    revalidar()
+    const avisos = [
+      aviso === 'referencial_cambio' ? MSG_TASA_REFERENCIAL_CAMBIO : null,
+      solapados.length > 0 ? `${textoSolapados(solapados)}.` : null,
+    ].filter(Boolean)
+    return { error: null, success: 'Pago de nómina registrado', info: avisos.length ? avisos.join(' ') : null }
+  } catch (e) {
+    return errorDeDominio(e)
+  }
+}
+
+export interface SolapadosNominaState extends ActionState {
+  /** Texto del aviso (`null` = sin solapados). */
+  aviso?: string | null
+}
+
+/** Consulta del formulario de nómina: pagos confirmados con período solapado. */
+export async function pagosSolapadosAction(input: unknown): Promise<SolapadosNominaState> {
+  const denegado = await exigirAdmin()
+  if (denegado) return denegado
+  const safe = solapadosNominaSchema.safeParse(input)
+  if (!safe.success) return { error: null, success: null, aviso: null }
+  try {
+    const lista = await pagosSolapados(safe.data.empleado_id, safe.data.periodo_desde, safe.data.periodo_hasta)
+    return { error: null, success: null, aviso: lista.length ? textoSolapados(lista) : null }
   } catch (e) {
     return errorDeDominio(e)
   }
