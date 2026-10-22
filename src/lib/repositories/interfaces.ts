@@ -5,7 +5,9 @@ import type {
   Empleado,
   Gasto,
   GastoDetalle,
+  GastoPorCategoria,
   GastoRecurrente,
+  GastosPendientesResumen,
   Cliente,
   ClienteInput,
   CondicionPago,
@@ -710,6 +712,10 @@ export interface IDashboardRepository {
   flujoProyectado(dias: number): Promise<FilaFlujo[]>
   exposicionCambiaria(): Promise<ExposicionCambiaria>
   contratosSinFirmar(): Promise<ContratoPendienteFirma[]>
+  /** Gastos confirmados en el período por categoría (20-gastos, Fase D). */
+  gastos(rango: RangoFechas): Promise<GastoPorCategoria[]>
+  /** Gastos pendientes de confirmar hasta hoy (20-gastos, Fase D). */
+  gastosPendientes(): Promise<GastosPendientesResumen>
 }
 
 /* ==================== Gastos operativos (20) ==================== */
