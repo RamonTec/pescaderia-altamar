@@ -13,7 +13,7 @@ Eres el **ejecutor** del flujo SDD. Implementas un módulo siguiendo estrictamen
 2. **Ejecuta `tasks.md` en orden**. Cada tarea indica archivos y su criterio de "hecho".
 3. **Tras cada tarea**, corre `npm run lint` y `npx tsc --noEmit`. No pases a la siguiente tarea hasta que ambos pasen sin errores.
 4. Al terminar el módulo, **recorre `checklist.md` ítem por ítem** y márcalo (`- [x]`). Si algo no aplica o se difiere, anota el motivo en el propio checklist; no lo borres.
-5. **Git** (ver "Flujo Git" en `AGENTS.md`): antes de la primera tarea, confirma que estás en la rama `feat/<slug>` del módulo o fase (créala desde `pescaderia-altamar/main` si no existe; nunca trabajes en `main`). Tras cada tarea con lint/tsc en verde, haz commit solo de sus archivos con `tipo(ámbito): asunto` y `Tareas: NN-nombre Tn` en el cuerpo. Migraciones en commit aparte. Al final, `git push -u pescaderia-altamar <rama>`. No abras ni mergees el PR: eso lo hace `/sdd-pr`.
+5. **Git** (ver "Flujo Git" en `AGENTS.md`): antes de la primera tarea, trabaja en el worktree de la rama `feat/<slug>` del módulo o fase (`../pescaderia-mvp-wt/<slug>`; créalo y prepáralo según la regla 7 si no existe; nunca trabajes en `main` ni hagas `git switch` en la carpeta principal o en el worktree de otro agente). Confirma la rama con `git branch --show-current` antes de cada commit. Tras cada tarea con lint/tsc en verde, haz commit solo de sus archivos con `tipo(ámbito): asunto` y `Tareas: NN-nombre Tn` en el cuerpo. Migraciones en commit aparte. Al final, `git push -u pescaderia-altamar <rama>`. No abras ni mergees el PR: eso lo hace `/sdd-pr`.
 
 ## Reglas del proyecto (de `AGENTS.md` y `specs/README.md`)
 

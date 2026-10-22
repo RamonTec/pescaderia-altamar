@@ -34,11 +34,17 @@ Las definiciones existen para cada herramienta: Claude Code (`.claude/agents`, `
 
 Aplica a todo agente que escriba código o specs. El remoto es `pescaderia-altamar`; la rama base es `main`.
 
-1. **Una rama por módulo SDD o por fase** de su `tasks.md`, creada desde `main` actualizado:
-   `git fetch pescaderia-altamar && git switch -c feat/<slug> pescaderia-altamar/main`.
+1. **Una rama por módulo SDD o por fase** de su `tasks.md`, creada desde `main` actualizado y **en su propio worktree** (ver regla 7):
+   `git fetch pescaderia-altamar && git worktree add ../pescaderia-mvp-wt/<slug> -b feat/<slug> pescaderia-altamar/main`.
    Prefijos: `feat/` (módulo o fase), `fix/` (corrección), `refactor/` (sin cambio funcional), `docs/` (solo specs). Slug en kebab-case sin el número del módulo (`feat/gastos`, `feat/gastos-nomina`). Nunca trabajar ni hacer commit directo en `main`.
 2. **Commits** en español con Conventional Commits: `tipo(ámbito): qué cambia y para qué`, en imperativo, ≤ 72 caracteres en el asunto. Tipos: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`. El ámbito es el dominio (`gastos`, `nomina`, `dashboard`, `specs`). El cuerpo (opcional) explica el porqué y referencia la tarea: `Tareas: 20-gastos T3–T5`.
 3. **Granularidad**: un commit por tarea o grupo coherente de tareas de `tasks.md`, solo con `npm run lint` y `npx tsc --noEmit` en verde. La planificación va en su propio commit: `docs(specs): planificar NN-nombre`. Las migraciones van en un commit separado del código que las usa. Nada de commits "wip" ni con archivos ajenos a la tarea.
 4. **Antes del PR**: checklist del módulo marcado (pendientes con motivo), `npm run lint` y `npx tsc --noEmit` en verde, rama rebasada o mergeada con `main` sin conflictos, y `git push -u pescaderia-altamar <rama>`.
 5. **PR** hacia `main` con la plantilla `.github/pull_request_template.md`: título igual al commit principal (`feat(gastos): …`), y en el cuerpo qué se hizo, módulo/tareas, migraciones nuevas, cambios en otros módulos (tareas agregadas), cómo probar, checklist y pendientes. Usar `/sdd-pr` para prepararlo. Si `gh` no está instalado, dejar el cuerpo en el scratchpad y dar al usuario el enlace `https://github.com/RamonTec/pescaderia-altamar/compare/main...<rama>?expand=1`.
 6. **No hacer merge** del PR, push forzado a ramas compartidas ni borrado de ramas sin pedido explícito del usuario. Una rama se empieza solo cuando su dependencia ya está mergeada en `main` (o se basa en la rama de la dependencia, indicándolo en el PR).
+7. **Un worktree por agente y rama.** Varios agentes (Claude Code, opencode, Antigravity, Gemini) pueden trabajar a la vez; una carpeta solo está en una rama, y un `git switch` le cambia la rama a todos los que la usan. Por eso:
+   - Cada rama se trabaja en su carpeta `../pescaderia-mvp-wt/<slug>` (hermana del repo, fuera de él), creada con el comando de la regla 1. La carpeta principal `pescaderia-mvp` es del usuario: no se hace `git switch` en ella ni en el worktree de otro agente.
+   - Antes de cada commit, confirmar con `git branch --show-current` que se está en la rama propia.
+   - Preparar el worktree nuevo: `npm ci`, `ln -s ../../pescaderia-mvp/.env .env` (el `.env` no está en git) y `npx next typegen` antes del primer `npx tsc --noEmit`.
+   - Una rama solo puede estar abierta en un worktree; si `git worktree add` dice que ya está en uso, otro agente la tiene: no forzar, avisar al usuario.
+   - Al mergear el PR, borrar la carpeta con `git worktree remove ../pescaderia-mvp-wt/<slug>` (y `git worktree prune` si quedó huérfana). Nunca borrar el worktree de otro agente.
