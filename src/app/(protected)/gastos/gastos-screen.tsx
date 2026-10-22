@@ -335,7 +335,7 @@ export function GastosScreen({
       )}
 
       <GastoForm
-        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? dialogo.empleadoId ?? 'nuevo'}` : 'cerrado'}
+        key={dialogo ? `${dialogo.modo}-${dialogo.gasto?.id ?? dialogo.empleadoId ?? 'nuevo-gasto'}` : 'cerrado-gasto'}
         open={!!dialogo}
         modo={dialogo?.modo ?? 'crear'}
         gasto={dialogo?.gasto ?? null}
@@ -349,7 +349,7 @@ export function GastosScreen({
       <AnularGastoDialog gasto={descartar} modo="descartar" onClose={() => setDescartar(null)} />
       <GastoDetalleDialog gastoId={detalleId} onClose={() => setDetalleId(null)} />
       <GastoRecurrenteForm
-        key={recurrenteDialogo === 'nuevo' ? 'nuevo' : recurrenteDialogo ? recurrenteDialogo.id : 'cerrado'}
+        key={recurrenteDialogo === 'nuevo' ? 'nuevo-current' : recurrenteDialogo ? recurrenteDialogo.id : 'cerrado-current'}
         open={!!recurrenteDialogo}
         recurrente={recurrenteDialogo === 'nuevo' ? null : recurrenteDialogo}
         categorias={categorias}
