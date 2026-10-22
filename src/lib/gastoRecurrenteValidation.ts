@@ -97,4 +97,5 @@ export const gastoRecurrenteSchema = z
     }
   })
 
-export type GastoRecurrenteInput = z.infer<typeof gastoRecurrenteSchema>
+export type GastoRecurrenteInput = z.input<typeof gastoRecurrenteSchema>
+export type GastoRecurrenteValues = z.output<typeof gastoRecurrenteSchema>

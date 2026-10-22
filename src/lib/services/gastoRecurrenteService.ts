@@ -9,7 +9,7 @@ import { makeGastoRecurrenteRepository } from '@/lib/repositories/gastoRecurrent
 import { makeCategoriaGastoRepository } from '@/lib/repositories/categoriaGastoRepository'
 import { makeEmpleadoRepository } from '@/lib/repositories/empleadoRepository'
 import { createClient } from '@/lib/supabase/server'
-import type { GastoRecurrenteInput } from '@/lib/gastoRecurrenteValidation'
+import type { GastoRecurrenteValues } from '@/lib/gastoRecurrenteValidation'
 import { requireAdmin } from './authService'
 import { MSG_SOLO_ADMIN_GASTOS } from './categoriaGastoService'
 
@@ -83,7 +83,7 @@ export async function getRecurrente(id: string): Promise<GastoRecurrente | null>
 }
 
 /** Crea una nueva plantilla de gasto recurrente. */
-export async function crearRecurrente(input: GastoRecurrenteInput): Promise<GastoRecurrente> {
+export async function crearRecurrente(input: GastoRecurrenteValues): Promise<GastoRecurrente> {
   const { repo, categorias, empleados } = await contexto()
 
   // Validación de categoría
@@ -130,7 +130,7 @@ export async function crearRecurrente(input: GastoRecurrenteInput): Promise<Gast
 }
 
 /** Edita una plantilla de gasto recurrente existente. */
-export async function editarRecurrente(id: string, input: GastoRecurrenteInput): Promise<GastoRecurrente> {
+export async function editarRecurrente(id: string, input: GastoRecurrenteValues): Promise<GastoRecurrente> {
   const { repo, categorias, empleados } = await contexto()
 
   const actual = await repo.getById(id)
