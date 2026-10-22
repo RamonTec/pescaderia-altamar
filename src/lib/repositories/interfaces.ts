@@ -5,6 +5,7 @@ import type {
   Empleado,
   Gasto,
   GastoDetalle,
+  GastoRecurrente,
   Cliente,
   ClienteInput,
   CondicionPago,
@@ -752,6 +753,7 @@ export type GastoNuevo = Pick<
   | 'periodo_desde'
   | 'periodo_hasta'
   | 'empleado_id'
+  | 'recurrente_id'
 >
 
 export type GastoCambios = Partial<GastoNuevo> & { estado?: EstadoGasto }
@@ -815,3 +817,31 @@ export interface IEmpleadoRepository {
   /** Pagos `confirmado` de todos los empleados con `fecha` en el rango. */
   pagosDelRango(rango: RangoFechas): Promise<PagoNominaCosto[]>
 }
+
+/* ==================== GASTOS RECURRENTES (20-gastos, Fase C) ==================== */
+
+export type GastoRecurrenteNuevo = Omit<
+  GastoRecurrente,
+  'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by' | 'categoria_nombre' | 'empleado_nombre'
+>
+
+export type GastoRecurrenteCambios = Partial<GastoRecurrenteNuevo>
+
+export interface ResultadoGeneracionRecurrente {
+  generados: number
+  por_recurrente: Array<{ recurrente_id: string; nombre: string; generados: number }>
+}
+
+/**
+ * Tabla `gastos_recurrentes` (20-gastos, Fase C; solo admin por RLS).
+ * Solo acceso y mapeo; sin lógica de negocio.
+ */
+export interface IGastoRecurrenteRepository {
+  list(): Promise<GastoRecurrente[]>
+  getById(id: string): Promise<GastoRecurrente | null>
+  create(data: GastoRecurrenteNuevo): Promise<GastoRecurrente>
+  update(id: string, cambios: GastoRecurrenteCambios): Promise<GastoRecurrente>
+  /** Invoca la RPC `generar_gastos_recurrentes(p_hasta)`. */
+  generar(hasta?: string): Promise<ResultadoGeneracionRecurrente>
+}
+
