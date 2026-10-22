@@ -26,7 +26,7 @@ Este proyecto se ejecuta bajo Spec-Driven Development. Las reglas completas est�
 - Subagentes SDD: `planner` (escribe specs), `executor` (implementa, en caveman lite), `verifier` (recorre checklist + lint/tsc).
 - Subagentes especialistas: `frontend` (UI), `supabase` (migraciones/RLS/repos/servicios), `typescript` (tipos/zod), `reviewer` (revisión transversal).
 - Definidos en `.claude/agents/` (Claude Code) y `.opencode/agent/` (opencode), en sincronía a mano; `.agents/` (Antigravity) y `.gemini/` (Gemini CLI) se generan con `python3 scripts/sync-agents.py`.
-- Comandos: `/sdd-status` (progreso), `/sdd-next` (siguiente módulo/tarea), `/sdd-plan`, `/sdd-implement`, `/sdd-verify`, `/sdd-pr` (abre el PR de la rama).
-- Git: rama por módulo/fase, commits Conventional en español, PR con plantilla — ver "Flujo Git" en `AGENTS.md`.
+- Comandos: `/sdd-status` (progreso), `/sdd-next` (siguiente módulo/tarea), `/sdd-plan`, `/sdd-implement`, `/sdd-verify`, `/sdd-pr` (abre el PR de la rama hacia `dev`), `/sdd-promover` (PR `dev → sbx` o `sbx → main`).
+- Git: rama por módulo/fase desde `dev` en su worktree, commits Conventional en español, PR con plantilla hacia `dev`; promoción `dev → sbx → main` (cada merge en `main` despliega) — ver "Flujo Git" en `AGENTS.md`.
 
 Prefiere usar estos comandos/agentes antes que rehacer el trabajo manualmente.
