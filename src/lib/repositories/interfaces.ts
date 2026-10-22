@@ -2,6 +2,7 @@ import type {
   CanalRecordatorioId,
   CategoriaGasto,
   EstadoGasto,
+  Empleado,
   Gasto,
   GastoDetalle,
   Cliente,
@@ -750,6 +751,7 @@ export type GastoNuevo = Pick<
   | 'notas'
   | 'periodo_desde'
   | 'periodo_hasta'
+  | 'empleado_id'
 >
 
 export type GastoCambios = Partial<GastoNuevo> & { estado?: EstadoGasto }
@@ -761,7 +763,7 @@ export interface FiltrosGastosRepo {
   estados?: EstadoGasto[]
   /** Categoría y sus subcategorías (el servicio arma la lista). */
   categoriaIds?: string[]
-  /** Fase B (`gastos.empleado_id`); no se usa hasta que exista la columna. */
+  /** Pagos de nómina de un empleado (`gastos.empleado_id`, Fase B). */
   empleadoId?: string
 }
 
@@ -782,4 +784,34 @@ export interface IGastoRepository {
   anular(id: string, motivo: string): Promise<Gasto>
   /** `pendiente → descartado` (motivo opcional). */
   descartar(id: string, motivo: string | null): Promise<Gasto>
+}
+
+/** Alta o edición de un empleado (auditoría la fija `fija_auditoria()`). */
+export type EmpleadoNuevo = Pick<Empleado, 'nombre' | 'cedula' | 'cargo' | 'salario_base' | 'moneda' | 'notas'>
+
+export type EmpleadoCambios = Partial<EmpleadoNuevo & Pick<Empleado, 'activo'>>
+
+/** Pago de nómina confirmado, lo mínimo para el costo del empleado. */
+export interface PagoNominaCosto {
+  empleado_id: string
+  fecha: string
+  monto_usd: number
+  tasa_snapshot: number | null
+}
+
+/**
+ * Tabla `empleados` (20-gastos, Fase B; solo admin por RLS, sin `delete`).
+ * Solo acceso y mapeo `numeric → number`; los errores de Postgres (`23505`
+ * de la cédula) se devuelven tal cual.
+ */
+export interface IEmpleadoRepository {
+  /** Todos (activos e inactivos), por `nombre`. */
+  list(): Promise<Empleado[]>
+  getById(id: string): Promise<Empleado | null>
+  create(data: EmpleadoNuevo): Promise<Empleado>
+  update(id: string, cambios: EmpleadoCambios): Promise<Empleado>
+  /** Pagos `confirmado` del empleado con `fecha` en el rango (P2), sin agregar. */
+  costo(id: string, rango: RangoFechas): Promise<PagoNominaCosto[]>
+  /** Pagos `confirmado` de todos los empleados con `fecha` en el rango. */
+  pagosDelRango(rango: RangoFechas): Promise<PagoNominaCosto[]>
 }

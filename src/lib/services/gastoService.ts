@@ -11,10 +11,12 @@ import type {
 import type {
   GastoNuevo,
   ICategoriaGastoRepository,
+  IEmpleadoRepository,
   IGastoRepository,
 } from '@/lib/repositories/interfaces'
 import { makeGastoRepository } from '@/lib/repositories/gastoRepository'
 import { makeCategoriaGastoRepository } from '@/lib/repositories/categoriaGastoRepository'
+import { makeEmpleadoRepository } from '@/lib/repositories/empleadoRepository'
 import { createClient } from '@/lib/supabase/server'
 import type {
   AnularGastoValues,
@@ -22,10 +24,12 @@ import type {
   EditarGastoValues,
   FiltroEstadoGasto,
   GastoFormValues,
+  PagoNominaValues,
 } from '@/lib/gastoValidation'
 import { entradaTasaDe } from '@/lib/tasaValidation'
 import { MSG_TASA_SIN_REFERENCIAL } from '@/lib/validationMessages'
 import { montoUsdGasto, redondea6Gasto } from '@/lib/gastos/montos'
+import { periodosSeSolapan } from '@/lib/gastos/periodos'
 import { requireAdmin } from './authService'
 import { MSG_SOLO_ADMIN_GASTOS } from './categoriaGastoService'
 import { resolverTasaOperacion } from './tasaService'
@@ -42,6 +46,10 @@ import { resolverTasaOperacion } from './tasaService'
  * - Confirmado (P1 = b): solo cambian descripción, beneficiario, referencia y
  *   notas; el importe se corrige anulando y registrando de nuevo.
  * - Nunca se borra: se anula con motivo (o se descarta un pendiente).
+ * - Nómina (Fase B): un pago es un gasto de la categoría de sistema Nómina
+ *   con empleado activo y período (`registrarPagoNomina`); el alta común no
+ *   admite Nómina. Un período solapado con otro pago confirmado del mismo
+ *   empleado se avisa, no se bloquea.
  * - Los totales suman solo `monto_usd` de los `confirmado` (P2: por `fecha`).
  */
 
@@ -66,7 +74,10 @@ interface PgErrorLike {
 const CAMPO_POR_HINT: Record<string, string | null> = {
   fecha_futura: 'fecha',
   categoria_inactiva: 'categoria_id',
-  categoria_nomina_requiere_empleado: 'categoria_id',
+  categoria_nomina_requiere_empleado: 'empleado_id',
+  empleado_requiere_nomina: 'categoria_id',
+  empleado_inactivo: 'empleado_id',
+  periodo_requerido: 'periodo_desde',
   motivo_requerido: 'motivo',
   transicion_invalida: null,
   gasto_inmutable: null,
@@ -88,13 +99,22 @@ interface Contexto {
   db: SupabaseClient
   gastos: IGastoRepository
   categorias: ICategoriaGastoRepository
+  empleados: IEmpleadoRepository
 }
 
 async function contexto(): Promise<Contexto> {
   if (!(await requireAdmin())) throw new GastoError(MSG_SOLO_ADMIN_GASTOS)
   const db = await createClient()
-  return { db, gastos: makeGastoRepository(db), categorias: makeCategoriaGastoRepository(db) }
+  return {
+    db,
+    gastos: makeGastoRepository(db),
+    categorias: makeCategoriaGastoRepository(db),
+    empleados: makeEmpleadoRepository(db),
+  }
 }
+
+/** Mensaje del alta común si se elige Nómina (va por «Pago de nómina»). */
+export const MSG_NOMINA_POR_PAGO = 'Los pagos de nómina se registran con «Pago de nómina» (empleado y período)'
 
 const textoONull = (s: string) => (s.trim() === '' ? null : s.trim())
 
@@ -138,8 +158,12 @@ function exigirCategoriaActiva(categorias: readonly CategoriaGasto[], id: string
   return cat
 }
 
-function columnasDescriptivas(v: GastoFormValues): Omit<GastoNuevo, 'monto' | 'tasa_snapshot' | 'tasa_origen' | 'tasa_fuente' | 'tasa_referencial' | 'monto_usd'> {
+function columnasDescriptivas(
+  v: GastoFormValues,
+  empleadoId: string | null = null
+): Omit<GastoNuevo, 'monto' | 'tasa_snapshot' | 'tasa_origen' | 'tasa_fuente' | 'tasa_referencial' | 'monto_usd'> {
   return {
+    empleado_id: empleadoId,
     fecha: v.fecha,
     categoria_id: v.categoria_id,
     descripcion: v.descripcion.trim(),
@@ -156,11 +180,65 @@ function columnasDescriptivas(v: GastoFormValues): Omit<GastoNuevo, 'monto' | 't
 /** Alta manual: nace `confirmado`. */
 export async function registrarGasto(v: GastoFormValues): Promise<{ gasto: Gasto; aviso?: 'referencial_cambio' }> {
   const { db, gastos, categorias } = await contexto()
-  exigirCategoriaActiva(await categorias.list(), v.categoria_id)
+  const cat = exigirCategoriaActiva(await categorias.list(), v.categoria_id)
+  if (cat.clave === 'nomina') throw new GastoError(MSG_NOMINA_POR_PAGO, 'categoria_id')
   const { columnas, aviso } = await importeDe(v, db)
   try {
     const gasto = await gastos.create({ ...columnasDescriptivas(v), ...columnas })
     return { gasto, aviso }
+  } catch (e) {
+    traducir(e)
+  }
+}
+
+/** Pagos confirmados del empleado cuyo período se solapa con `[desde, hasta]`. */
+async function solapadosDe(
+  gastos: IGastoRepository,
+  empleadoId: string,
+  desde: string,
+  hasta: string
+): Promise<Gasto[]> {
+  const pagos = await gastos.list({ empleadoId, estados: ['confirmado'] })
+  return pagos.filter(
+    (g) =>
+      g.periodo_desde !== null &&
+      g.periodo_hasta !== null &&
+      periodosSeSolapan({ desde, hasta }, { desde: g.periodo_desde, hasta: g.periodo_hasta })
+  )
+}
+
+/**
+ * Pagos confirmados del empleado con período solapado (aviso del formulario
+ * de nómina; no bloquea).
+ */
+export async function pagosSolapados(empleadoId: string, desde: string, hasta: string): Promise<Gasto[]> {
+  const { gastos } = await contexto()
+  return solapadosDe(gastos, empleadoId, desde, hasta)
+}
+
+/**
+ * Pago de nómina (Fase B): nace `confirmado` en la categoría de sistema
+ * Nómina (la fija el servidor), con empleado activo y período. El monto lo
+ * precarga la UI con `montoNominaPeriodo` (P3) y es editable. Devuelve los
+ * pagos confirmados con período solapado: se avisa, no se bloquea.
+ */
+export async function registrarPagoNomina(
+  v: PagoNominaValues
+): Promise<{ gasto: Gasto; aviso?: 'referencial_cambio'; solapados: Gasto[] }> {
+  const { db, gastos, categorias, empleados } = await contexto()
+  const nomina = (await categorias.list()).find((c) => c.clave === 'nomina')
+  if (!nomina) throw new GastoError('No existe la categoría Nómina')
+  const empleado = await empleados.getById(v.empleado_id)
+  if (!empleado) throw new GastoError('El empleado no existe', 'empleado_id')
+  if (!empleado.activo) {
+    throw new GastoError(`${empleado.nombre} está inactivo: no recibe pagos nuevos`, 'empleado_id')
+  }
+  const valores: GastoFormValues = { ...v, categoria_id: nomina.id }
+  const solapados = await solapadosDe(gastos, empleado.id, v.periodo_desde, v.periodo_hasta)
+  const { columnas, aviso } = await importeDe(valores, db)
+  try {
+    const gasto = await gastos.create({ ...columnasDescriptivas(valores, empleado.id), ...columnas })
+    return { gasto, aviso, solapados }
   } catch (e) {
     traducir(e)
   }
@@ -181,7 +259,11 @@ export async function confirmarGasto(
   exigirCategoriaActiva(await categorias.list(), v.categoria_id)
   const { columnas, aviso } = await importeDe(v, db)
   try {
-    const gasto = await gastos.update(id, { ...columnasDescriptivas(v), ...columnas, estado: 'confirmado' })
+    const gasto = await gastos.update(id, {
+      ...columnasDescriptivas(v, actual.empleado_id),
+      ...columnas,
+      estado: 'confirmado',
+    })
     return { gasto, aviso }
   } catch (e) {
     traducir(e)
@@ -252,6 +334,8 @@ export async function listarGastos(filtros: {
   rango: RangoFechas
   estado?: FiltroEstadoGasto
   categoriaId?: string | null
+  /** Pagos de nómina de un empleado (ficha, Fase B). */
+  empleadoId?: string | null
 }): Promise<Gasto[]> {
   const { gastos, categorias } = await contexto()
   const estados = filtros.estado ? ESTADOS_POR_FILTRO[filtros.estado] : null
@@ -263,6 +347,7 @@ export async function listarGastos(filtros: {
     hasta: filtros.rango.hasta,
     estados: estados ?? undefined,
     categoriaIds,
+    empleadoId: filtros.empleadoId ?? undefined,
   })
 }
 
