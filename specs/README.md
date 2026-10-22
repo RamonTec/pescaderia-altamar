@@ -136,7 +136,19 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     el dashboard. Spec del 2026-10-22; P1–P6 aprobadas el mismo día. Fases
     A base · B nómina · C recurrentes · D dashboard, entregables por separado)
 
-Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar) → 19-edicion-compras (reutiliza el patrón de 17/18 y extiende su regla de contrato desactualizado; empezar después del commit de 18) → 20-gastos (independiente de 16–19; empezar después del merge de 19 y con P1–P6 respondidas; la Fase D amplía 15).
+21-cotizaciones → depende de 02-clientes, 04-inventario, 18-iva-opcional
+                 y 00 Fase 2 (hechos); reutiliza piezas de 06 y 09 y `fija_auditoria()`
+                 de 20 Fase A (aplicada); la Fase D usa 05-ventas. No usa 08-tasas.
+                 Toca config_negocio (04) y extrae constantes de marca (00)
+   (cotizaciones solo en USD/kg, sin Bs, con IVA opcional por cotización y
+    descuento global; estados borrador/enviada/aceptada/rechazada/anulada +
+    vencida derivada; PDF con la marca por @react-pdf/renderer; enlace público
+    con token y RPC anónima `cotizacion_publica` que solo muestra la cotización
+    vigente (vencida o revocada → página de respaldo sin datos); compartir por
+    WhatsApp (wa.me) y Web Share. Spec del 2026-10-22; P1–P10 cerradas el mismo
+    día. Fases A base · B PDF · C enlace y compartir · D convertir en pedido)
+
+Orden recomendado de lo pendiente: 00 Fase 2a (base) → 08-tasas → 10-refactor-visual-clientes → 09-cuentas-por-cobrar → 11-refactor-visual-proveedores → 12-refactor-visual-catalogos → 13-refactor-visual-compras → 07-lotes → 00 Fase 2b (resto de pantallas) → 06-contratos → 15-dashboard (lee datos de todos los módulos) → 16-procesamiento-multisalida → 17-trazabilidad-y-correccion-facturas (lee la cabecera y el precio de referencia de 16) → 18-iva-opcional (extiende el historial y la ficha de 17; conviene hacer commit de 17 antes de empezar) → 19-edicion-compras (reutiliza el patrón de 17/18 y extiende su regla de contrato desactualizado; empezar después del commit de 18) → 20-gastos (independiente de 16–19; empezar después del merge de 19 y con P1–P6 respondidas; la Fase D amplía 15) → 21-cotizaciones (independiente de las fases B–E de 20, puede ir en paralelo; P1–P10 cerradas el 2026-10-22; empezar desde `main` con la Fase A de 20 mergeada, porque usa `fija_auditoria()`).
 (10 va antes de 09 para que la columna "Facturas" y la sección de cobranza de 09 nazcan sobre AppDataGrid y FichaHeader. 11 va después de 09 porque la ficha de proveedores no usa la cartera de 09, pero sí reusa todo lo que 10 dejó en los componentes base.)
 (`registrar_factura` la tocan 07, 08 y 09: cada módulo conserva lo que agregaron los otros.)
 ```
@@ -233,6 +245,12 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - Sin comprobante adjunto ni historial completo: `created_by`/`updated_by`, timestamps y anulación con motivo en lugar de borrado.
 
   Nuevo módulo `20-gastos`, en cuatro fases entregables por separado. El mismo día el usuario aprobó P1–P6 de su `spec.md` con la recomendación de cada una (edición de un gasto confirmado o solo anular y re-registrar, fecha de imputación, salario base mensual, generación a demanda de recurrentes, gastos con tasa manual en `/tasas`, frecuencias). No cambia el esquema de otros módulos; amplía `15-dashboard` con dos RPC nuevas y su UI, sin tocar las existentes (tarea agregada en `15-dashboard/tasks.md`). Por P5, los gastos con tasa manual se suman a "Operaciones con tasa manual" de `/tasas` (tarea agregada en `08-tasas/tasks.md`, sin cambio de esquema). `/SPEC.md` §5, §7 y §9 se actualizan con nota en la Fase E del módulo.
+
+- **Cotizaciones con PDF, WhatsApp y enlace público (2026-10-22, pedido del usuario)**: «Necesito hacer la planificacion de un modulo de cotizaciones, donde podamos generar un PDF y que este pueda ser enviado al cliente, donde selecciones los productos, precio, se muestre el total y que se genere un documento pdf si lo queremos compartir por wsp al cliente, tambien tener la opcion de un link publico para que el cliente entre y vea el link en linea». Amplía el alcance del proyecto con un documento comercial **previo a la venta**: no mueve stock, no reserva lotes, no genera deuda ni factura y no guarda costos, así que **no reabre ninguna decisión de `/SPEC.md` §2**. Primer acceso **anónimo** del sistema: la tabla nunca se expone a `anon`; la página `/c/[token]` lee por una RPC `security definer` que devuelve solo campos públicos, y `proxy.ts` excluye esa ruta. Nuevo módulo `21-cotizaciones`, en fases A base · B PDF · C enlace y compartir · D convertir en pedido. El mismo día el usuario cerró P1–P10 de su `spec.md` (moneda e impuestos, descuento, numeración, roles, estados y edición, librería y tipografía del PDF, vigencia del enlace, conversión en pedido, precio precargado, marca de enviada). Ocho quedaron con la recomendación y dos con cambios:
+  - **P1**: solo USD (precio por kg y total), **sin equivalente en Bs** ni tasa de cambio, así que el módulo no depende de `08-tasas`. El IVA es opcional en cada cotización y toma como valor inicial `clientes.aplica_iva`.
+  - **P7**: sin gracia tras el vencimiento. Una cotización vencida ya no se muestra ni da su PDF por el enlace: aparece una página de respaldo con la marca que invita a pedir una nueva por WhatsApp. Revocada o anulada cae en un respaldo genérico que no revela datos.
+
+  Cambia `config_negocio` (validez y términos por defecto; tarea agregada en `04-inventario/tasks.md`) y extrae las constantes de marca y la geometría del isotipo a módulos compartidos para usarlas en el PDF (tarea agregada en `00-estandares-ui/tasks.md`). Con P8 aprobada, la Fase D usa `pedidoService.crearPedido` de `05-ventas` sin cambiar su esquema (se anotará en `05-ventas/tasks.md` al ejecutarla). `/SPEC.md` §5 y §7 se actualizan con nota en la Fase E del módulo.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 
