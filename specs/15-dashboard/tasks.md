@@ -94,3 +94,9 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
   - `dashboard_resultado_cambiario` no cambia (pagos intactos).
 
   Se verifica en la tarea 27 de ese módulo.
+- **20-gastos (2026-10-22, tarea agregada)**: el admin registra gastos operativos (incluida la nómina por empleado) normalizados a USD. El dashboard suma los gastos **confirmados** del período y muestra la utilidad neta. **Ninguna RPC `dashboard_*` existente cambia**; se agregan dos:
+  - `dashboard_gastos(p_desde, p_hasta)` (por categoría y subcategoría) y `dashboard_gastos_pendientes()`, en `supabase/migrations/20261022000300_dashboard_gastos.sql`, con el patrón de seguridad de este módulo (`dashboard_exigir_admin()`, `42501` al operador). Es la primera vez que el dashboard lee una tabla nueva (`gastos`), sin cambiar "sin tablas nuevas" de este módulo: la tabla es de 20;
+  - `UtilidadNetaCard` (ventas, margen bruto de B3, gastos, **utilidad neta = margen bruto − gastos**, % sobre ventas) y `GastosCategoriaChart` en "Ventas y margen"; `KpiCard` de pendientes en `KpisDiaRow` (admin, solo si hay);
+  - el resultado cambiario Bs sigue aparte (no se suma a la utilidad, regla de este módulo); el operador no recibe el bloque.
+
+  Se implementa y verifica en la Fase D (tareas 19–23 y 27) de `20-gastos`.

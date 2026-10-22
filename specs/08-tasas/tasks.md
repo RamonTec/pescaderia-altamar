@@ -55,3 +55,4 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "07-lotes reescribe registrar_factura — conservar las columnas de tasa — <fecha>")_
 - **09-cuentas-por-cobrar (2026-10-07)**: agrega `facturas.fecha_vencimiento` y la pasa en `registrar_factura`. Si este módulo reescribe esa RPC después, **conservar** la columna.
+- **20-gastos (2026-10-22)**: la lectura de "Operaciones con tasa manual" (`src/app/(protected)/tasas/operaciones-tasa-manual.ts`) incluye los `gastos` confirmados con `tasa_origen = 'manual'` (tipo "Gasto", enlace a `/gastos`). Sin cambios de esquema en `tasas`. Lo implementa la tarea 18 de `20-gastos`.

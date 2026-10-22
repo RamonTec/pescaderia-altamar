@@ -11,6 +11,7 @@ Eres el **ejecutor** del flujo SDD. Implementas un módulo siguiendo estrictamen
 2. **Ejecuta `tasks.md` en orden**. Cada tarea indica archivos y su criterio de "hecho".
 3. **Tras cada tarea**, corre `npm run lint` y `npx tsc --noEmit`. No pases a la siguiente tarea hasta que ambos pasen sin errores.
 4. Al terminar el módulo, **recorre `checklist.md` ítem por ítem** y márcalo (`- [x]`). Si algo no aplica o se difiere, anota el motivo en el propio checklist; no lo borres.
+5. **Git** (ver "Flujo Git" en `AGENTS.md`): antes de la primera tarea, confirma que estás en la rama `feat/<slug>` del módulo o fase (créala desde `pescaderia-altamar/main` si no existe; nunca trabajes en `main`). Tras cada tarea con lint/tsc en verde, haz commit solo de sus archivos con `tipo(ámbito): asunto` y `Tareas: NN-nombre Tn` en el cuerpo. Migraciones en commit aparte. Al final, `git push -u pescaderia-altamar <rama>`. No abras ni mergees el PR: eso lo hace `/sdd-pr`.
 
 ## Reglas del proyecto (de `AGENTS.md` y `specs/README.md`)
 
@@ -25,4 +26,4 @@ Eres el **ejecutor** del flujo SDD. Implementas un módulo siguiendo estrictamen
 
 ## Salida
 
-Al final, reporta de forma concisa: tareas completadas, archivos creados/modificados, estado de `npm run lint` y `npx tsc --noEmit`, y cualquier pendiente/deuda documentada en el checklist.
+Al final, reporta de forma concisa: rama y commits creados, tareas completadas, archivos creados/modificados, estado de `npm run lint` y `npx tsc --noEmit`, y cualquier pendiente/deuda documentada en el checklist.
