@@ -1,0 +1,156 @@
+# Checks obligatorios de cada PR hacia las ramas de entorno (ver AGENTS.md,
+# "Flujo Git"). Cada job aparece como un check separado en el PR; para que
+# bloqueen el merge hay que marcarlos como "required" en GitHub
+# (Settings → Rules/Branches) para dev, sbx y main.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, sbx, main]
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  # Regla 5–6 de AGENTS.md: dev ← ramas de trabajo, sbx ← dev, main ← sbx.
+  # Excepciones de hotfix: fix/* → main, main → sbx y sbx → dev.
+  branch-flow:
+    name: branch-flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar origen y destino del PR
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          echo "PR: $HEAD → $BASE"
+          case "$BASE" in
+            dev)
+              if [ "$HEAD" = "main" ]; then
+                echo "::error::main no se integra directo en dev: usar main → sbx → dev."
+                exit 1
+              fi
+              case "$HEAD" in
+                sbx|feat/*|fix/*|refactor/*|docs/*) ;;
+                *)
+                  echo "::error::La rama '$HEAD' no usa un prefijo válido (feat/, fix/, refactor/, docs/)."
+                  exit 1
+                  ;;
+              esac
+              ;;
+            sbx)
+              case "$HEAD" in
+                dev|main) ;;
+                *)
+                  echo "::error::Hacia sbx solo se aceptan PRs desde dev (o main tras un hotfix). Usar /sdd-promover sbx."
+                  exit 1
+                  ;;
+              esac
+              ;;
+            main)
+              case "$HEAD" in
+                sbx|fix/*) ;;
+                *)
+                  echo "::error::Hacia main solo se aceptan PRs desde sbx (o fix/* para hotfix). Usar /sdd-promover main."
+                  exit 1
+                  ;;
+              esac
+              ;;
+          esac
+          echo "Flujo de ramas válido."
+
+  # Regla 6 de AGENTS.md: no editar migraciones ya aplicadas; solo agregar nuevas.
+  migrations-guard:
+    name: migrations-guard
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar que no se modifiquen migraciones existentes
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "$BASE"
+          cambios=$(git diff --name-status --diff-filter=MDRT "origin/$BASE...HEAD" -- supabase/migrations/ || true)
+          if [ -n "$cambios" ]; then
+            echo "::error::El PR modifica, renombra o borra migraciones existentes. Crear una migración nueva incremental."
+            echo "$cambios"
+            exit 1
+          fi
+          nuevas=$(git diff --name-only --diff-filter=A "origin/$BASE...HEAD" -- supabase/migrations/ || true)
+          if [ -n "$nuevas" ]; then
+            echo "Migraciones nuevas en este PR (aplicar en este orden):"
+            echo "$nuevas" | sort
+            {
+              echo "### Migraciones nuevas"
+              echo '```'
+              echo "$nuevas" | sort
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Sin migraciones nuevas."
+          fi
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Genera los tipos de rutas de Next 16 que tsc necesita.
+      - run: npx next typegen
+      - run: npx tsc --noEmit
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    env:
+      # Valores ficticios: el build no debe depender de secretos reales.
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+      CRON_SECRET: ci-placeholder-cron-secret
+      SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - run: npm ci
+      - run: npm run build
