@@ -1672,6 +1672,8 @@ export interface Gasto {
   periodo_hasta: string | null
   /** Pago de nómina (Fase B): no nulo ⇔ categoría Nómina. */
   empleado_id: string | null
+  /** Plantilla que generó este gasto (Fase C). */
+  recurrente_id: string | null
   estado: EstadoGasto
   confirmado_por: string | null
   confirmado_at: string | null
@@ -1692,6 +1694,8 @@ export interface GastoDetalle extends Gasto {
   categoria_padre_nombre: string | null
   /** Empleado del pago de nómina. */
   empleado_nombre: string | null
+  /** Nombre de la plantilla recurrente si fue generado por una. */
+  recurrente_nombre: string | null
   creado_por_nombre: string | null
   confirmado_por_nombre: string | null
   anulado_por_nombre: string | null
@@ -1756,4 +1760,47 @@ export interface CostoEmpleado {
   meses: number
   /** `total_usd / meses`. */
   promedio_mensual_usd: number
+}
+
+/* ==================== Gastos recurrentes (20-gastos, Fase C) ==================== */
+
+export type FrecuenciaGasto = 'mensual' | 'quincenal'
+
+/**
+ * Fila de `gastos_recurrentes` (20-gastos, Fase C): plantilla que genera
+ * gastos periódicos en estado `pendiente` de confirmar.
+ */
+export interface GastoRecurrente {
+  id: string
+  nombre: string
+  categoria_id: string
+  empleado_id: string | null
+  descripcion: string
+  beneficiario: string | null
+  moneda: Moneda
+  /**
+   * Monto fijo; `null` solo en nómina (`empleado_id` no nulo) para usar el
+   * salario base vigente del empleado.
+   */
+  monto: number | null
+  frecuencia: FrecuenciaGasto
+  /** Día del mes (1 a 28, solo mensual); `null` = último día del mes. */
+  dia_mes: number | null
+  fecha_inicio: string
+  fecha_fin: string | null
+  metodo_pago: MetodoPago | null
+  activo: boolean
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+  // Nombres poblados en listados/detalles
+  categoria_nombre?: string | null
+  empleado_nombre?: string | null
+}
+
+export interface PeriodoRecurrente {
+  desde: string
+  hasta: string
+  fecha_programada: string
 }
