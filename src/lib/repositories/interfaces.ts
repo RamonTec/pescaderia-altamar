@@ -1,5 +1,9 @@
 import type {
   CanalRecordatorioId,
+  Cotizacion,
+  CotizacionDetalle,
+  CotizacionListado,
+  EstadoCotizacion,
   CategoriaGasto,
   EstadoGasto,
   Empleado,
@@ -851,3 +855,70 @@ export interface IGastoRecurrenteRepository {
   generar(hasta?: string): Promise<ResultadoGeneracionRecurrente>
 }
 
+
+/* ==================== Cotizaciones (21) ==================== */
+
+/** Filtro de estado del listado: `abiertas` = borrador + enviada no vencidas. */
+export type FiltroEstadoCotizacionRepo =
+  | 'abiertas'
+  | 'todas'
+  | 'borrador'
+  | 'enviada'
+  | 'vencida'
+  | 'aceptada'
+  | 'rechazada'
+  | 'anulada'
+
+export interface FiltrosCotizacionesRepo {
+  estado: FiltroEstadoCotizacionRepo
+  /** Número exacto buscado (`cot123` → 123), en OR con `texto`. */
+  numero?: number
+  /** Texto ya normalizado (sin acentos, minúsculas) contra nombre y dígitos del teléfono. */
+  texto?: string
+  desde?: string
+  hasta?: string
+  /** Página 0-based. */
+  pagina: number
+  tamano: number
+}
+
+/** Cabecera que recibe `guardar_cotizacion` (importes los calcula la RPC). */
+export interface CotizacionCabeceraRpc {
+  fecha: string
+  validez_dias: number
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  iva_pct: number
+  descuento_usd: number
+  notas_cliente: string | null
+  notas_internas: string | null
+  terminos: string | null
+}
+
+/** Cambio de estado (las columnas `*_at`/`*_por` las fija `cotizaciones_guard`). */
+export interface CotizacionCambioEstado {
+  estado: EstadoCotizacion
+  motivo_rechazo?: string | null
+  motivo_anulacion?: string | null
+}
+
+/**
+ * Cotizaciones (21). Escritura de cabecera + líneas solo por la RPC
+ * `guardar_cotizacion`; los estados por `update` bajo `cotizaciones_guard`.
+ * Solo acceso y mapeo `numeric → number`; los errores (con su `hint`) se
+ * devuelven tal cual.
+ */
+export interface ICotizacionRepository {
+  listar(filtros: FiltrosCotizacionesRepo): Promise<{ rows: CotizacionListado[]; total: number }>
+  getById(id: string): Promise<Cotizacion | null>
+  /** Cabecera + líneas + cliente registrado + nombres de usuarios. */
+  getDetalle(id: string): Promise<CotizacionDetalle | null>
+  /** Crea (`id` nulo) o edita por la RPC; devuelve el id. */
+  guardar(
+    id: string | null,
+    cabecera: CotizacionCabeceraRpc,
+    items: { producto_id: string; peso_kg: number; precio_usd_kg: number; nota: string | null }[]
+  ): Promise<string>
+  cambiarEstado(id: string, cambio: CotizacionCambioEstado): Promise<Cotizacion>
+}
