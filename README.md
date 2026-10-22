@@ -239,6 +239,20 @@ El repositorio se gestiona bajo el paradigma **Spec-Driven Development**:
   3. Todas las migraciones SQL incrementales se han ejecutado sin errores.
   4. Los ítems de `checklist.md` están verificados.
 
+### Integración Continua (GitHub Actions)
+
+Cada PR hacia `dev`, `sbx` o `main` ejecuta [`.github/workflows/ci.yml`](.github/workflows/ci.yml), con un check por job:
+
+| Check | Qué valida |
+|---|---|
+| `branch-flow` | Flujo de ramas: `dev` ← `feat/`, `fix/`, `refactor/`, `docs/` (y `sbx` tras hotfix); `sbx` ← `dev` (o `main` tras hotfix); `main` ← `sbx` (o `fix/*` como hotfix). |
+| `migrations-guard` | El PR no modifica, renombra ni borra migraciones existentes en `supabase/migrations/`; lista las nuevas en el resumen del job. |
+| `lint` | `npm run lint`. |
+| `typecheck` | `npx next typegen` + `npx tsc --noEmit`. |
+| `build` | `npm run build` con variables de entorno ficticias (no usa secretos). |
+
+Para que los checks **bloqueen el merge**, en GitHub → *Settings → Rules* (o *Branches*) crear una regla para `dev`, `sbx` y `main` con *Require status checks to pass* y marcar los cinco checks.
+
 ---
 
 ## 9. Instalación y Puesta en Marcha Local

@@ -23,6 +23,7 @@
 
 - [ ] `npm run lint` sin errores
 - [ ] `npx tsc --noEmit` sin errores
+- [ ] Checks de CI en verde (`branch-flow`, `migrations-guard`, `lint`, `typecheck`, `build`)
 - [ ] `checklist.md` del módulo marcado (pendientes anotados con motivo)
 - [ ] Migraciones aplicadas en el proyecto Supabase (o indicar que falta)
 - [ ] Modo claro/oscuro y responsive revisados
