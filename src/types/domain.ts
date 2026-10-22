@@ -1624,3 +1624,93 @@ export interface Dashboard {
   analitica?: DashboardAnalitica
   cartera?: DashboardCartera
 }
+
+/* ==================== Gastos operativos (20) ==================== */
+
+/**
+ * Estado de un gasto (20-gastos): `pendiente` solo lo crea la generación de
+ * recurrentes (Fase C); el alta manual nace `confirmado`. Terminales:
+ * `descartado` (desde pendiente) y `anulado` (desde confirmado, con motivo).
+ * Solo `confirmado` cuenta en reportes.
+ */
+export type EstadoGasto = 'pendiente' | 'confirmado' | 'descartado' | 'anulado'
+
+/** Fila de `categorias_gasto`: categoría (`categoria_padre_id` nulo) o subcategoría (un nivel). */
+export interface CategoriaGasto {
+  id: string
+  nombre: string
+  categoria_padre_id: string | null
+  /** Solo las de sistema: `'nomina'`. */
+  clave: string | null
+  es_sistema: boolean
+  activo: boolean
+  orden: number
+  /** Subcategorías (solo en las de primer nivel, al agruparlas el servicio). */
+  subcategorias?: CategoriaGasto[]
+}
+
+/** Fila de `gastos`. Montos en `moneda`; los totales se suman con `monto_usd`. */
+export interface Gasto {
+  id: string
+  /** Fecha del gasto (imputación, P2). */
+  fecha: string
+  categoria_id: string
+  descripcion: string
+  beneficiario: string | null
+  moneda: Moneda
+  monto: number
+  /** Obligatorias salvo en `pendiente` / `descartado`. */
+  tasa_snapshot: number | null
+  tasa_origen: 'referencial' | 'manual' | null
+  tasa_fuente: 'bcv' | 'paralela' | null
+  tasa_referencial: number | null
+  monto_usd: number | null
+  metodo_pago: MetodoPago | null
+  referencia: string | null
+  notas: string | null
+  periodo_desde: string | null
+  periodo_hasta: string | null
+  estado: EstadoGasto
+  confirmado_por: string | null
+  confirmado_at: string | null
+  /** Quién anuló o descartó, y cuándo. */
+  anulado_por: string | null
+  anulado_at: string | null
+  motivo_anulacion: string | null
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+}
+
+/** Gasto con los nombres para la trazabilidad (`GastoDetalleDialog`). */
+export interface GastoDetalle extends Gasto {
+  categoria_nombre: string | null
+  /** Nombre de la categoría padre si el gasto está en una subcategoría. */
+  categoria_padre_nombre: string | null
+  creado_por_nombre: string | null
+  confirmado_por_nombre: string | null
+  anulado_por_nombre: string | null
+  actualizado_por_nombre: string | null
+}
+
+/**
+ * Total de gastos confirmados por categoría de primer nivel y subcategoría
+ * (mismo shape que la RPC `dashboard_gastos` de la Fase D).
+ */
+export interface GastoPorCategoria {
+  categoria_id: string
+  categoria: string
+  es_sistema: boolean
+  subcategoria_id: string | null
+  subcategoria: string | null
+  total_usd: number
+  n_gastos: number
+}
+
+/** Resumen de los gastos confirmados de un rango (`gastoService.resumenGastos`). */
+export interface ResumenGastos {
+  total_usd: number
+  n_gastos: number
+  por_categoria: GastoPorCategoria[]
+}
