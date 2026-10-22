@@ -25,5 +25,20 @@ Este proyecto se ejecuta bajo **SDD**. La fuente de verdad es `/SPEC.md` (visió
 
 ## Orquestación automática
 
-Existen subagentes (`planner`, `executor`, `verifier`) y comandos (`/sdd-status`, `/sdd-next`, `/sdd-plan`, `/sdd-implement`, `/sdd-verify`) que orquestan el flujo. Preferirlos a hacer el trabajo manualmente.
+Existen subagentes (`planner`, `executor`, `verifier`) y comandos (`/sdd-status`, `/sdd-next`, `/sdd-plan`, `/sdd-implement`, `/sdd-verify`, `/sdd-pr`) que orquestan el flujo. Preferirlos a hacer el trabajo manualmente.
 
+Las definiciones existen para cada herramienta: Claude Code (`.claude/agents`, `.claude/commands`), opencode (`.opencode/agent`, `.opencode/command`), Antigravity (`.agents/agents`, `.agents/skills`) y Gemini CLI (`.gemini/agents`, `.gemini/commands`). `.claude/` y `.opencode/` se editan a mano y en sincronía; `.agents/` y `.gemini/` se **generan** desde `.opencode/` con `python3 scripts/sync-agents.py` (correrlo y commitear el resultado tras cambiar un agente o comando). Antigravity y Gemini leen estas reglas desde `AGENTS.md` / `GEMINI.md`.
+
+
+# Flujo Git (rama por módulo/fase, commits descriptivos, PR claro)
+
+Aplica a todo agente que escriba código o specs. El remoto es `pescaderia-altamar`; la rama base es `main`.
+
+1. **Una rama por módulo SDD o por fase** de su `tasks.md`, creada desde `main` actualizado:
+   `git fetch pescaderia-altamar && git switch -c feat/<slug> pescaderia-altamar/main`.
+   Prefijos: `feat/` (módulo o fase), `fix/` (corrección), `refactor/` (sin cambio funcional), `docs/` (solo specs). Slug en kebab-case sin el número del módulo (`feat/gastos`, `feat/gastos-nomina`). Nunca trabajar ni hacer commit directo en `main`.
+2. **Commits** en español con Conventional Commits: `tipo(ámbito): qué cambia y para qué`, en imperativo, ≤ 72 caracteres en el asunto. Tipos: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`. El ámbito es el dominio (`gastos`, `nomina`, `dashboard`, `specs`). El cuerpo (opcional) explica el porqué y referencia la tarea: `Tareas: 20-gastos T3–T5`.
+3. **Granularidad**: un commit por tarea o grupo coherente de tareas de `tasks.md`, solo con `npm run lint` y `npx tsc --noEmit` en verde. La planificación va en su propio commit: `docs(specs): planificar NN-nombre`. Las migraciones van en un commit separado del código que las usa. Nada de commits "wip" ni con archivos ajenos a la tarea.
+4. **Antes del PR**: checklist del módulo marcado (pendientes con motivo), `npm run lint` y `npx tsc --noEmit` en verde, rama rebasada o mergeada con `main` sin conflictos, y `git push -u pescaderia-altamar <rama>`.
+5. **PR** hacia `main` con la plantilla `.github/pull_request_template.md`: título igual al commit principal (`feat(gastos): …`), y en el cuerpo qué se hizo, módulo/tareas, migraciones nuevas, cambios en otros módulos (tareas agregadas), cómo probar, checklist y pendientes. Usar `/sdd-pr` para prepararlo. Si `gh` no está instalado, dejar el cuerpo en el scratchpad y dar al usuario el enlace `https://github.com/RamonTec/pescaderia-altamar/compare/main...<rama>?expand=1`.
+6. **No hacer merge** del PR, push forzado a ramas compartidas ni borrado de ramas sin pedido explícito del usuario. Una rama se empieza solo cuando su dependencia ya está mergeada en `main` (o se basa en la rama de la dependencia, indicándolo en el PR).

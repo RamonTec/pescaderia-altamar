@@ -1,0 +1,11 @@
+# Generado por scripts/sync-agents.py desde .opencode/; no editar a mano.
+description = "Planifica (o actualiza) la spec de un módulo SDD usando el agente planner."
+prompt = """
+Delega este encargo en el subagente `planner`; no hagas el trabajo tú mismo. Al terminar, resume al usuario en pocas líneas su reporte.
+
+Crea o actualiza la spec del módulo `{{args}}`.
+
+Sigue el proceso del agente planner: lee `/SPEC.md` y `/specs/README.md`, y produce/actualiza en `specs/NN-nombre/` los archivos `spec.md`, `tasks.md` y `checklist.md`.
+
+Si `{{args}}` está vacío, pide el nombre/alcance del módulo antes de empezar. Registra cualquier cambio de alcance en `specs/README.md` con fecha y motivo.
+"""
