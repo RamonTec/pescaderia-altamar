@@ -121,6 +121,10 @@ export interface ConfigNegocio {
    * "Por debajo" y "Cobro mayor" de una factura (17). 0 = marca cualquier diferencia.
    */
   tolerancia_precio_ref_pct: number
+  /** Días de validez por defecto de una cotización nueva (21-cotizaciones), 1–90. */
+  cotizacion_validez_dias: number
+  /** Condiciones por defecto que se precargan en cada cotización (21), ≤ 2000. */
+  cotizacion_terminos: string | null
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -1833,4 +1837,126 @@ export interface PeriodoRecurrente {
   desde: string
   hasta: string
   fecha_programada: string
+}
+
+/* ==================== Cotizaciones (21) ==================== */
+
+/** Estado guardado de una cotización (P5). */
+export type EstadoCotizacion = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'anulada'
+
+/**
+ * Estado que se muestra: `vencida` es derivada (`borrador`/`enviada` con
+ * `fecha_vencimiento < hoy` de Caracas), sin cron.
+ */
+export type EstadoEfectivoCotizacion = EstadoCotizacion | 'vencida'
+
+/** Fila de `cotizaciones` (solo USD, P1). */
+export interface Cotizacion {
+  id: string
+  numero: number
+  fecha: string
+  validez_dias: number
+  fecha_vencimiento: string
+  /** Cliente registrado; si es nulo, cliente libre (`cliente_nombre`). */
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  estado: EstadoCotizacion
+  /** 0 = sin IVA. */
+  iva_pct: number
+  subtotal_usd: number
+  descuento_usd: number
+  iva_usd: number
+  total_usd: number
+  notas_cliente: string | null
+  /** Nunca sale en el PDF ni en el enlace público. */
+  notas_internas: string | null
+  terminos: string | null
+  enviada_at: string | null
+  enviada_por: string | null
+  respondida_at: string | null
+  respondida_por: string | null
+  motivo_rechazo: string | null
+  anulada_at: string | null
+  anulada_por: string | null
+  motivo_anulacion: string | null
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+}
+
+/** Fila de `cotizacion_items`. `producto_nombre` es snapshot al guardar. */
+export interface CotizacionItem {
+  id: string
+  cotizacion_id: string
+  orden: number
+  producto_id: string
+  producto_nombre: string
+  peso_kg: number
+  precio_usd_kg: number
+  subtotal_usd: number
+  nota: string | null
+}
+
+/** Fila de `cotizaciones_listado_view`. */
+export interface CotizacionListado {
+  id: string
+  numero: number
+  fecha: string
+  fecha_vencimiento: string
+  estado: EstadoCotizacion
+  estado_efectivo: EstadoEfectivoCotizacion
+  cliente_id: string | null
+  cliente: string
+  telefono: string | null
+  total_usd: number
+  n_lineas: number
+  enviada_at: string | null
+  updated_at: string
+}
+
+/** Cotización con líneas, datos del cliente registrado y nombres de usuarios (ficha). */
+export interface CotizacionDetalle extends Cotizacion {
+  items: CotizacionItem[]
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'telefono' | 'aplica_iva' | 'bloqueado'> | null
+  creado_por_nombre: string | null
+  enviada_por_nombre: string | null
+  respondida_por_nombre: string | null
+  anulada_por_nombre: string | null
+  actualizado_por_nombre: string | null
+}
+
+/** Línea que se envía a `guardar_cotizacion` (el nombre lo copia la RPC). */
+export interface CotizacionItemInput {
+  producto_id: string
+  peso_kg: number
+  precio_usd_kg: number
+  nota: string | null
+}
+
+/**
+ * Datos de una cotización a guardar. `con_iva` es el interruptor (P1): el
+ * servicio resuelve `iva_pct` con el % vigente de config.
+ */
+export interface CotizacionInput {
+  fecha: string
+  validez_dias: number
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  con_iva: boolean
+  descuento_usd: number
+  notas_cliente: string | null
+  notas_internas: string | null
+  terminos: string | null
+  items: CotizacionItemInput[]
+}
+
+/** Importes de una cotización (misma regla que `guardar_cotizacion`). */
+export interface TotalesCotizacion {
+  subtotal_usd: number
+  descuento_usd: number
+  iva_usd: number
+  total_usd: number
 }
