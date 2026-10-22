@@ -11,7 +11,7 @@
 - [ ] `/SPEC.md` (§5, §7, §9) con nota del 2026-10-22; `specs/README.md` con orden y cambio de alcance; tarea agregada en `15-dashboard/tasks.md` y en `08-tasas/tasks.md` (P5 aprobada). — Fase E, otra rama (las tareas agregadas en 15 y 08 ya se anotaron al planificar).
 
 ## Datos y seguridad (migraciones + RLS)
-- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` escrita y probada en código y tipos, pendiente de aplicar en Supabase por el usuario. D: Fase D, otra rama.
+- [ ] Cuatro migraciones nuevas e incrementales (`20261022000000` … `…000300`), aplicadas en orden A → B → C → D. No se editó ninguna aplicada. — Fase A: `20261022000000_gastos_esquema.sql` aplicada. Fase B: `20261022000100_gastos_nomina.sql` aplicada. Fase C: `20261022000200_gastos_recurrentes.sql` aplicada en Supabase por el usuario el 2026-10-22. D: Fase D, otra rama.
 - [ ] `categorias_gasto`, `empleados`, `gastos` y `gastos_recurrentes` en `snake_case` y español, con las columnas, checks e índices de `spec.md`; dinero y tasas `numeric(14,6)`. — Fase A: `categorias_gasto` y `gastos`. Fase B: `empleados` y `gastos.empleado_id`. Fase C: `gastos_recurrentes` y `gastos.recurrente_id` con índice único parcial `(recurrente_id, periodo_desde)`. D: dashboard.
 - [ ] RLS en las cuatro: `select`/`insert`/`update` solo `es_admin()`, sin `delete`, `revoke` de `anon` y de `delete`/`truncate` de `authenticated`. Operador: 0 filas y escrituras fallan. — Fase A y B probadas. Fase C: `gastos_recurrentes` con RLS solo admin y sin delete en la migración C.
 - [x] Auditoría: `created_by`/`created_at` inmutables, `updated_by`/`updated_at` por `fija_auditoria()`; `confirmado_*` y `anulado_*` los fija `gastos_guard`; `tasa_registrada_por` por `fija_tasa_registrada_por()`. — Postgres local: cambiar `created_by` no tiene efecto (se restaura en silencio), `updated_by` se fija al editar. Fase B: `empleados` usa `fija_auditoria()`. Fase C: `gastos_recurrentes` usa `fija_auditoria()`.
@@ -59,7 +59,7 @@
 
 ## Pendientes / deuda técnica
 - _(anotar aquí con fecha lo que se difiera, sin borrar ítems)_
-- **2026-10-22 — Migración de la Fase C sin aplicar en Supabase**: `20261022000200_gastos_recurrentes.sql` está escrita y validada en código y pruebas de dominio. **Aplicarla antes de desplegar este código**: hasta entonces `/gastos` y los gastos recurrentes fallarán si no existen la tabla `gastos_recurrentes` y la RPC `generar_gastos_recurrentes`.
+- **2026-10-22 — Resuelto el mismo día**: el usuario aplicó la migración C en Supabase y realizó las pruebas en navegador. Nota original — **Migración de la Fase C sin aplicar en Supabase**: `20261022000200_gastos_recurrentes.sql` está escrita y validada en código y pruebas de dominio.
 - **2026-10-22 — Desvíos y notas de la Fase C**:
   - `gasto_recurrente_monto` y `generar_gastos_recurrentes` respetan exactamente la spec: períodos mensuales con `dia_mes` o fin de mes, períodos quincenales (1–15 y 16–fin de mes), tope 12 por plantilla, ignora empleados inactivos.
   - La UI de `GastoRecurrenteForm` muestra las próximas 3 fechas programadas calculadas en vivo con `proximasFechas`.
