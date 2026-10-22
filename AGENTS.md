@@ -25,24 +25,36 @@ Este proyecto se ejecuta bajo **SDD**. La fuente de verdad es `/SPEC.md` (visió
 
 ## Orquestación automática
 
-Existen subagentes (`planner`, `executor`, `verifier`) y comandos (`/sdd-status`, `/sdd-next`, `/sdd-plan`, `/sdd-implement`, `/sdd-verify`, `/sdd-pr`) que orquestan el flujo. Preferirlos a hacer el trabajo manualmente.
+Existen subagentes (`planner`, `executor`, `verifier`) y comandos (`/sdd-status`, `/sdd-next`, `/sdd-plan`, `/sdd-implement`, `/sdd-verify`, `/sdd-pr`, `/sdd-promover`) que orquestan el flujo. Preferirlos a hacer el trabajo manualmente.
 
 Las definiciones existen para cada herramienta: Claude Code (`.claude/agents`, `.claude/commands`), opencode (`.opencode/agent`, `.opencode/command`), Antigravity (`.agents/agents`, `.agents/skills`) y Gemini CLI (`.gemini/agents`, `.gemini/commands`). `.claude/` y `.opencode/` se editan a mano y en sincronía; `.agents/` y `.gemini/` se **generan** desde `.opencode/` con `python3 scripts/sync-agents.py` (correrlo y commitear el resultado tras cambiar un agente o comando). Antigravity y Gemini leen estas reglas desde `AGENTS.md` / `GEMINI.md`.
 
 
 # Flujo Git (rama por módulo/fase, commits descriptivos, PR claro)
 
-Aplica a todo agente que escriba código o specs. El remoto es `pescaderia-altamar`; la rama base es `main`.
+Aplica a todo agente que escriba código o specs. El remoto es `pescaderia-altamar`.
 
-1. **Una rama por módulo SDD o por fase** de su `tasks.md`, creada desde `main` actualizado y **en su propio worktree** (ver regla 7):
-   `git fetch pescaderia-altamar && git worktree add ../pescaderia-mvp-wt/<slug> -b feat/<slug> pescaderia-altamar/main`.
-   Prefijos: `feat/` (módulo o fase), `fix/` (corrección), `refactor/` (sin cambio funcional), `docs/` (solo specs). Slug en kebab-case sin el número del módulo (`feat/gastos`, `feat/gastos-nomina`). Nunca trabajar ni hacer commit directo en `main`.
+**Ramas de entorno** (de larga vida, nunca se trabaja ni se hace commit directo en ellas):
+
+| Rama | Para qué | Recibe PR desde |
+|---|---|---|
+| `dev` | Integración: aquí llegan todas las ramas de trabajo | `feat/`, `fix/`, `refactor/`, `docs/` |
+| `sbx` | Sandbox / pruebas del conjunto antes de producción | solo `dev` |
+| `main` | Producción: **cada merge en `main` se despliega en el servidor** | solo `sbx` |
+
+Así varias funcionalidades se acumulan en `dev`, se prueban juntas en `sbx` y llegan a producción en **una sola instalación** cuando el usuario promueve `sbx → main`.
+
+1. **Una rama por módulo SDD o por fase** de su `tasks.md`, creada desde `dev` actualizado y **en su propio worktree** (ver regla 7):
+   `git fetch pescaderia-altamar && git worktree add ../pescaderia-mvp-wt/<slug> -b feat/<slug> pescaderia-altamar/dev`.
+   Prefijos: `feat/` (módulo o fase), `fix/` (corrección), `refactor/` (sin cambio funcional), `docs/` (solo specs). Slug en kebab-case sin el número del módulo (`feat/gastos`, `feat/gastos-nomina`).
 2. **Commits** en español con Conventional Commits: `tipo(ámbito): qué cambia y para qué`, en imperativo, ≤ 72 caracteres en el asunto. Tipos: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`. El ámbito es el dominio (`gastos`, `nomina`, `dashboard`, `specs`). El cuerpo (opcional) explica el porqué y referencia la tarea: `Tareas: 20-gastos T3–T5`.
 3. **Granularidad**: un commit por tarea o grupo coherente de tareas de `tasks.md`, solo con `npm run lint` y `npx tsc --noEmit` en verde. La planificación va en su propio commit: `docs(specs): planificar NN-nombre`. Las migraciones van en un commit separado del código que las usa. Nada de commits "wip" ni con archivos ajenos a la tarea.
-4. **Antes del PR**: checklist del módulo marcado (pendientes con motivo), `npm run lint` y `npx tsc --noEmit` en verde, rama rebasada o mergeada con `main` sin conflictos, y `git push -u pescaderia-altamar <rama>`.
-5. **PR** hacia `main` con la plantilla `.github/pull_request_template.md`: título igual al commit principal (`feat(gastos): …`), y en el cuerpo qué se hizo, módulo/tareas, migraciones nuevas, cambios en otros módulos (tareas agregadas), cómo probar, checklist y pendientes. Usar `/sdd-pr` para prepararlo. Si `gh` no está instalado, dejar el cuerpo en el scratchpad y dar al usuario el enlace `https://github.com/RamonTec/pescaderia-altamar/compare/main...<rama>?expand=1`.
-6. **No hacer merge** del PR, push forzado a ramas compartidas ni borrado de ramas sin pedido explícito del usuario. Una rama se empieza solo cuando su dependencia ya está mergeada en `main` (o se basa en la rama de la dependencia, indicándolo en el PR).
-7. **Un worktree por agente y rama.** Varios agentes (Claude Code, opencode, Antigravity, Gemini) pueden trabajar a la vez; una carpeta solo está en una rama, y un `git switch` le cambia la rama a todos los que la usan. Por eso:
+4. **Antes del PR**: checklist del módulo marcado (pendientes con motivo), `npm run lint` y `npx tsc --noEmit` en verde, rama al día con `dev` sin conflictos, y `git push -u pescaderia-altamar <rama>`.
+5. **PR de trabajo, siempre hacia `dev`** (nunca hacia `sbx` ni `main`), con la plantilla `.github/pull_request_template.md`: título igual al commit principal (`feat(gastos): …`), y en el cuerpo qué se hizo, módulo/tareas, migraciones nuevas, cambios en otros módulos (tareas agregadas), cómo probar, checklist y pendientes. Usar `/sdd-pr`. Si `gh` no está instalado, dejar el cuerpo en el scratchpad y dar al usuario el enlace `https://github.com/RamonTec/pescaderia-altamar/compare/dev...<rama>?expand=1`.
+6. **Promoción `dev → sbx → main`**: solo cuando el usuario lo pide, con `/sdd-promover sbx` (PR `dev → sbx`) o `/sdd-promover main` (PR `sbx → main`). El PR de promoción lista los PRs incluidos y **todas las migraciones nuevas**, en orden, para aplicarlas en una sola instalación en ese entorno. Se mergea con *merge commit* (no squash ni rebase) para que `dev`, `sbx` y `main` compartan historia y no diverjan.
+   - **Hotfix** (solo con pedido explícito del usuario): rama `fix/<slug>` desde `main`, PR hacia `main`; después, PR de `main` hacia `sbx` y de `sbx` hacia `dev` para no perder la corrección.
+7. **No hacer merge** de ningún PR, push forzado a ramas compartidas ni borrado de ramas sin pedido explícito del usuario. Una rama se empieza solo cuando su dependencia ya está mergeada en `dev` (o se basa en la rama de la dependencia, indicándolo en el PR).
+8. **Un worktree por agente y rama.** Varios agentes (Claude Code, opencode, Antigravity, Gemini) pueden trabajar a la vez; una carpeta solo está en una rama, y un `git switch` le cambia la rama a todos los que la usan. Por eso:
    - Cada rama se trabaja en su carpeta `../pescaderia-mvp-wt/<slug>` (hermana del repo, fuera de él), creada con el comando de la regla 1. La carpeta principal `pescaderia-mvp` es del usuario: no se hace `git switch` en ella ni en el worktree de otro agente.
    - Antes de cada commit, confirmar con `git branch --show-current` que se está en la rama propia.
    - Preparar el worktree nuevo: `npm ci`, `ln -s ../../pescaderia-mvp/.env .env` (el `.env` no está en git) y `npx next typegen` antes del primer `npx tsc --noEmit`.
