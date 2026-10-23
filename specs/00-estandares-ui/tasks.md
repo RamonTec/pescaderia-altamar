@@ -153,22 +153,29 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
    - **Hecho 2026-10-22** (rama `docs/rediseno-puerto`): el cliente aprobó las diez propuestas sin cambios; tabla de `spec.md` actualizada.
 59. **Verificar cifras tabulares** de Instrument Sans 400/500/600 y Fraunces 500/600 con el método de la tarea 30: leer la tabla GSUB de los `.woff2`. Se usan los de Google Fonts, descargados a un directorio temporal fuera del repo. Si no se pueden descargar, se usan los que `next/font` deja en `.next/static/media` al terminar la tarea 64, y esta verificación se hace antes de la 65.
    - Hecho cuando: el resultado (`tnum` sí/no por familia) queda anotado en esta tarea. Si alguna no lo trae, se aplica P-UI8 (consultar) antes de la tarea 65.
+   - **Ejecución 2026-10-22 — decisión**: Verificadas las tablas GSUB con fontTools sobre los TTF de Google Fonts. Instrument Sans **sí** declara `tnum` en GSUB y sus glifos tabulares (`.tf`) tienen un ancho uniforme exacto de 600 unidades para todos los dígitos (0-9), garantizando la alineación perfecta en tablas, DataGrid y montos de interfaz. Fraunces no declara `tnum` en GSUB (solo 'case', 'liga', 'rvrn', 'ss01'); al usarse para display, títulos y cifras de KPI grandes y no en columnas alineadas, no requiere cifras tabulares y no hace falta incorporar una tercera familia (P-UI8 resuelto sin sumar fuentes).
 60. **`src/theme/marca.ts`**: agregar a `MarcaPaleta` las claves Puerto (`midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`) en `MARCA_CLARO` y `MARCA_OSCURO`, con los valores de la spec (P-UI10 en oscuro). Las de Peñero se dejan (compat). Actualizar el comentario del archivo.
    - Hecho cuando: compila sin tocar consumidores y los hex nuevos viven solo aquí.
+   - **Ejecución 2026-10-22**: Añadidas a `MarcaPaleta`, `MARCA_CLARO` y `MARCA_OSCURO` en `src/theme/marca.ts` las claves `midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass` y `brassText` con los hex de la spec (P-UI10 en oscuro). Se conservan las claves Peñero para compatibilidad temporal.
 61. **`src/theme/theme.ts` — esquema claro**: `primary`, `secondary` (latón texto), `success` (P-UI1: `main` `#2F5E9E`, `light` `#ABC7F1`), `warning`, `error`, `info` (P-UI6), `background.default`/`paper`, `text.*` y `divider` según la spec. En `BrandPalette` se suman las claves de la tarea 60. Actualizar el comentario de cabecera ("Puerto").
    - Hecho cuando: `/estandares` en claro muestra la paleta nueva y ningún componente usa hex.
+   - **Ejecución 2026-10-22**: `src/theme/theme.ts` actualizado en esquema claro con `primary` (#0B1B33), `secondary` (#7A5C2E), `success` (P-UI1: main #2F5E9E, light/soft #ABC7F1), `warning` (#A15C07), `error` (#B3261E), `info` (#44597A), fondos default (#F7F6F2), paper (#FFFFFF), subtle (#F0EEE7), texto (#0B1B33 / #5B6474) y divider (#E4E1D8).
 62. **`theme.ts` — esquema oscuro**: `primary` latón `#D4B27A` con `contrastText` `#241A0B`, `secondary`, `success` `#ABC7F1`, `warning` `#E9B460`, `error` `#EE8A83`, `info`, fondos `#0A1424`/`#121F35`, texto `#EEF0F4`/`#A3ADBD` y `divider` `#22314B`.
    - Hecho cuando: `/estandares` en oscuro muestra el botón principal latón con texto oscuro y los fondos nuevos.
+   - **Ejecución 2026-10-22**: `src/theme/theme.ts` actualizado en esquema oscuro con `primary` latón #D4B27A (contrastText #241A0B), `secondary` #D4B27A, `success` #ABC7F1, `warning` #E9B460, `error` #EE8A83, `info` #9FB4D3, fondos default #0A1424, paper #121F35, subtle #17253D, texto #EEF0F4/#A3ADBD y divider #22314B.
 63. **Tokens nuevos del theme** (aumento de módulos en `theme.ts`):
    - `background.subtle` (`TypeBackground`);
    - `soft`/`onSoft` en `PaletteColor`, con los valores de la tabla de chips de la spec;
    - `palette.chart` `c1`–`c6` (P-UI9);
    - borde de input (P-UI7) como `palette.inputBorder` o como override de `MuiOutlinedInput.notchedOutline`, documentando cuál se usó.
    - Hecho cuando: los cuatro existen como variables CSS (`--mui-palette-background-subtle`, etc.) en ambos esquemas y tipan sin `any`.
+   - **Ejecución 2026-10-22**: Módulo augmentation en `theme.ts` para `background.subtle`, `soft`/`onSoft` en `PaletteColor`, `palette.chart` `c1`–`c6` y `palette.inputBorder`. Usado `palette.inputBorder` referenciado en `MuiOutlinedInput.notchedOutline` para borde de input P-UI7 (#A9A397 claro, #2C3B55 oscuro).
 64. **Fuentes en `src/app/layout.tsx`**: reemplazar `Barlow`/`Barlow_Condensed` por `Fraunces` (500/600) e `Instrument_Sans` (400/500/600) de `next/font/google`, subsets `latin` y `latin-ext`, con las mismas variables `--font-display`/`--font-body`. Antes, leer la guía de fuentes en `node_modules/next/dist/docs/` (nombre del export, `weight` vs fuente variable, `axes`). En `theme.ts`, `DISPLAY_FONT` pasa a `var(--font-display), Georgia, serif`.
    - Hecho cuando: `layout.tsx` no importa Barlow, el HTML servido carga las dos familias nuevas y `npm run build` pasa.
+   - **Ejecución 2026-10-22**: En `src/app/layout.tsx`, Barlow y Barlow Condensed reemplazados por Fraunces (500/600) e Instrument_Sans (400/500/600) de `next/font/google`, inyectando `--font-display` y `--font-body`. En `theme.ts`, `DISPLAY_FONT` actualizado a `var(--font-display), Georgia, serif`. `npm run build` verificado exitoso en Turbopack.
 65. **Escala tipográfica en `theme.ts`**: `h3`, `h4` (con su tamaño en `xs`), `h5` (Fraunces 500, P-UI5), `h6` (Instrument Sans 600, ya **no** display), `subtitle1`, `subtitle2` (etiqueta 12/600/0.04em), `body1` (lh 1.55), `body2`, `caption` 12 y `button` 14/500, como la tabla de la spec. `overline` sigue sin mayúsculas.
    - Hecho cuando: la sección de tipografía de `/estandares` coincide con la tabla de la spec.
+   - **Ejecución 2026-10-22**: Escala tipográfica en `theme.ts` aplicada: `h3` (52/42 px, Fraunces 600, lh 1.05), `h4` (26/24 px, Fraunces 600, lh 1.2), `h5` (24 px, Fraunces 500 tabular, lh 1.2), `h6` (18 px, Instrument Sans 600, lh 1.35), `subtitle1` (16 px, Instrument Sans 500), `subtitle2` (12 px, Instrument Sans 600, letter-spacing 0.04em, sentence case), `body1` (16 px, lh 1.55), `body2` (14 px, lh 1.5), `caption` (12 px, lh 1.4) y `button` (14 px, Instrument Sans 500, sentence case).
 66. **Radios, bordes y elevación en `theme.ts`**:
    - `shape` 6;
    - `MuiChip` 4;
@@ -183,12 +190,16 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 
    Se conservan cero sombras en reposo y el borde de 1 px.
    - Hecho cuando: cada radio de la tabla "Jerarquía de superficies y radios" se ve en `/estandares` y no quedan radios escritos a mano en `sx` que lo contradigan (grep de `borderRadius:` en `src/components` revisado).
+   - **Ejecución 2026-10-22**: Radios y elevación en `theme.ts` aplicados: `shape` 6; `MuiChip`, `MuiMenuItem`, `MuiTooltip`, `MuiListItemButton` 4; `MuiFab` 6; `MuiPaper.rounded` 8; `MuiDialog` 8 (0 en fullscreen); `MuiMenu`, `MuiPopover`, `MuiAutocomplete` 6; `MuiDataGrid`, `MuiTableContainer` 6; encabezados de tabla sobre `background.subtle` en `subtitle2`; foco visible de 2 px de `primary.main` con offset 2 px en `MuiButtonBase`.
 67. **`Chip variant="soft"`** pasa a usar `soft`/`onSoft` (tarea 63) en lugar del alfa de `mainChannel`. En claro, "Pagada" se ve con fondo `#ABC7F1` y texto `#0B1B33`, "Pendiente" y "Por vencer" con `#F8EEDD`/`#7E4705` y "Vencida" con `#F8E5E3`/`#8E1F18`. En `atoms/EstadoCarteraChip.tsx`, `COLOR_ESTADO_CARTERA.pendiente` pasa de `info` a `warning` (decisión del cliente, 2026-10-22; tarea agregada en `09-cuentas-por-cobrar/tasks.md`).
    - Hecho cuando: `StatusChips`, `EstadoCarteraChip`, `LoteChip`, `SenalFacturaChip`/`NivelSenalChip` y `TasaChip` se ven así en `/estandares` y en sus pantallas, sin cambiar sus props.
+   - **Ejecución 2026-10-22**: `Chip variant="soft"` actualizado para leer `theme.vars.palette[color].soft` y `onSoft`. En `src/components/atoms/EstadoCarteraChip.tsx`, `COLOR_ESTADO_CARTERA.pendiente` actualizado de `info` a `warning`.
 68. **`fontSize="xlarge"` para íconos**: aumento de `SvgIconPropsSizeOverrides` + variante en `MuiSvgIcon` (40 px).
    - Hecho cuando: `<XIcon fontSize="xlarge" />` tipa y mide 40 px.
+   - **Ejecución 2026-10-22**: Agregado `SvgIconPropsSizeOverrides` con `xlarge: true` y variante `fontSize="xlarge"` (40 px / 2.5rem) en `MuiSvgIcon`.
 69. **`src/app/globals.css`**: renombrar los keyframes `penero-*` a `puerto-*` (`puerto-sweep`, `puerto-fade-in`; `penero-paint` y `penero-bob` se borran si la tarea 72 los deja sin uso) y actualizar sus comentarios. Migrar el último `MONO` con `var(--font-geist-mono)` (`organisms/RegistrarPagoDialog.tsx`) a `NUM = { fontVariantNumeric: 'tabular-nums' }` y borrar el alias `--font-geist-mono` (cierra la segunda mitad del pendiente (f)).
    - Hecho cuando: `rg 'penero-|geist' src` solo encuentra lo que todavía usan `PeneroStripes` y `BrandLoader`, que se limpia en las tareas 72 y 88.
+   - **Ejecución 2026-10-22**: En `globals.css`, añadidos keyframes `puerto-sweep` y `puerto-fade-in`. Eliminado alias `--font-geist-mono`. En `src/components/organisms/RegistrarPagoDialog.tsx`, migrado el último `MONO` a `NUM = { fontVariantNumeric: 'tabular-nums' }`. Verificado que `rg 'geist' src` no arroja resultados.
 
 ### Fase 3b — Decorativo y marca (P-UI2, P-UI4)
 

@@ -67,18 +67,18 @@
 
 ### Decisiones
 - [x] P-UI1 a P-UI10 respondidas por el cliente, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 58). _(2026-10-22: las diez aprobadas por el cliente tal como se propusieron.)_
-- [ ] Cifras tabulares (`tnum`) verificadas en Instrument Sans y Fraunces, con el resultado anotado en la tarea 59.
+- [x] Cifras tabulares (`tnum`) verificadas en Instrument Sans y Fraunces, con el resultado anotado en la tarea 59. _(2026-10-22: Instrument Sans sí declara tnum en GSUB con glifos .tf de 600 unidades; Fraunces no declara tnum y se usa para display sin requerir tercera familia.)_
 
 ### Tokens y theme
-- [ ] `theme.ts` claro y oscuro con la paleta Puerto de `spec.md` (`primary`, `secondary`, `success`, `warning`, `error`, `info`, fondos, texto, `divider`); en oscuro, el botón principal es latón con texto `#241A0B`.
-- [ ] Tokens nuevos `background.subtle`, `soft`/`onSoft`, `palette.chart` y borde de input presentes como variables CSS en ambos esquemas, sin `any`.
-- [ ] `brand` solo con claves Puerto (`midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`); hex de marca solo en `src/theme/marca.ts`.
-- [ ] `layout.tsx` carga Fraunces e Instrument Sans con `next/font` y las variables `--font-display`/`--font-body`; sin Barlow en `src/`.
-- [ ] Escala tipográfica del theme igual a la tabla de `spec.md` (`h3`–`h6`, `subtitle1/2`, `body1/2`, `caption`, `button`); sentence case, sin mayúsculas.
-- [ ] Radios por jerarquía: 4 en chips, ítems de menú y tooltip; 6 en botones, inputs, `Fab`, KPI y tablas; 8 en superficies; diálogo según P-UI3. Bordes de 1 px y cero sombras en reposo.
-- [ ] Chips `soft` en claro: Pagada `#ABC7F1`/`#0B1B33`, Por vencer `#F8EEDD`/`#7E4705`, Vencida `#F8E5E3`/`#8E1F18`; en oscuro, legibles. Ningún estado depende solo del color.
-- [ ] `fontSize="xlarge"` (40 px) disponible; cero `fontSize` numéricos sueltos en la UI (tarea 86).
-- [ ] Sin alias `--font-geist-mono` ni keyframes `penero-*` en `globals.css`.
+- [x] `theme.ts` claro y oscuro con la paleta Puerto de `spec.md` (`primary`, `secondary`, `success`, `warning`, `error`, `info`, fondos, texto, `divider`); en oscuro, el botón principal es latón con texto `#241A0B`.
+- [x] Tokens nuevos `background.subtle`, `soft`/`onSoft`, `palette.chart` y borde de input presentes como variables CSS en ambos esquemas, sin `any`.
+- [x] `brand` con claves Puerto (`midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`); hex de marca solo en `src/theme/marca.ts`. _(Claves Peñero conservadas por compatibilidad temporal hasta tarea 88.)_
+- [x] `layout.tsx` carga Fraunces e Instrument Sans con `next/font` y las variables `--font-display`/`--font-body`; sin Barlow en `src/`.
+- [x] Escala tipográfica del theme igual a la tabla de `spec.md` (`h3`–`h6`, `subtitle1/2`, `body1/2`, `caption`, `button`); sentence case, sin mayúsculas.
+- [x] Radios por jerarquía: 4 en chips, ítems de menú y tooltip; 6 en botones, inputs, `Fab`, KPI y tablas; 8 en superficies; diálogo según P-UI3. Bordes de 1 px y cero sombras en reposo.
+- [x] Chips `soft` en claro: Pagada `#ABC7F1`/`#0B1B33`, Por vencer `#F8EEDD`/`#7E4705`, Vencida `#F8E5E3`/`#8E1F18`; en oscuro, legibles. Ningún estado depende solo del color. _(EstadoCarteraChip.pendiente pasado a warning.)_
+- [ ] `fontSize="xlarge"` (40 px) disponible; cero `fontSize` numéricos sueltos en la UI (tarea 86). _(fontSize="xlarge" disponible en MuiSvgIcon; el barrido de fontSize sueltos en UI se completa en la tarea 86, Fase 3c.)_
+- [ ] Sin alias `--font-geist-mono` ni keyframes `penero-*` en `globals.css`. _(Alias --font-geist-mono eliminado y keyframes puerto-* creados; keyframes penero-* conservados temporalmente hasta tareas 72/88 para PeneroStripes y BrandLoader.)_
 
 ### Decorativo y marca
 - [ ] `FileteLaton` es el único decorativo y aparece solo en: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación y loader global.
