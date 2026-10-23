@@ -1980,3 +1980,24 @@ export interface CotizacionDocumentoDatos {
   notas_cliente: string | null
   terminos: string | null
 }
+
+/** Datos del negocio para el encabezado de documentos (PDF y página pública, 21). */
+export interface NegocioDocumento {
+  nombre_comercial: string | null
+  razon_social: string | null
+  rif: string | null
+  direccion: string | null
+  telefono: string | null
+}
+
+/** Todo lo que necesita la plantilla del PDF de una cotización (21, Fase B). */
+export interface DatosCotizacionPdf {
+  documento: CotizacionDocumentoDatos
+  negocio: NegocioDocumento
+  /** `config_negocio.instrucciones_pago`, si existen. */
+  instrucciones_pago: string | null
+  /** Sello si no está vigente: «VENCIDA», «ACEPTADA», «RECHAZADA»; `null` = vigente. */
+  sello: string | null
+  /** Última actualización (para «Actualizada el …»). */
+  actualizada_at: string
+}

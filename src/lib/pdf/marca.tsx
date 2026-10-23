@@ -1,6 +1,7 @@
 import { Path, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import { MARCA_CLARO, NOMBRE_MARCA } from '@/theme/marca'
 import { ISOTIPO_ALTO, ISOTIPO_ANCHO, ISOTIPO_CASCO, ISOTIPO_FRANJAS, ISOTIPO_VIEWBOX } from '@/lib/marca/isotipo'
+import type { NegocioDocumento } from '@/types/domain'
 import type { FuentesPdf } from './fuentes'
 
 /**
@@ -10,14 +11,6 @@ import type { FuentesPdf } from './fuentes'
  * único gesto decorativo); pie con número de página. Colores solo de
  * `src/theme/marca.ts` (modo claro). Puros: datos → elementos.
  */
-
-export interface DatosNegocioPdf {
-  nombre_comercial: string | null
-  razon_social: string | null
-  rif: string | null
-  direccion: string | null
-  telefono: string | null
-}
 
 const GRIS = MARCA_CLARO.hullDeep
 
@@ -65,7 +58,7 @@ export function FranjasBorda() {
   )
 }
 
-export function EncabezadoMarca({ negocio, fuentes }: { negocio: DatosNegocioPdf; fuentes: FuentesPdf }) {
+export function EncabezadoMarca({ negocio, fuentes }: { negocio: NegocioDocumento; fuentes: FuentesPdf }) {
   const e = estilosMarca(fuentes)
   const lineas = [
     negocio.razon_social && negocio.razon_social !== negocio.nombre_comercial ? negocio.razon_social : null,
