@@ -26,6 +26,7 @@ import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined'
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined'
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined'
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined'
+import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
@@ -95,6 +96,8 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Pedidos / POS',
     icon: <PointOfSaleOutlinedIcon />,
   },
+  // 21-cotizaciones: admin y operador (P4).
+  { href: '/cotizaciones', label: 'Cotizaciones', icon: <RequestQuoteOutlinedIcon /> },
   { href: '/cobros', label: 'Cobros y pagos', icon: <PaymentsOutlinedIcon /> },
   // 06-contratos: bitácora de contratos, solo admin.
   {

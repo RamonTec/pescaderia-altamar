@@ -1,12 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
+  Cliente,
   Cotizacion,
   CotizacionDetalle,
   CotizacionInput,
   CotizacionListado,
+  Producto,
 } from '@/types/domain'
 import type { FiltroEstadoCotizacionRepo, ICotizacionRepository } from '@/lib/repositories/interfaces'
 import { makeCotizacionRepository } from '@/lib/repositories/cotizacionRepository'
+import { makeClienteRepository } from '@/lib/repositories/clienteRepository'
+import { makeProductoRepository } from '@/lib/repositories/catalogRepositories'
 import { createClient } from '@/lib/supabase/server'
 import { ivaPctVenta } from '@/lib/facturas/iva'
 import { estadoEfectivo } from '@/lib/cotizaciones/estado'
@@ -138,20 +142,33 @@ export async function getCotizacion(id: string): Promise<CotizacionDetalle | nul
   return cotizaciones.getDetalle(id)
 }
 
-/** Valores por defecto de una cotización nueva (config del negocio). */
-export interface DefaultsCotizacion {
+/** Lo que necesita `CotizacionForm`: catálogos, % de IVA y defaults de config. */
+export interface CatalogoCotizacion {
+  /** Clientes activos. */
+  clientes: Cliente[]
+  /** Todos los productos (el formulario ofrece los activos y muestra los de la cotización). */
+  productos: Producto[]
+  iva_pct: number
   validez_dias: number
   terminos: string
-  iva_pct: number
 }
 
-export async function getDefaultsCotizacion(): Promise<DefaultsCotizacion> {
+export async function getCatalogoCotizacion(): Promise<CatalogoCotizacion> {
   const { db } = await contexto()
-  const config = await getConfigNegocio(db)
+  const [clientes, productos, config] = await Promise.all([
+    makeClienteRepository(db).list(),
+    makeProductoRepository(db).list(),
+    getConfigNegocio(db),
+  ])
   return {
+    clientes: clientes.filter((c) => c.activo),
+    productos: productos.map((p) => ({
+      ...p,
+      precio_referencia_usd_kg: p.precio_referencia_usd_kg === null ? null : Number(p.precio_referencia_usd_kg),
+    })),
+    iva_pct: Number(config?.iva_pct ?? 16),
     validez_dias: Number(config?.cotizacion_validez_dias ?? 7),
     terminos: config?.cotizacion_terminos ?? '',
-    iva_pct: Number(config?.iva_pct ?? 16),
   }
 }
 

@@ -22,6 +22,8 @@ export interface CotizacionDocumentoProps {
   estado?: React.ReactNode
   /** Oculta el bloque de número/fechas/cliente (la ficha ya lo muestra en su encabezado). */
   sinEncabezado?: boolean
+  /** Oculta notas y términos (la ficha los muestra en su propia sección). */
+  sinNotas?: boolean
 }
 
 /**
@@ -31,8 +33,15 @@ export interface CotizacionDocumentoProps {
  * pública `/c/[token]`: recibe solo datos para el cliente
  * (`CotizacionDocumentoDatos`), nunca notas internas ni ids.
  */
-export function CotizacionDocumento({ datos, estado, sinEncabezado = false }: CotizacionDocumentoProps) {
+export function CotizacionDocumento({
+  datos,
+  estado,
+  sinEncabezado = false,
+  sinNotas = false,
+}: CotizacionDocumentoProps) {
   const sinIva = !(datos.iva_pct > 0)
+  const notas = sinNotas ? null : datos.notas_cliente
+  const terminos = sinNotas ? null : datos.terminos
   return (
     <Box sx={{ display: 'grid', gap: 3, minWidth: 0 }}>
       {sinEncabezado ? null : (
@@ -167,20 +176,20 @@ export function CotizacionDocumento({ datos, estado, sinEncabezado = false }: Co
         </Box>
       </Box>
 
-      {datos.notas_cliente || datos.terminos ? <Divider /> : null}
-      {datos.notas_cliente ? (
+      {notas || terminos ? <Divider /> : null}
+      {notas ? (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
           <Typography variant="subtitle2">Notas</Typography>
           <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-            {datos.notas_cliente}
+            {notas}
           </Typography>
         </Box>
       ) : null}
-      {datos.terminos ? (
+      {terminos ? (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
           <Typography variant="subtitle2">Términos y condiciones</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
-            {datos.terminos}
+            {terminos}
           </Typography>
         </Box>
       ) : null}
