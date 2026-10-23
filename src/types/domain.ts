@@ -1880,6 +1880,10 @@ export interface Cotizacion {
   anulada_at: string | null
   anulada_por: string | null
   motivo_anulacion: string | null
+  /** Fase C: token del enlace público (`null` = sin enlace o revocado). */
+  token_publico: string | null
+  token_generado_at: string | null
+  token_generado_por: string | null
   created_at: string
   created_by: string
   updated_at: string
@@ -1914,6 +1918,8 @@ export interface CotizacionListado {
   n_lineas: number
   enviada_at: string | null
   updated_at: string
+  /** Fase C: tiene enlace público activo. */
+  tiene_enlace: boolean
 }
 
 /** Cotización con líneas, datos del cliente registrado y nombres de usuarios (ficha). */
@@ -1925,6 +1931,7 @@ export interface CotizacionDetalle extends Cotizacion {
   respondida_por_nombre: string | null
   anulada_por_nombre: string | null
   actualizado_por_nombre: string | null
+  token_generado_por_nombre: string | null
 }
 
 /** Línea que se envía a `guardar_cotizacion` (el nombre lo copia la RPC). */
@@ -2001,3 +2008,24 @@ export interface DatosCotizacionPdf {
   /** Última actualización (para «Actualizada el …»). */
   actualizada_at: string
 }
+
+/** Contacto público del negocio (páginas de respaldo del enlace, 21). */
+export interface ContactoNegocio {
+  nombre_comercial: string | null
+  telefono: string | null
+}
+
+/** Estado que ve el cliente en el enlace público (P7). */
+export type EstadoPublicoCotizacion = 'vigente' | 'aceptada' | 'rechazada'
+
+/** Cotización vigente tal como la devuelve `cotizacion_publica` (solo campos públicos). */
+export interface CotizacionPublica extends CotizacionDocumentoDatos {
+  estado_publico: EstadoPublicoCotizacion
+  updated_at: string
+}
+
+/** Resultado de leer el enlace `/c/[token]` (P7, sin gracia tras el vencimiento). */
+export type ResultadoCotizacionPublica =
+  | { resultado: 'disponible'; negocio: NegocioDocumento; cotizacion: CotizacionPublica }
+  | { resultado: 'vencida'; negocio: ContactoNegocio; numero: number }
+  | { resultado: 'no_disponible'; negocio: ContactoNegocio }

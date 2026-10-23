@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+import { headers } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   Cliente,
@@ -16,6 +18,7 @@ import { ivaPctVenta } from '@/lib/facturas/iva'
 import { estadoEfectivo } from '@/lib/cotizaciones/estado'
 import { parseBusquedaNumero } from '@/lib/cotizaciones/numero'
 import { fechaHoy } from '@/lib/format'
+import { urlPublica } from '@/lib/cotizaciones/enlace'
 import { getUsuarioActual } from './authService'
 import { getConfigNegocio } from './configService'
 
@@ -265,4 +268,67 @@ export async function anular(id: string, motivo: string | null): Promise<Cotizac
  */
 export async function renovar(id: string, v: CotizacionInput): Promise<string> {
   return guardarCotizacion(id, { ...v, fecha: fechaHoy() })
+}
+
+/* ============================ Enlace público (Fase C) ============================ */
+
+/** Token de 32 caracteres `base64url` (192 bits), generado en el servidor (P7). */
+function nuevoToken(): string {
+  return randomBytes(24).toString('base64url')
+}
+
+/**
+ * Base absoluta de los enlaces: `SITE_URL` (debe estar en Vercel con el
+ * dominio de producción); si falta, el `origin` de la petición
+ * (`x-forwarded-host`/`x-forwarded-proto`), y se registra en consola.
+ */
+export async function baseUrlPublica(): Promise<string> {
+  const site = process.env.SITE_URL?.trim()
+  if (site) return site
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
+  console.warn('[cotizaciones] SITE_URL no está configurada: el enlace usa el origin de la petición')
+  return `${proto}://${host}`
+}
+
+export interface EnlaceCotizacion {
+  token: string
+  url: string
+}
+
+/** Crea el enlace si no hay uno (si ya existe, devuelve el actual). */
+export async function crearEnlace(id: string): Promise<EnlaceCotizacion> {
+  const { cotizaciones } = await contexto()
+  const c = await exigir(cotizaciones, id)
+  if (c.token_publico) return { token: c.token_publico, url: urlPublica(c.token_publico, await baseUrlPublica()) }
+  try {
+    const actualizada = await cotizaciones.cambiarToken(id, nuevoToken())
+    const token = actualizada.token_publico as string
+    return { token, url: urlPublica(token, await baseUrlPublica()) }
+  } catch (e) {
+    traducir(e)
+  }
+}
+
+/** Reemplaza el token: el enlace anterior deja de funcionar al instante. */
+export async function regenerarEnlace(id: string): Promise<EnlaceCotizacion> {
+  const { cotizaciones } = await contexto()
+  try {
+    const actualizada = await cotizaciones.cambiarToken(id, nuevoToken())
+    const token = actualizada.token_publico as string
+    return { token, url: urlPublica(token, await baseUrlPublica()) }
+  } catch (e) {
+    traducir(e)
+  }
+}
+
+/** Pone el token en `null`: el enlace deja de mostrar la cotización. */
+export async function revocarEnlace(id: string): Promise<void> {
+  const { cotizaciones } = await contexto()
+  try {
+    await cotizaciones.cambiarToken(id, null)
+  } catch (e) {
+    traducir(e)
+  }
 }

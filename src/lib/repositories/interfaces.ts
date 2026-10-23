@@ -1,5 +1,6 @@
 import type {
   CanalRecordatorioId,
+  ResultadoCotizacionPublica,
   Cotizacion,
   CotizacionDetalle,
   CotizacionListado,
@@ -921,4 +922,14 @@ export interface ICotizacionRepository {
     items: { producto_id: string; peso_kg: number; precio_usd_kg: number; nota: string | null }[]
   ): Promise<string>
   cambiarEstado(id: string, cambio: CotizacionCambioEstado): Promise<Cotizacion>
+  /** Crea, regenera (`token`) o revoca (`null`) el enlace; `token_generado_*` los fija el guard. */
+  cambiarToken(id: string, token: string | null): Promise<Cotizacion>
+}
+
+/**
+ * Lectura anónima del enlace público (21, P7): solo la RPC
+ * `cotizacion_publica`, con un cliente sin cookies. Mapea el `jsonb`.
+ */
+export interface ICotizacionPublicaRepository {
+  porToken(token: string | null): Promise<ResultadoCotizacionPublica>
 }

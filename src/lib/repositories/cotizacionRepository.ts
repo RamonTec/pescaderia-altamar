@@ -45,7 +45,7 @@ function normalizaListado(f: CotizacionListado): CotizacionListado {
 }
 
 const COLUMNAS_LISTADO =
-  'id, numero, fecha, fecha_vencimiento, estado, estado_efectivo, cliente_id, cliente, telefono, total_usd, n_lineas, enviada_at, updated_at'
+  'id, numero, fecha, fecha_vencimiento, estado, estado_efectivo, cliente_id, cliente, telefono, total_usd, n_lineas, enviada_at, updated_at, tiene_enlace'
 
 interface NombresUsuarios {
   creado_por_nombre: string | null
@@ -53,6 +53,7 @@ interface NombresUsuarios {
   respondida_por_nombre: string | null
   anulada_por_nombre: string | null
   actualizado_por_nombre: string | null
+  token_generado_por_nombre: string | null
 }
 
 export function makeCotizacionRepository(db: SupabaseClient = createClient()): ICotizacionRepository {
@@ -102,7 +103,9 @@ export function makeCotizacionRepository(db: SupabaseClient = createClient()): I
           : Promise.resolve({ data: null, error: null }),
         db
           .from('cotizaciones_usuarios_view')
-          .select('creado_por_nombre, enviada_por_nombre, respondida_por_nombre, anulada_por_nombre, actualizado_por_nombre')
+          .select(
+            'creado_por_nombre, enviada_por_nombre, respondida_por_nombre, anulada_por_nombre, actualizado_por_nombre, token_generado_por_nombre'
+          )
           .eq('id', id)
           .maybeSingle(),
       ])
@@ -120,6 +123,7 @@ export function makeCotizacionRepository(db: SupabaseClient = createClient()): I
         respondida_por_nombre: nombres.respondida_por_nombre ?? null,
         anulada_por_nombre: nombres.anulada_por_nombre ?? null,
         actualizado_por_nombre: nombres.actualizado_por_nombre ?? null,
+        token_generado_por_nombre: nombres.token_generado_por_nombre ?? null,
       }
       return detalle
     },
@@ -132,6 +136,17 @@ export function makeCotizacionRepository(db: SupabaseClient = createClient()): I
       })
       if (error) throw error
       return data as string
+    },
+
+    async cambiarToken(id, token) {
+      const { data, error } = await db
+        .from('cotizaciones')
+        .update({ token_publico: token })
+        .eq('id', id)
+        .select('*')
+        .single()
+      if (error) throw error
+      return normalizaCotizacion(data as Cotizacion)
     },
 
     async cambiarEstado(id, cambio) {
