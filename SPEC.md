@@ -93,7 +93,9 @@ factura_item_lotes (factura_item_id, lote_id, peso_kg, costo_usd_kg)
 perdidas_lote      (lote_id, fecha, peso_kg, motivo, detalle, usuario_id)
 recordatorios_cobro (cliente_id, canal whatsapp|email, destinatario, asunto?, mensaje, estado generado|enviado|fallido, enviado_por) + recordatorio_facturas
 contratos          (numero, tipo venta_credito|compra_credito, factura_id?, compra_id?, fecha, dias_credito, fecha_vencimiento, estado generado|enviado|firmado|anulado, url_storage, notas, generado_por, estado_cambiado_por/_at)  -- 06-contratos; PDF inmutable en bucket privado `contratos`; solo admin
-config_negocio     (singleton: iva_pct, fuente_tasa_default, umbrales, dias_credito_default, ..., nombre_comercial, razon_social, rif, direccion, telefono, tolerancia_precio_ref_pct)  -- razon_social..telefono: encabezado de contratos (06); tolerancia_precio_ref_pct: señales de facturas (17)
+cotizaciones       (numero [secuencia, COT-000123], fecha, validez_dias, fecha_vencimiento, cliente_id? | cliente_nombre + cliente_telefono?, estado borrador|enviada|aceptada|rechazada|anulada [vencida derivada], iva_pct, subtotal_usd, descuento_usd, iva_usd, total_usd, notas_cliente, notas_internas, terminos, token_publico?, token_generado_*, enviada_*, respondida_*, motivo_rechazo, anulada_*, motivo_anulacion, pedido_id?, auditoría)  -- 21-cotizaciones, 2026-10-22: documento previo a la venta, solo USD/kg (sin Bs ni tasas); no mueve stock ni genera deuda; escritura solo por RPC `guardar_cotizacion`; lectura anónima solo por RPC `cotizacion_publica(token)`
+cotizacion_items   (cotizacion_id, orden, producto_id, producto_nombre [snapshot], peso_kg, precio_usd_kg, subtotal_usd, nota)  -- 21; reemplazadas por la RPC
+config_negocio     (singleton: iva_pct, fuente_tasa_default, umbrales, dias_credito_default, ..., nombre_comercial, razon_social, rif, direccion, telefono, tolerancia_precio_ref_pct, cotizacion_validez_dias, cotizacion_terminos)  -- razon_social..telefono: encabezado de contratos (06) y de cotizaciones (21); tolerancia_precio_ref_pct: señales de facturas (17); cotizacion_*: defaults de cada cotización (21, 2026-10-22)
 usuarios           (via Supabase Auth; rol admin|operador)
 ```
 
@@ -126,6 +128,7 @@ Patrones: **Repository** (interfaces + impl Supabase → DIP, testeable), **Stra
 | 5 | **Cobros/Pagos** | Cuentas por cobrar/pagar; registrar abonos con tasa del día y ganancia cambiaria |
 | 6 | **Inventario** | Stock por producto y por lote, valorización USD/Bs, pérdidas, trazabilidad de lote |
 | 7 | **Dashboard** | KPIs: tasa del día, ventas/margen del día, CxC/CxP, alertas de stock |
+| 8 | **Cotizaciones** (21, 2026-10-22) | Admin y operador: cotizar productos por kg en USD con IVA opcional y descuento global; PDF con la marca; compartir por WhatsApp/Web Share; enlace público `/c/[token]` sin sesión que solo muestra la cotización mientras está vigente (vencida o revocada → página de respaldo); convertir una aceptada en pedido |
 
 ## 8. Flujo por pantalla (proceso acordado)
 

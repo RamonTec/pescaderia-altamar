@@ -1,4 +1,5 @@
 import { formatBs, formatFecha, formatUsd } from '../../format'
+import { MARCA_CLARO } from '../../../theme/marca'
 import { ETIQUETA_ESTADO, estadoDe, ordenarPorGravedad, saldoDocumento } from '../estado'
 import type { CanalRecordatorioId, DocumentoCartera, EstadoCartera } from '../types'
 
@@ -43,14 +44,14 @@ export type MensajeRecordatorio = MensajeWhatsApp | MensajeCorreo
 /**
  * Colores de marca para el correo. Los clientes de correo no usan el theme
  * de MUI: es la única excepción documentada a "ningún hex suelto" (spec 09,
- * § Correo). Valores de `palette` / `palette.brand` (modo claro) de
- * `src/theme/theme.ts`.
+ * § Correo). Los de marca salen de `src/theme/marca.ts` (modo claro); el
+ * resto, de `palette` de `src/theme/theme.ts`.
  */
 const MARCA = {
-  casco: '#0E4A5C',
-  ocre: '#E8B931',
+  casco: MARCA_CLARO.hull,
+  ocre: MARCA_CLARO.ochre,
   blanco: '#FFFFFF',
-  rojo: '#B8402E',
+  rojo: MARCA_CLARO.red,
   texto: '#13262C',
   textoSecundario: '#4A5D63',
   hielo: '#F3F6F6',

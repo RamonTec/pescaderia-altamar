@@ -5,11 +5,14 @@ import {
   DIAS_INACTIVIDAD,
   getAnalitica,
   getCartera,
+  getGastosPendientes,
   getKpisDia,
   getOperativo,
   getTasasDelDia,
 } from '@/lib/services/dashboardService'
 import { KpisDiaRow } from '@/components/organisms/KpisDiaRow'
+import { UtilidadNetaCard } from '@/components/organisms/UtilidadNetaCard'
+import { GastosCategoriaChart } from '@/components/organisms/GastosCategoriaChart'
 import { PedidosProximosList } from '@/components/organisms/PedidosProximosList'
 import { AntiguedadLotesChart } from '@/components/organisms/AntiguedadLotesChart'
 import { VentasMensualesChart } from '@/components/organisms/VentasMensualesChart'
@@ -54,12 +57,20 @@ export interface ParamsAnalitica {
 
 /** Fila de KPIs del día (A). Para el operador, sin importes. */
 export async function SeccionKpis({ rol }: { rol: Rol | null }) {
-  const [tasas, operativo, kpis] = await Promise.all([
+  const [tasas, operativo, kpis, gastosPendientes] = await Promise.all([
     getTasasDelDia(),
     operativoCache(),
     getKpisDia(rol),
+    getGastosPendientes(rol),
   ])
-  return <KpisDiaRow tasas={tasas} operativo={operativo.operativo} kpis={kpis} />
+  return (
+    <KpisDiaRow
+      tasas={tasas}
+      operativo={operativo.operativo}
+      kpis={kpis}
+      gastosPendientes={gastosPendientes}
+    />
+  )
 }
 
 /** Pedidos próximos y antigüedad de lotes (D1, D3; todos los roles). */
@@ -87,6 +98,12 @@ export async function SeccionVentas({ rol, desde, hasta, producto }: ParamsAnali
           <VentasMensualesChart ventas={a.ventas_mensuales} />
         </div>
         <ResultadoCambiarioCard resultado={a.resultado_cambiario} />
+      </div>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-3">
+        <UtilidadNetaCard gastos={a.gastos} />
+        <div className="min-w-0 lg:col-span-2">
+          <GastosCategoriaChart gastos={a.gastos} desde={desde} hasta={hasta} />
+        </div>
       </div>
       <ProductosSalidaTable productos={a.productos} />
       <div className="grid min-w-0 gap-4 lg:grid-cols-2">

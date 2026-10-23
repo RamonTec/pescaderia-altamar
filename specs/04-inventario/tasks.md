@@ -86,3 +86,7 @@ Depende de: `00-estandares-ui`, `01-auth` Fase 2 (para ocultar costos a `operado
   - `proveedorBalanceService.getSaldoPendiente` descuenta los saldos a favor (compras con `pagado > subtotal`).
   - `ComprasTable`: fila abrible y `⋮` "Ver detalle" / "Editar compra" (admin) hacia la ficha nueva `/compras/[id]`; saldo negativo como «a favor».
   - Migraciones `20261019120000`–`20261019120200` de ese módulo.
+- **21-cotizaciones (2026-10-22, planificada; ejecutada el 2026-10-22 en `feat/cotizaciones`)**: cambia el esquema y la UI de este módulo:
+  - `config_negocio` suma `cotizacion_validez_dias` (smallint, 1–90, default 7) y `cotizacion_terminos` (text ≤ 2000, opcional), en la migración `20261022100000_cotizaciones_esquema.sql` de ese módulo.
+  - `ConfigNegocioForm` suma una `FormSection` «Cotizaciones»; `configFormSchema`, `configRepository` y el tipo `ConfigNegocio` suman los dos campos (tarea 10 de `21-cotizaciones`).
+  - Las RLS de `config_negocio` no cambian.

@@ -350,12 +350,13 @@ export function TasasScreen({ vigentes, historial, esAdmin, operaciones }: Tasas
           rows={operaciones}
           columns={COLS_OPERACIONES}
           getRowId={(r) => r.id}
+          getRowHref={(r) => r.href}
           searchable={false}
           hideOnMobile={['usuario', 'referencial']}
           emptyState={{
             title: 'Ninguna operación con tasa manual',
             description:
-              'Cuando alguien reemplace la referencial por una tasa manual en una compra, venta o abono, aparecerá aquí.',
+              'Cuando alguien reemplace la referencial por una tasa manual en una compra, venta, abono o gasto, aparecerá aquí.',
           }}
         />
       ) : (

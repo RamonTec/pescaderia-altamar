@@ -121,6 +121,10 @@ export interface ConfigNegocio {
    * "Por debajo" y "Cobro mayor" de una factura (17). 0 = marca cualquier diferencia.
    */
   tolerancia_precio_ref_pct: number
+  /** Días de validez por defecto de una cotización nueva (21-cotizaciones), 1–90. */
+  cotizacion_validez_dias: number
+  /** Condiciones por defecto que se precargan en cada cotización (21), ≤ 2000. */
+  cotizacion_terminos: string | null
 }
 
 export type TipoPersona = 'natural' | 'juridica'
@@ -1602,6 +1606,7 @@ export interface DashboardAnalitica {
   perdidas: BloqueDashboard<PerdidaPorMotivo[]>
   mezcla: BloqueDashboard<MezclaVentas>
   top_clientes: BloqueDashboard<TopClientesPareto>
+  gastos: BloqueDashboard<DashboardGastos>
 }
 
 /** Cartera, flujo, riesgo, inventario valorizado y contratos (C + D, admin; foto a hoy). */
@@ -1621,6 +1626,7 @@ export interface Dashboard {
   tasas: BloqueDashboard<TasasDelDia>
   operativo: DashboardOperativoBloques
   kpisDia?: BloqueDashboard<KpisDia>
+  gastosPendientes?: BloqueDashboard<GastosPendientesResumen>
   analitica?: DashboardAnalitica
   cartera?: DashboardCartera
 }
@@ -1672,6 +1678,8 @@ export interface Gasto {
   periodo_hasta: string | null
   /** Pago de nómina (Fase B): no nulo ⇔ categoría Nómina. */
   empleado_id: string | null
+  /** Plantilla que generó este gasto (Fase C). */
+  recurrente_id: string | null
   estado: EstadoGasto
   confirmado_por: string | null
   confirmado_at: string | null
@@ -1692,6 +1700,8 @@ export interface GastoDetalle extends Gasto {
   categoria_padre_nombre: string | null
   /** Empleado del pago de nómina. */
   empleado_nombre: string | null
+  /** Nombre de la plantilla recurrente si fue generado por una. */
+  recurrente_nombre: string | null
   creado_por_nombre: string | null
   confirmado_por_nombre: string | null
   anulado_por_nombre: string | null
@@ -1717,6 +1727,34 @@ export interface ResumenGastos {
   total_usd: number
   n_gastos: number
   por_categoria: GastoPorCategoria[]
+}
+
+/** `dashboard_gastos_pendientes()` (20-gastos, Fase D). */
+export interface GastosPendientesResumen {
+  n: number
+  /** Suma de importes de los pendientes en USD; `null` si no hay pendientes en USD. */
+  monto_usd_estimado: number | null
+}
+
+/**
+ * Cálculo de utilidad neta para el dashboard (`lib/dashboard/utilidad.ts`).
+ * Utilidad neta = margen bruto (B3) − gastos confirmados del período.
+ * El resultado cambiario no se suma (regla de 15).
+ */
+export interface UtilidadNeta {
+  ventas_usd: number
+  margen_bruto_usd: number
+  gastos_usd: number
+  utilidad_neta_usd: number
+  /** Fracción sobre ventas (para `formatPct`). `null` si ventas es 0 o negativo. */
+  margen_neto_pct: number | null
+}
+
+/** Bloque de gastos y utilidad neta en la analítica del dashboard (15 + 20). */
+export interface DashboardGastos {
+  utilidad: UtilidadNeta
+  por_categoria: GastoPorCategoria[]
+  total_gastos_usd: number
 }
 
 /**
@@ -1757,3 +1795,245 @@ export interface CostoEmpleado {
   /** `total_usd / meses`. */
   promedio_mensual_usd: number
 }
+
+/* ==================== Gastos recurrentes (20-gastos, Fase C) ==================== */
+
+export type FrecuenciaGasto = 'mensual' | 'quincenal'
+
+/**
+ * Fila de `gastos_recurrentes` (20-gastos, Fase C): plantilla que genera
+ * gastos periódicos en estado `pendiente` de confirmar.
+ */
+export interface GastoRecurrente {
+  id: string
+  nombre: string
+  categoria_id: string
+  empleado_id: string | null
+  descripcion: string
+  beneficiario: string | null
+  moneda: Moneda
+  /**
+   * Monto fijo; `null` solo en nómina (`empleado_id` no nulo) para usar el
+   * salario base vigente del empleado.
+   */
+  monto: number | null
+  frecuencia: FrecuenciaGasto
+  /** Día del mes (1 a 28, solo mensual); `null` = último día del mes. */
+  dia_mes: number | null
+  fecha_inicio: string
+  fecha_fin: string | null
+  metodo_pago: MetodoPago | null
+  activo: boolean
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+  // Nombres poblados en listados/detalles
+  categoria_nombre?: string | null
+  empleado_nombre?: string | null
+}
+
+export interface PeriodoRecurrente {
+  desde: string
+  hasta: string
+  fecha_programada: string
+}
+
+/* ==================== Cotizaciones (21) ==================== */
+
+/** Estado guardado de una cotización (P5). */
+export type EstadoCotizacion = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'anulada'
+
+/**
+ * Estado que se muestra: `vencida` es derivada (`borrador`/`enviada` con
+ * `fecha_vencimiento < hoy` de Caracas), sin cron.
+ */
+export type EstadoEfectivoCotizacion = EstadoCotizacion | 'vencida'
+
+/** Fila de `cotizaciones` (solo USD, P1). */
+export interface Cotizacion {
+  id: string
+  numero: number
+  fecha: string
+  validez_dias: number
+  fecha_vencimiento: string
+  /** Cliente registrado; si es nulo, cliente libre (`cliente_nombre`). */
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  estado: EstadoCotizacion
+  /** 0 = sin IVA. */
+  iva_pct: number
+  subtotal_usd: number
+  descuento_usd: number
+  iva_usd: number
+  total_usd: number
+  notas_cliente: string | null
+  /** Nunca sale en el PDF ni en el enlace público. */
+  notas_internas: string | null
+  terminos: string | null
+  enviada_at: string | null
+  enviada_por: string | null
+  respondida_at: string | null
+  respondida_por: string | null
+  motivo_rechazo: string | null
+  anulada_at: string | null
+  anulada_por: string | null
+  motivo_anulacion: string | null
+  /** Fase C: token del enlace público (`null` = sin enlace o revocado). */
+  token_publico: string | null
+  token_generado_at: string | null
+  token_generado_por: string | null
+  /** Fase D (P8): pedido creado desde la cotización. */
+  pedido_id: string | null
+  created_at: string
+  created_by: string
+  updated_at: string
+  updated_by: string | null
+}
+
+/** Fila de `cotizacion_items`. `producto_nombre` es snapshot al guardar. */
+export interface CotizacionItem {
+  id: string
+  cotizacion_id: string
+  orden: number
+  producto_id: string
+  producto_nombre: string
+  peso_kg: number
+  precio_usd_kg: number
+  subtotal_usd: number
+  nota: string | null
+}
+
+/** Fila de `cotizaciones_listado_view`. */
+export interface CotizacionListado {
+  id: string
+  numero: number
+  fecha: string
+  fecha_vencimiento: string
+  estado: EstadoCotizacion
+  estado_efectivo: EstadoEfectivoCotizacion
+  cliente_id: string | null
+  cliente: string
+  telefono: string | null
+  total_usd: number
+  n_lineas: number
+  enviada_at: string | null
+  updated_at: string
+  /** Fase C: tiene enlace público activo. */
+  tiene_enlace: boolean
+  /** Fase D: pedido creado desde la cotización. */
+  pedido_id: string | null
+}
+
+/** Cotización con líneas, datos del cliente registrado y nombres de usuarios (ficha). */
+export interface CotizacionDetalle extends Cotizacion {
+  items: CotizacionItem[]
+  cliente: Pick<Cliente, 'id' | 'nombre' | 'rif_ci' | 'telefono' | 'aplica_iva' | 'bloqueado'> | null
+  creado_por_nombre: string | null
+  enviada_por_nombre: string | null
+  respondida_por_nombre: string | null
+  anulada_por_nombre: string | null
+  actualizado_por_nombre: string | null
+  token_generado_por_nombre: string | null
+}
+
+/** Línea que se envía a `guardar_cotizacion` (el nombre lo copia la RPC). */
+export interface CotizacionItemInput {
+  producto_id: string
+  peso_kg: number
+  precio_usd_kg: number
+  nota: string | null
+}
+
+/**
+ * Datos de una cotización a guardar. `con_iva` es el interruptor (P1): el
+ * servicio resuelve `iva_pct` con el % vigente de config.
+ */
+export interface CotizacionInput {
+  fecha: string
+  validez_dias: number
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  con_iva: boolean
+  descuento_usd: number
+  notas_cliente: string | null
+  notas_internas: string | null
+  terminos: string | null
+  items: CotizacionItemInput[]
+}
+
+/** Importes de una cotización (misma regla que `guardar_cotizacion`). */
+export interface TotalesCotizacion {
+  subtotal_usd: number
+  descuento_usd: number
+  iva_usd: number
+  total_usd: number
+}
+
+/**
+ * Lo que muestra el documento de una cotización (`CotizacionDocumento`, PDF
+ * y página pública): solo datos para el cliente. **Nunca** notas internas,
+ * ids, usuarios ni (en el enlace público) el teléfono del cliente libre.
+ */
+export interface CotizacionDocumentoDatos {
+  numero: number
+  fecha: string
+  fecha_vencimiento: string
+  cliente: { nombre: string; rif_ci: string | null; telefono: string | null }
+  items: Pick<CotizacionItem, 'producto_nombre' | 'peso_kg' | 'precio_usd_kg' | 'subtotal_usd' | 'nota'>[]
+  subtotal_usd: number
+  descuento_usd: number
+  iva_pct: number
+  iva_usd: number
+  total_usd: number
+  notas_cliente: string | null
+  terminos: string | null
+}
+
+/** Datos del negocio para el encabezado de documentos (PDF y página pública, 21). */
+export interface NegocioDocumento {
+  nombre_comercial: string | null
+  razon_social: string | null
+  rif: string | null
+  direccion: string | null
+  telefono: string | null
+}
+
+/** Todo lo que necesita la plantilla del PDF de una cotización (21, Fase B). */
+export interface DatosCotizacionPdf {
+  documento: CotizacionDocumentoDatos
+  negocio: NegocioDocumento
+  /** `config_negocio.instrucciones_pago`, si existen. */
+  instrucciones_pago: string | null
+  /** Sello si no está vigente: «VENCIDA», «ACEPTADA», «RECHAZADA»; `null` = vigente. */
+  sello: string | null
+  /** Última actualización (para «Actualizada el …»). */
+  actualizada_at: string
+}
+
+/** Contacto público del negocio (páginas de respaldo del enlace, 21). */
+export interface ContactoNegocio {
+  nombre_comercial: string | null
+  telefono: string | null
+}
+
+/** Estado que ve el cliente en el enlace público (P7). */
+export type EstadoPublicoCotizacion = 'vigente' | 'aceptada' | 'rechazada'
+
+/** Cotización vigente tal como la devuelve `cotizacion_publica` (solo campos públicos). */
+export interface CotizacionPublica extends CotizacionDocumentoDatos {
+  estado_publico: EstadoPublicoCotizacion
+  updated_at: string
+}
+
+/** Resultado de leer el enlace `/c/[token]` (P7, sin gracia tras el vencimiento). */
+export type ResultadoCotizacionPublica =
+  | {
+      resultado: 'disponible'
+      negocio: NegocioDocumento & { instrucciones_pago: string | null }
+      cotizacion: CotizacionPublica
+    }
+  | { resultado: 'vencida'; negocio: ContactoNegocio; numero: number }
+  | { resultado: 'no_disponible'; negocio: ContactoNegocio }

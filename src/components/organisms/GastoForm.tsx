@@ -43,6 +43,7 @@ import { fechaHoy, formatBs, formatFecha, formatUsd } from '@/lib/format'
 import { useConfirm } from '@/lib/useConfirm'
 import { useNotify } from '@/lib/useNotify'
 import {
+  confirmarGastoAction,
   editarGastoAction,
   pagosSolapadosAction,
   registrarGastoAction,
@@ -52,10 +53,9 @@ import type { CategoriaGasto, Empleado, Gasto, MetodoPago } from '@/types/domain
 
 /**
  * Modos de `GastoForm`. `nomina` (Fase B): pago de nómina con empleado y
- * período (también "Registrar de nuevo" de un pago de nómina). `confirmar`
- * (pendientes) llega en la Fase C.
+ * período. `confirmar` (Fase C): pendientes de plantillas recurrentes.
  */
-export type ModoGastoForm = 'crear' | 'editar' | 'registrar_de_nuevo' | 'nomina'
+export type ModoGastoForm = 'crear' | 'editar' | 'registrar_de_nuevo' | 'nomina' | 'confirmar'
 
 export interface GastoFormProps {
   open: boolean
@@ -108,11 +108,12 @@ interface OpcionCategoria {
   grupo: string
 }
 
-/** Activas y seleccionables en la Fase A (Nómina exige empleado: Fase B). */
-function opcionesCategoria(arbol: readonly CategoriaGasto[]): OpcionCategoria[] {
+/** Activas y seleccionables en la Fase A (Nómina exige empleado: Fase B; en confirmar se permite). */
+function opcionesCategoria(arbol: readonly CategoriaGasto[], permitirNomina = false): OpcionCategoria[] {
   const opciones: OpcionCategoria[] = []
   for (const c of arbol) {
-    if (!c.activo || c.clave === 'nomina') continue
+    if (!c.activo) continue
+    if (c.clave === 'nomina' && !permitirNomina) continue
     opciones.push({ id: c.id, label: c.nombre, grupo: c.nombre })
     for (const s of c.subcategorias ?? []) {
       if (s.activo) opciones.push({ id: s.id, label: `${c.nombre} › ${s.nombre}`, grupo: c.nombre })
@@ -204,10 +205,11 @@ function GastoAlta({
   const [referencial, setReferencial] = React.useState<ReferencialTasa | null>(null)
   const [avisoSolapado, setAvisoSolapado] = React.useState<string | null>(null)
   const consultaSolapado = React.useRef(0)
-  const opciones = React.useMemo(() => opcionesCategoria(categorias), [categorias])
+  const opciones = React.useMemo(() => opcionesCategoria(categorias, modo === 'confirmar'), [categorias, modo])
   const hoy = fechaHoy()
 
   const esNomina = modo === 'nomina'
+  const esConfirmar = modo === 'confirmar'
   const categoriaNomina = categorias.find((c) => c.clave === 'nomina') ?? null
   const activos = React.useMemo(() => empleados.filter((e) => e.activo), [empleados])
   const empleadoDeOrigen = gasto?.empleado_id ?? empleadoInicial ?? ''
@@ -231,7 +233,7 @@ function GastoAlta({
     mode: 'onSubmit',
     defaultValues: {
       ...valoresIniciales(
-        modo === 'registrar_de_nuevo' || esNomina ? gasto : null,
+        modo === 'registrar_de_nuevo' || esNomina || esConfirmar ? gasto : null,
         opciones,
         esNomina ? { categoriaId: categoriaNomina?.id ?? '', empleadoId: empleadoDeEntrada?.id ?? '' } : null
       ),
@@ -297,7 +299,14 @@ function GastoAlta({
     if (!ok) return
     setServerError(null)
     startTransition(async () => {
-      const result = esNomina ? await registrarPagoNominaAction(values) : await registrarGastoAction(values)
+      let result: { error: string | null; success: string | null; fieldErrors?: Record<string, string>; info?: string | null }
+      if (esConfirmar && gasto) {
+        result = await confirmarGastoAction(gasto.id, values)
+      } else if (esNomina) {
+        result = await registrarPagoNominaAction(values)
+      } else {
+        result = await registrarGastoAction(values)
+      }
       if (result.error) {
         setServerError(result.error)
         for (const [campo, mensaje] of Object.entries(result.fieldErrors ?? {})) {
@@ -305,7 +314,7 @@ function GastoAlta({
         }
         return
       }
-      notify.success(result.success ?? 'Gasto registrado')
+      notify.success(result.success ?? (esConfirmar ? 'Gasto confirmado' : 'Gasto registrado'))
       if (result.info) notify.info(result.info)
       onClose()
     })
@@ -329,13 +338,23 @@ function GastoAlta({
       open={open}
       onClose={onClose}
       size="md"
-      title={esNomina ? (gasto ? 'Registrar de nuevo · nómina' : 'Pago de nómina') : modo === 'registrar_de_nuevo' ? 'Registrar de nuevo' : 'Registrar gasto'}
-      subtitle={
-        gasto && (modo === 'registrar_de_nuevo' || esNomina)
-          ? `Nuevo gasto con los datos del ${formatFecha(gasto.fecha)} · ${gasto.descripcion}`
+      title={
+        esConfirmar
+          ? 'Confirmar gasto pendiente'
           : esNomina
-            ? 'Gasto de la categoría Nómina ligado al empleado y al período que cubre.'
-            : 'Nace confirmado y cuenta en los totales del período por su fecha.'
+            ? (gasto ? 'Registrar de nuevo · nómina' : 'Pago de nómina')
+            : modo === 'registrar_de_nuevo'
+              ? 'Registrar de nuevo'
+              : 'Registrar gasto'
+      }
+      subtitle={
+        esConfirmar
+          ? `Plantilla recurrente · Período ${formatFecha(gasto?.periodo_desde)} – ${formatFecha(gasto?.periodo_hasta)}`
+          : gasto && (modo === 'registrar_de_nuevo' || esNomina)
+            ? `Nuevo gasto con los datos del ${formatFecha(gasto.fecha)} · ${gasto.descripcion}`
+            : esNomina
+              ? 'Gasto de la categoría Nómina ligado al empleado y al período que cubre.'
+              : 'Nace confirmado y cuenta en los totales del período por su fecha.'
       }
       onSubmit={(e) => {
         onSubmit(e)
@@ -345,7 +364,7 @@ function GastoAlta({
       error={serverError}
       primaryAction={
         <Button type="submit" variant="contained" loading={isPending}>
-          {esNomina ? 'Registrar pago' : 'Registrar gasto'}
+          {esConfirmar ? 'Confirmar gasto' : esNomina ? 'Registrar pago' : 'Registrar gasto'}
         </Button>
       }
     >

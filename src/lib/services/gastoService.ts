@@ -160,10 +160,12 @@ function exigirCategoriaActiva(categorias: readonly CategoriaGasto[], id: string
 
 function columnasDescriptivas(
   v: GastoFormValues,
-  empleadoId: string | null = null
+  empleadoId: string | null = null,
+  recurrenteId: string | null = null
 ): Omit<GastoNuevo, 'monto' | 'tasa_snapshot' | 'tasa_origen' | 'tasa_fuente' | 'tasa_referencial' | 'monto_usd'> {
   return {
     empleado_id: empleadoId,
+    recurrente_id: recurrenteId,
     fecha: v.fecha,
     categoria_id: v.categoria_id,
     descripcion: v.descripcion.trim(),
@@ -260,7 +262,7 @@ export async function confirmarGasto(
   const { columnas, aviso } = await importeDe(v, db)
   try {
     const gasto = await gastos.update(id, {
-      ...columnasDescriptivas(v, actual.empleado_id),
+      ...columnasDescriptivas(v, actual.empleado_id, actual.recurrente_id),
       ...columnas,
       estado: 'confirmado',
     })

@@ -15,8 +15,17 @@
  * que usará `gasto_recurrente_monto` en la Fase C.
  */
 import { montoNominaPeriodo, montoUsdGasto, redondea6Gasto, resumirCostoEmpleado } from '../src/lib/gastos/montos'
-import { atajosPeriodo, diasDelMes, mesesDelRango, periodosSeSolapan, tipoPeriodoNomina } from '../src/lib/gastos/periodos'
+import {
+  atajosPeriodo,
+  diasDelMes,
+  mesesDelRango,
+  periodosRecurrente,
+  periodosSeSolapan,
+  proximasFechas,
+  tipoPeriodoNomina,
+} from '../src/lib/gastos/periodos'
 import { empleadoSchema } from '../src/lib/empleadoValidation'
+import { gastoRecurrenteSchema } from '../src/lib/gastoRecurrenteValidation'
 import {
   anularGastoSchema,
   descartarGastoSchema,
@@ -363,6 +372,91 @@ igual(
   ['periodo_hasta']
 )
 igual('pago con fecha futura → fecha', camposConError(pagoNominaSchema.safeParse({ ...pagoBase, fecha: sumarDias(hoy, 1) })), ['fecha'])
+
+// ==================== Fase C: Gastos recurrentes ====================
+{
+  // 1. Mensual con dia_mes = 28
+  const p1 = periodosRecurrente(
+    { frecuencia: 'mensual', dia_mes: 28, fecha_inicio: '2026-01-01', fecha_fin: '2026-03-31' },
+    '2026-03-31'
+  )
+  igual('recurrentes mensual día 28: 3 períodos', p1.length, 3)
+  igual('recurrentes mensual día 28: fecha prog enero', p1[0]?.fecha_programada, '2026-01-28')
+  igual('recurrentes mensual día 28: fecha prog febrero', p1[1]?.fecha_programada, '2026-02-28')
+
+  // 2. Mensual con dia_mes = null (fin de mes)
+  const p2 = periodosRecurrente(
+    { frecuencia: 'mensual', dia_mes: null, fecha_inicio: '2026-02-01', fecha_fin: '2026-02-28' },
+    '2026-02-28'
+  )
+  igual('recurrentes mensual fin de mes: febrero fecha prog', p2[0]?.fecha_programada, '2026-02-28')
+
+  // 3. Quincenal en febrero
+  const pQ = periodosRecurrente(
+    { frecuencia: 'quincenal', dia_mes: null, fecha_inicio: '2026-02-01', fecha_fin: '2026-02-28' },
+    '2026-02-28'
+  )
+  igual('recurrentes quincenal febrero: 2 períodos', pQ.length, 2)
+  igual('recurrentes quincenal febrero: Q1', pQ[0], { desde: '2026-02-01', hasta: '2026-02-15', fecha_programada: '2026-02-15' })
+  igual('recurrentes quincenal febrero: Q2', pQ[1], { desde: '2026-02-16', hasta: '2026-02-28', fecha_programada: '2026-02-28' })
+
+  // 4. Inicio a mitad de mes (ej. día 20, con día programado 5)
+  const pMitad = periodosRecurrente(
+    { frecuencia: 'mensual', dia_mes: 5, fecha_inicio: '2026-10-20', fecha_fin: '2026-11-30' },
+    '2026-11-30'
+  )
+  igual('recurrentes inicio mitad mes no genera período pasado', pMitad.length, 1)
+  igual('recurrentes inicio mitad mes: fecha prog noviembre', pMitad[0]?.fecha_programada, '2026-11-05')
+
+  // 5. Próximas fechas
+  const prox = proximasFechas(
+    { frecuencia: 'mensual', dia_mes: 10, fecha_inicio: '2026-01-01', fecha_fin: null },
+    3,
+    '2026-05-15'
+  )
+  igual('próximas 3 fechas mensuales desde mayo 15', prox, ['2026-06-10', '2026-07-10', '2026-08-10'])
+
+  // 6. Validación de schema de recurrentes
+  const recBase = {
+    nombre: 'Alquiler Cava',
+    categoria_id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+    empleado_id: null,
+    descripcion: 'Pago de alquiler',
+    beneficiario: 'Inmobiliaria',
+    moneda: 'usd' as const,
+    monto: 500,
+    frecuencia: 'mensual' as const,
+    dia_mes: 5,
+    fecha_inicio: '2026-01-01',
+    fecha_fin: null,
+    metodo_pago: 'transferencia' as const,
+    activo: true,
+  }
+  verdadero('plantilla recurrente válida pasa', gastoRecurrenteSchema.safeParse(recBase).success)
+
+  // Sin monto ni empleado falla
+  igual('recurrente sin monto ni empleado → monto', camposConError(gastoRecurrenteSchema.safeParse({ ...recBase, monto: null })), ['monto'])
+
+  // Nómina recurrente sin monto pero con empleado pasa
+  verdadero(
+    'nómina recurrente sin monto pero con empleado pasa',
+    gastoRecurrenteSchema.safeParse({ ...recBase, monto: null, empleado_id: '3f2504e0-4f89-41d3-9a0c-0305e82c3302' }).success
+  )
+
+  // Quincenal con dia_mes falla
+  igual(
+    'quincenal con dia_mes → dia_mes',
+    camposConError(gastoRecurrenteSchema.safeParse({ ...recBase, frecuencia: 'quincenal', dia_mes: 5 })),
+    ['dia_mes']
+  )
+
+  // fecha_fin < fecha_inicio falla
+  igual(
+    'fecha_fin anterior a fecha_inicio → fecha_fin',
+    camposConError(gastoRecurrenteSchema.safeParse({ ...recBase, fecha_fin: '2025-12-31' })),
+    ['fecha_fin']
+  )
+}
 
 if (fallas > 0) {
   console.log(`\n${fallas} caso(s) fallaron`)

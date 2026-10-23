@@ -1,0 +1,15 @@
+---
+description: Abre el PR de promoción dev → sbx o sbx → main con los PRs y migraciones que entran.
+---
+
+Sigue "Flujo Git" en `AGENTS.md` (regla 6). Destino: `$ARGUMENTS` (`sbx` → PR `dev → sbx`; `main` → PR `sbx → main`). Si está vacío o es otro valor, pregunta al usuario y no sigas.
+
+1. `git fetch pescaderia-altamar`. Origen = `dev` si el destino es `sbx`, `sbx` si es `main`. Si `git log pescaderia-altamar/<destino>..pescaderia-altamar/<origen>` está vacío, no hay nada que promover: repórtalo y detente.
+2. Si ya hay un PR abierto de `<origen>` a `<destino>`, no crees otro: actualiza su cuerpo con `gh pr edit`.
+3. Reúne los hechos:
+   - PRs incluidos: los merges de `git log --merges --format='%s' pescaderia-altamar/<destino>..pescaderia-altamar/<origen>` (número, rama y título con `gh pr view`).
+   - Migraciones nuevas, en orden: `git diff --name-only --diff-filter=A pescaderia-altamar/<destino>...pescaderia-altamar/<origen> -- supabase/migrations/`.
+   - Variables de entorno nuevas (`.env.example`) y cambios en `vercel.json` (crons).
+4. Título: `release(<destino>): <resumen corto de lo que entra>`. Cuerpo con estas secciones: "Qué entra" (lista de PRs con su enlace), "Migraciones a aplicar en <destino>" (en orden, o "ninguna"), "Variables de entorno / crons" (o "ninguno"), "Cómo verificar en <destino>" (los pasos de prueba de cada PR, resumidos) y "Riesgos / pendientes". Termínalo con la atribución que indique el sistema, si la hay.
+5. `gh pr create --base <destino> --head <origen> --title … --body-file …` (cuerpo en el scratchpad). Si `gh` no está, entrega título, cuerpo y el enlace `https://github.com/RamonTec/pescaderia-altamar/compare/<destino>...<origen>?expand=1`.
+6. No hagas merge ni actives auto-merge. Recuerda al usuario que se mergea con *merge commit* y que, si el destino es `main`, el merge despliega en el servidor.

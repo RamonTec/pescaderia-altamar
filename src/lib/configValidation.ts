@@ -6,7 +6,8 @@ import { RIF_CI_REGEX, TELEFONO_VE_REGEX } from './clienteValidation'
  * Validación de la configuración del negocio (04-inventario, 08-tasas).
  * IVA en porcentaje (0–100), fuente de tasa preferida, umbral de stock bajo
  * y umbral de desviación % de una tasa manual (08-tasas). Tolerancia de las
- * señales de facturas frente al precio de referencia (17).
+ * señales de facturas frente al precio de referencia (17). Validez y términos
+ * por defecto de las cotizaciones (21).
  */
 export const configFormSchema = z.object({
   iva_pct: z
@@ -58,6 +59,13 @@ export const configFormSchema = z.object({
     .trim()
     .regex(TELEFONO_VE_REGEX, 'Teléfono inválido (ej. 0295-2911234)')
     .or(z.literal('')),
+  // 21-cotizaciones: validez por defecto (1–90 días) y condiciones precargadas.
+  cotizacion_validez_dias: z
+    .number({ message: 'Días requeridos' })
+    .int('Usa un número entero de días')
+    .min(1, 'Mínimo 1 día')
+    .max(90, 'Máximo 90 días'),
+  cotizacion_terminos: z.string().trim().max(2000, 'Máximo 2000 caracteres'),
 })
 
 /** `02952911234` → `0295-2911234` (como lo muestra `PhoneField`). */
