@@ -63,6 +63,14 @@ export function CotizacionFicha({
     c.enviada_at !== null && Date.parse(c.updated_at) - Date.parse(c.enviada_at) > 1000
 
   const menu: RowAction[] = []
+  if (permitidas.has('descargar_pdf')) {
+    menu.push({
+      label: 'Descargar PDF',
+      // En el mismo clic (sin `await` previo) para que no lo bloqueen como emergente.
+      onClick: () => window.open(`/cotizaciones/${c.id}/pdf?descargar=1`, '_blank', 'noopener'),
+    })
+    menu.push({ label: 'Ver PDF', onClick: () => window.open(`/cotizaciones/${c.id}/pdf`, '_blank', 'noopener') })
+  }
   if (permitidas.has('aceptar')) menu.push({ label: 'Marcar aceptada', onClick: () => responder(resumen, 'aceptada') })
   if (permitidas.has('rechazar')) menu.push({ label: 'Marcar rechazada', onClick: () => responder(resumen, 'rechazada') })
   if (permitidas.has('renovar')) menu.push({ label: 'Renovar', onClick: () => void abrirFormulario('renovar', c) })

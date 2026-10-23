@@ -24,7 +24,7 @@ function estilos(f: FuentesPdf) {
   return StyleSheet.create({
     pagina: {
       fontFamily: f.cuerpo,
-      fontSize: 9.5,
+      fontSize: 9,
       color: TEXTO,
       paddingTop: 36,
       paddingBottom: 64,
@@ -60,12 +60,12 @@ function estilos(f: FuentesPdf) {
       flexDirection: 'row',
       borderBottomWidth: 0.5,
       borderBottomColor: BORDE,
-      paddingVertical: 4,
+      paddingVertical: 2.5,
       paddingHorizontal: 6,
     },
     colProducto: { flex: 4.2, paddingRight: 6 },
     colNum: { flex: 1.4, textAlign: 'right' },
-    nota: { fontSize: 8, color: SECUNDARIO, marginTop: 1 },
+    nota: { fontSize: 7.5, color: SECUNDARIO },
     totales: { marginLeft: 'auto', width: 230, marginTop: 8 },
     filaTotal: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 1.5 },
     filaGranTotal: {

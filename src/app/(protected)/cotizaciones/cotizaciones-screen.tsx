@@ -41,6 +41,8 @@ export function CotizacionesScreen({
       renovar: (row) => void abrirFormulario('renovar', row.id),
       duplicar: (row) => void abrirFormulario('duplicar', row.id),
       anular: (row) => anular(resumen(row)),
+      // En el mismo clic (sin `await` previo) para que no lo bloqueen como emergente.
+      descargar_pdf: (row) => window.open(`/cotizaciones/${row.id}/pdf?descargar=1`, '_blank', 'noopener'),
     }),
     [abrirFormulario, anular]
   )

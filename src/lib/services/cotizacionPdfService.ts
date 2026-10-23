@@ -1,33 +1,20 @@
-import { createElement, type ReactElement } from 'react'
-import { renderToBuffer, type DocumentProps } from '@react-pdf/renderer'
-import type { DatosCotizacionPdf } from '@/types/domain'
-import { CotizacionPdf } from '@/lib/cotizaciones/pdf/CotizacionPdf'
 import { datosPdfDesdeDetalle } from '@/lib/cotizaciones/pdfDatos'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones/numero'
-import { registrarFuentesMarca } from '@/lib/pdf/fuentes'
+import {
+  reactPdfCotizacionRenderer,
+  type ICotizacionPdfRenderer,
+} from '@/lib/cotizaciones/pdf/renderer'
 import { fechaHoy } from '@/lib/format'
 import { getConfigNegocio } from './configService'
 import { getCotizacion } from './cotizacionService'
 
 /**
- * PDF de una cotización (21-cotizaciones, P6). Strategy: los servicios y las
- * rutas dependen de `ICotizacionPdfRenderer`, no de la librería; cambiar de
- * motor (p. ej. `pdf-lib`) solo cambiaría `reactPdfCotizacionRenderer`. Se
- * renderiza al vuelo en route handlers de Node; no se guarda en storage.
+ * PDF de una cotización (21-cotizaciones, P6): se renderiza al vuelo en
+ * route handlers de Node (no se guarda en storage) detrás de
+ * `ICotizacionPdfRenderer` (Strategy; impl react-pdf en
+ * `lib/cotizaciones/pdf/renderer.ts`).
  */
-export interface ICotizacionPdfRenderer {
-  render(datos: DatosCotizacionPdf): Promise<Uint8Array>
-}
-
-export const reactPdfCotizacionRenderer: ICotizacionPdfRenderer = {
-  async render(datos) {
-    const fuentes = registrarFuentesMarca()
-    // `CotizacionPdf` devuelve un `<Document>`: el cast solo informa el tipo a react-pdf.
-    const documento = createElement(CotizacionPdf, { datos, fuentes }) as unknown as ReactElement<DocumentProps>
-    const buffer = await renderToBuffer(documento)
-    return new Uint8Array(buffer)
-  },
-}
+export { reactPdfCotizacionRenderer, type ICotizacionPdfRenderer }
 
 /** `cotizacion-COT-000123.pdf`. */
 export function nombreArchivoCotizacion(numero: number): string {

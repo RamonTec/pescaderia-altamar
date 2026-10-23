@@ -10,6 +10,13 @@
  * el primer perfil y el primer producto activo de la base, cliente libre) y
  * compara subtotal, IVA y total guardados con `totalesCotizacion` (falla con
  * una excepción si alguno difiere). Requiere la migración `20261022100000`.
+ *
+ *   node --require @react-pdf/renderer --import tsx scripts/probar-cotizaciones.ts --pdf
+ *
+ * Con `--pdf` renderiza un PDF de 60 líneas en el directorio temporal del
+ * sistema (`cotizacion-COT-000123.pdf`) y verifica que empieza con `%PDF` y
+ * tiene al menos 2 páginas. El `--require` precarga `@react-pdf/renderer`
+ * (ESM-only) antes del hook CJS de tsx, igual que `probar-contrato-pdf.tsx`.
  */
 import { subtotalLinea, totalesCotizacion } from '../src/lib/cotizaciones/totales'
 import { accionesPermitidas, diasParaVencer, estadoEfectivo, sumarDias } from '../src/lib/cotizaciones/estado'
@@ -70,7 +77,52 @@ function casosAleatorios(n: number): CasoCotizacion[] {
   return casos
 }
 
-if (process.argv.includes('--sql')) {
+if (process.argv.includes('--pdf')) {
+  // Renderiza un PDF de 60 líneas en el directorio temporal y verifica la firma `%PDF`.
+  void (async () => {
+    const { writeFileSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const { reactPdfCotizacionRenderer } = await import('../src/lib/cotizaciones/pdf/renderer')
+    const items = Array.from({ length: 60 }, (_, k) => ({
+      producto_nombre: `Producto de prueba ${k + 1}`,
+      peso_kg: 1 + k * 0.25,
+      precio_usd_kg: 8.5 + (k % 7),
+      subtotal_usd: subtotalLinea({ peso_kg: 1 + k * 0.25, precio_usd_kg: 8.5 + (k % 7) }),
+      nota: k % 5 === 0 ? 'Limpio, en filetes de 200 g' : null,
+    }))
+    const t = totalesCotizacion(items, 10, 16)
+    const bytes = await reactPdfCotizacionRenderer.render({
+      documento: {
+        numero: 123,
+        fecha: fechaHoy(),
+        fecha_vencimiento: sumarDias(fechaHoy(), 7),
+        cliente: { nombre: 'Cliente de prueba', rif_ci: 'J-12345678-9', telefono: null },
+        items,
+        ...t,
+        iva_pct: 16,
+        notas_cliente: 'Entrega en 24 horas.',
+        terminos: 'Pago de contado. Precios sujetos a disponibilidad.',
+      },
+      negocio: {
+        nombre_comercial: 'Altamar Sea Food',
+        razon_social: 'Altamar Sea Food, C.A.',
+        rif: 'J-12345678-9',
+        direccion: 'Porlamar, Nueva Esparta',
+        telefono: '0295-2911234',
+      },
+      instrucciones_pago: 'Pago Móvil 0414-1234567',
+      sello: null,
+      actualizada_at: new Date().toISOString(),
+    })
+    const ruta = join(tmpdir(), 'cotizacion-COT-000123.pdf')
+    writeFileSync(ruta, bytes)
+    const firma = Buffer.from(bytes.slice(0, 4)).toString('latin1')
+    const paginas = (Buffer.from(bytes).toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length
+    console.log(`${firma === '%PDF' ? 'OK  ' : 'FALLA'} PDF de 60 líneas en ${ruta} (${bytes.length} bytes, ${paginas} páginas)`)
+    process.exit(firma === '%PDF' && paginas >= 2 ? 0 : 1)
+  })()
+} else if (process.argv.includes('--sql')) {
   const casos = casosAleatorios(200)
   const lineas: string[] = [
     '-- Paridad TS ↔ SQL de guardar_cotizacion (21), generado por probar-cotizaciones.ts',
@@ -98,6 +150,7 @@ if (process.argv.includes('--sql')) {
   process.exit(0)
 }
 
+function correrPruebas() {
 // ---------- totales ----------
 {
   const items = [
@@ -226,3 +279,6 @@ if (fallas > 0) {
   process.exit(1)
 }
 console.log('\nTodas las pruebas de cotizaciones pasaron')
+}
+
+if (!process.argv.includes('--pdf') && !process.argv.includes('--sql')) correrPruebas()
