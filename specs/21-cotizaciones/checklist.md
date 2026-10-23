@@ -1,65 +1,70 @@
 # Checklist — 21-cotizaciones
 
+> Ejecutado el 2026-10-22 (executor, rama `feat/cotizaciones`, fases A–E en una sola rama). "Postgres local" = contenedor `postgres:17-alpine` desechable con stubs de `auth` (`auth.uid()` desde `request.jwt.claim.sub`), `storage` y los roles `anon` / `authenticated` / `service_role` (método del checklist de 20); se aplicaron todas las migraciones en orden (la `0015` con la secuencia en 1, base vacía), se sembraron perfiles admin/operador, un cliente y productos (crudo, procesado con precio de referencia, inactivo) y luego `20261022100000` → `…100100` → `…100200`, corriendo tras cada una las aserciones de la versión anterior. El contenedor se borró al terminar. **No se aplicó nada a Supabase remoto** y no hubo revisión en navegador (la app usa el Supabase remoto, donde las migraciones aún no existen).
+
 ## Decisiones
 - [x] P1–P10 de `spec.md` respondidas por el usuario y pasadas a decisiones cerradas el 2026-10-22 (P1 sin Bs ni tasas, IVA opcional; P7 sin gracia y con páginas de respaldo; el resto con la recomendación). `spec.md` y `tasks.md` actualizados el mismo día.
-- [ ] El módulo no reabre `/SPEC.md` §2: la cotización no mueve stock, no reserva lotes, no genera deuda ni factura, no guarda costos y no usa tasas de cambio.
-- [ ] `/SPEC.md` (§5, §7) con nota del 2026-10-22; `specs/README.md` con orden, dependencias y cambio de alcance; tareas agregadas anotadas en `04-inventario/tasks.md`, `00-estandares-ui/tasks.md` y (si hubo Fase D) `05-ventas/tasks.md`.
+- [x] El módulo no reabre `/SPEC.md` §2: la cotización no mueve stock, no reserva lotes, no genera deuda ni factura, no guarda costos y no usa tasas de cambio. — Ni tablas ni RPC tocan `movimientos`, `lotes`, `facturas` ni `tasas`; la conversión (Fase D) crea un pedido agendado por la RPC de 05, que tampoco mueve stock.
+- [x] `/SPEC.md` (§5, §7) con nota del 2026-10-22; `specs/README.md` con orden, dependencias y cambio de alcance; tareas agregadas anotadas en `04-inventario/tasks.md`, `00-estandares-ui/tasks.md` y (si hubo Fase D) `05-ventas/tasks.md`. — README ya tenía orden, dependencias y cambio de alcance desde la planificación (revisado, sigue vigente). Las tres tareas agregadas quedan marcadas como ejecutadas.
 
 ## Datos y seguridad (migraciones + RLS)
-- [ ] Migraciones nuevas e incrementales (`20261022100000`, `…100100` y `…100200`), aplicadas en orden. No se editó ninguna aplicada.
-- [ ] `cotizaciones`, `cotizacion_items` y las columnas nuevas de `config_negocio` en `snake_case` y español, con columnas, checks e índices de `spec.md`; dinero `numeric(14,6)`, kg `numeric(12,3)`.
-- [ ] Numeración por secuencia `cotizaciones_numero_seq` (P3), sin colisiones con dos altas simultáneas.
-- [ ] RLS: `cotizaciones` `select`/`update` a `authenticated`, `cotizacion_items` solo `select`; sin `insert`/`delete` directos; `anon` sin acceso a tablas ni a `cotizaciones_listado_view` (`security_invoker`).
-- [ ] `guardar_cotizacion` `security definer` con sesión exigida, atómica, calcula importes en SQL y reemplaza líneas; `update` directo de importes o cliente falla con `usar_guardar_cotizacion`.
-- [ ] `cotizaciones_guard`: transiciones de `spec.md`, terminales inmutables, `vencida` no se acepta sin renovar, `numero`/`created_*` inmutables; cada versión (A, C, D) conserva las reglas anteriores.
-- [ ] `cotizacion_publica` es la única puerta anónima: `security definer`, `grant` a `anon`; `disponible` solo con `hoy ≤ fecha_vencimiento` y solo campos públicos (sin `notas_internas`, `cliente_telefono`, ids ni usuarios); `vencida` (sin gracia, P7) solo con número y contacto del negocio; `no_disponible` idéntico para token inexistente, regenerado, revocado, borrador o anulada, sin datos de la cotización.
-- [ ] Token de 32 caracteres `base64url` generado en el servidor (`crypto.randomBytes`); regenerar invalida el anterior; revocar y anular lo ponen en `null`.
+- [ ] Migraciones nuevas e incrementales (`20261022100000`, `…100100` y `…100200`), aplicadas en orden. No se editó ninguna aplicada. — Escritas, incrementales y validadas en Postgres local en orden A → C → D. **Pendiente: aplicarlas en Supabase** (usuario). `…100100` se completó en dos commits posteriores (nombre de quien generó el enlace, instrucciones de pago en la RPC) antes de aplicarse en ningún lado.
+- [x] `cotizaciones`, `cotizacion_items` y las columnas nuevas de `config_negocio` en `snake_case` y español, con columnas, checks e índices de `spec.md`; dinero `numeric(14,6)`, kg `numeric(12,3)`.
+- [x] Numeración por secuencia `cotizaciones_numero_seq` (P3), sin colisiones con dos altas simultáneas. — `default nextval(...)` + `unique` (patrón 0015); `nextval` no se repite entre transacciones concurrentes.
+- [x] RLS: `cotizaciones` `select`/`update` a `authenticated`, `cotizacion_items` solo `select`; sin `insert`/`delete` directos; `anon` sin acceso a tablas ni a `cotizaciones_listado_view` (`security_invoker`). — Postgres local: `insert` directo → `42501`; `delete` → `42501`; como `anon`, tabla, líneas, vista y `cotizaciones_usuarios_view` → `42501`. Desvío documentado en la migración A: `cotizaciones_usuarios_view` sin `security_invoker` (solo `authenticated`) para mostrar nombres de usuarios en el historial, porque la RLS de `perfiles` solo deja al operador leer su propio perfil (precedente `recordatorios_cobro_view`).
+- [x] `guardar_cotizacion` `security definer` con sesión exigida, atómica, calcula importes en SQL y reemplaza líneas; `update` directo de importes o cliente falla con `usar_guardar_cotizacion`. — Postgres local: alta como operador (10 kg × $8,50 + 5,5 kg × $12, desc. $1, IVA 16 % → $174); `update total_usd` → `usar_guardar_cotizacion`; descuento > subtotal, producto inactivo, fecha futura y 0 líneas con su `hint`.
+- [x] `cotizaciones_guard`: transiciones de `spec.md`, terminales inmutables, `vencida` no se acepta sin renovar, `numero`/`created_*` inmutables; cada versión (A, C, D) conserva las reglas anteriores. — `aceptada → borrador` → `transicion_invalida`; editar aceptada por la RPC → `cotizacion_inmutable`; aceptar vencida → `cotizacion_vencida`; las mismas aserciones pasan tras aplicar C y D.
+- [x] `cotizacion_publica` es la única puerta anónima: `security definer`, `grant` a `anon`; `disponible` solo con `hoy ≤ fecha_vencimiento` y solo campos públicos (sin `notas_internas`, `cliente_telefono`, ids ni usuarios); `vencida` (sin gracia, P7) solo con número y contacto del negocio; `no_disponible` idéntico para token inexistente, regenerado, revocado, borrador o anulada, sin datos de la cotización. — Postgres local como `anon`: vence hoy → `disponible`; ayer → `vencida` con `{numero}`; borrador, inexistente, corto, regenerado (el viejo), revocado y anulada → el mismo `{negocio, resultado: no_disponible}`; `notas_internas` no aparece. Del negocio, `disponible` suma también `instrucciones_pago` (las imprime el PDF).
+- [x] Token de 32 caracteres `base64url` generado en el servidor (`crypto.randomBytes`); regenerar invalida el anterior; revocar y anular lo ponen en `null`. — `randomBytes(24).toString('base64url')` en `cotizacionService`; check de longitud; anular limpia `token_*` en el guard.
 
 ## Reglas de negocio
-- [ ] Totales: `subtotal − descuento + IVA` con el redondeo de `lib/facturas/totales.ts`; paridad TS ↔ SQL en 200 casos.
-- [ ] IVA precargado con `clientes.aplica_iva` (18) y editable por cotización; sin IVA = `iva_pct` 0.
-- [ ] Solo USD (P1): sin columnas de tasa, sin llamadas a `tasaService` y ningún importe en Bs en ficha, formulario, PDF ni página pública.
-- [ ] IVA opcional por cotización (P1): interruptor precargado con `clientes.aplica_iva` y editable; sí = `iva_pct` de config, no = 0.
-- [ ] Cliente registrado xor libre; bloqueado cotizable con aviso.
-- [ ] Precio precargado según P9 y editable; producto inactivo rechazado.
-- [ ] Estados guardados y `vencida` derivada (hoy de Caracas); renovar, duplicar, aceptar, rechazar y anular según `spec.md`.
-- [ ] Compartir marca `enviada` un borrador (P10); cancelar la hoja de compartir no lo marca.
-- [ ] Casos de la tarea 26 con las cifras esperadas ($174; $150 sin IVA; sin Bs).
-- [ ] Una vencida no se acepta ni se comparte sin renovar; renovar conserva el enlace y lo vuelve a mostrar.
-- [ ] (Fase D, P8) Conversión en pedido una sola vez, solo aceptada con cliente registrado; la cotización convertida no se anula.
+- [x] Totales: `subtotal − descuento + IVA` con el redondeo de `lib/facturas/totales.ts`; paridad TS ↔ SQL en 200 casos. — Desvío documentado en `lib/cotizaciones/totales.ts`: misma regla y redondeo, pero en aritmética decimal exacta (`bigint`); con `number` la paridad fallaba en ~1/30 casos (producto peso × precio de 9 decimales). `probar-cotizaciones.ts --sql` llama a la RPC real 200 veces: iguales.
+- [x] IVA precargado con `clientes.aplica_iva` (18) y editable por cotización; sin IVA = `iva_pct` 0.
+- [x] Solo USD (P1): sin columnas de tasa, sin llamadas a `tasaService` y ningún importe en Bs en ficha, formulario, PDF ni página pública.
+- [x] IVA opcional por cotización (P1): interruptor precargado con `clientes.aplica_iva` y editable; sí = `iva_pct` de config, no = 0. — `guardarCotizacion` resuelve con `ivaPctVenta(con_iva, config.iva_pct)`.
+- [x] Cliente registrado xor libre; bloqueado cotizable con aviso. — Check `cotizaciones_cliente` + esquema zod + aviso en formulario y ficha.
+- [x] Precio precargado según P9 y editable; producto inactivo rechazado. — Autocomplete precarga `precio_referencia_usd_kg` (vacío en crudos); RPC → `producto_inactivo` con el campo de la línea en `details`.
+- [x] Estados guardados y `vencida` derivada (hoy de Caracas); renovar, duplicar, aceptar, rechazar y anular según `spec.md`. — Duplicar y renovar abren `CotizacionForm` en su modo (precargado con `valoresDesdeDetalle`); renovar conserva el token (Postgres local: el mismo enlace vuelve a `disponible`).
+- [ ] Compartir marca `enviada` un borrador (P10); cancelar la hoja de compartir no lo marca. — Implementado (`marcarEnviada` en segundo plano tras WhatsApp, Web Share o copiar; `AbortError` ignorado). **Falta la prueba en dispositivo** (Android/escritorio) con las migraciones aplicadas.
+- [x] Casos de la tarea 26 con las cifras esperadas ($174; $150 sin IVA; sin Bs). — Postgres local por la RPC y en el script: $151 → desc. $1 → IVA $24 → $174; sin IVA $150. Vencida (fecha −10, validez 7) → `estado_efectivo = vencida`; `wa.me/584141234567` y `wa.me/?text=` en el script. «Editar una enviada muestra los precios nuevos en el enlace» validado en SQL (la RPC lee siempre la versión vigente); falta verlo en navegador.
+- [x] Una vencida no se acepta ni se comparte sin renovar; renovar conserva el enlace y lo vuelve a mostrar. — Guard (`cotizacion_vencida`), `accionesPermitidas` y `prepararEnvio` (pide renovar); diálogo Compartir con botón Renovar.
+- [x] (Fase D, P8) Conversión en pedido una sola vez, solo aceptada con cliente registrado; la cotización convertida no se anula. — Postgres local: borrador → `pedido_requiere_aceptada`; enviada vigente → se acepta y crea el pedido con las mismas líneas y precios; segunda vez → `cotizacion_convertida`; anular → `cotizacion_convertida`; cliente libre → `cliente_requerido`. Decisión de la tarea 21: una sola RPC atómica (`convertir_cotizacion_en_pedido` sobre `registrar_pedido`), anotada en `05-ventas/tasks.md`.
 
 ## PDF
-- [ ] `@react-pdf/renderer` en route handlers de Node, detrás de `ICotizacionPdfRenderer`; sin dependencias nuevas (P6).
-- [ ] Identidad de Altamar Sea Food: isotipo, franjas de la borda, `brand.hull`, Barlow (o Helvetica de respaldo documentado); hex solo desde `src/theme/marca.ts`.
-- [ ] Contenido de «PDF» en `spec.md`; números con `lib/format.ts`; varias páginas sin cortar filas; nunca incluye notas internas.
-- [ ] Respuestas `application/pdf` con `no-store`, nombre `cotizacion-COT-000123.pdf`, `inline`/`attachment`; interno: anulada → 404; público: solo `disponible`, el resto redirige a `/c/[token]` sin generar PDF.
+- [x] `@react-pdf/renderer` en route handlers de Node, detrás de `ICotizacionPdfRenderer`; sin dependencias nuevas (P6). — Renderer en `lib/cotizaciones/pdf/renderer.ts` (sin acceso a datos, lo reusa el script), re-exportado por `cotizacionPdfService`.
+- [ ] Identidad de Altamar Sea Food: isotipo, franjas de la borda, `brand.hull`, Barlow (o Helvetica de respaldo documentado); hex solo desde `src/theme/marca.ts`. — Isotipo, franjas y `brand.hull` desde `marca.ts`/`isotipo.ts`: hecho. **Barlow diferido (2026-10-22)**: los TTF no están en el repo y descargarlos requiere permiso del usuario; `registrarFuentesMarca()` usa Helvetica mientras falten. Para activarla: copiar `Barlow-Regular.ttf`, `Barlow-SemiBold.ttf`, `BarlowCondensed-SemiBold.ttf` y `OFL.txt` en `src/lib/pdf/fuentes/` (ver `LEEME.md`; `next.config.ts` ya los incluye en el trazado).
+- [x] Contenido de «PDF» en `spec.md`; números con `lib/format.ts`; varias páginas sin cortar filas; nunca incluye notas internas. — `--pdf`: 60 líneas → tabla en 2 páginas (cabecera repetida, filas `wrap={false}`), cierre en la 3.ª con notas, términos e instrucciones de pago.
+- [x] Respuestas `application/pdf` con `no-store`, nombre `cotizacion-COT-000123.pdf`, `inline`/`attachment`; interno: anulada → 404; público: solo `disponible`, el resto redirige a `/c/[token]` sin generar PDF. — `next start`: interno sin sesión → 404; público con RPC sin resultado → 302 a la página.
 
 ## Enlace público y compartir
-- [ ] `/c/[token]` y `/c/[token]/pdf` accesibles sin sesión (matcher de `proxy.ts`), sin exponer rutas internas; las demás rutas siguen protegidas.
-- [ ] Página pública con `DocumentoPublicoLayout`: vigente → documento, banner si aceptada/rechazada y «Descargar PDF»; vencida → respaldo con marca y WhatsApp al negocio, sin datos ni PDF; revocada/anulada/inexistente → respaldo genérico idéntico que no revela nada. `robots` noindex, `Referrer-Policy: no-referrer`, metadatos sin montos.
-- [ ] Compartir una vencida pide renovarla antes.
-- [ ] Web Share con archivo solo si `navigator.canShare({ files })`; WhatsApp por `wa.me` con `telefonoAWhatsApp` y fallback sin número; ambas en el mismo gesto del clic; «Copiar enlace» y «Descargar PDF» siempre disponibles.
-- [ ] `SITE_URL` configurada en Vercel; el enlace copiado usa el dominio de producción.
+- [x] `/c/[token]` y `/c/[token]/pdf` accesibles sin sesión (matcher de `proxy.ts`), sin exponer rutas internas; las demás rutas siguen protegidas. — Matcher con `c/` (con barra); probado con la regex y con `next start`: `/cotizaciones` → 307 a `/login`, `/c/...` sin redirección.
+- [ ] Página pública con `DocumentoPublicoLayout`: vigente → documento, banner si aceptada/rechazada y «Descargar PDF»; vencida → respaldo con marca y WhatsApp al negocio, sin datos ni PDF; revocada/anulada/inexistente → respaldo genérico idéntico que no revela nada. `robots` noindex, `Referrer-Policy: no-referrer`, metadatos sin montos. — Implementado y compila; `X-Robots-Tag` y `Referrer-Policy` verificados en las cabeceras con `next start`. **Falta verla renderizada** (la RPC no existe aún en Supabase: hoy responde 500).
+- [x] Compartir una vencida pide renovarla antes.
+- [ ] Web Share con archivo solo si `navigator.canShare({ files })`; WhatsApp por `wa.me` con `telefonoAWhatsApp` y fallback sin número; ambas en el mismo gesto del clic; «Copiar enlace» y «Descargar PDF» siempre disponibles. — Implementado; **falta la prueba en Android y escritorio**.
+- [ ] `SITE_URL` configurada en Vercel; el enlace copiado usa el dominio de producción. — Pendiente del usuario (no está en `.env`); sin ella se usa el origin de la petición y se avisa en consola.
 
 ## Repositorios y servicios
-- [ ] `ICotizacionRepository` e `ICotizacionPublicaRepository` (+ impl Supabase) solo acceden y mapean; sin lógica de negocio.
-- [ ] `cotizacionService`, `cotizacionPdfService`, `cotizacionPublicaService` y `cotizacionPedidoService` (Fase D) con la lógica; sesión exigida en los internos; `hint` mapeados a campos.
-- [ ] Funciones puras (`lib/cotizaciones/*`, `lib/pdf/*` sin I/O salvo el registro de fuentes) sin imports de Supabase ni React DOM; `scripts/probar-cotizaciones.ts` (con `--sql` y `--pdf`) pasa.
-- [ ] Validación zod en `src/lib/cotizacionValidation.ts` y `configValidation.ts`; mensajes en `validationMessages.ts`.
+- [x] `ICotizacionRepository` e `ICotizacionPublicaRepository` (+ impl Supabase) solo acceden y mapean; sin lógica de negocio.
+- [x] `cotizacionService`, `cotizacionPdfService`, `cotizacionPublicaService` y `cotizacionPedidoService` (Fase D) con la lógica; sesión exigida en los internos; `hint` mapeados a campos.
+- [x] Funciones puras (`lib/cotizaciones/*`, `lib/pdf/*` sin I/O salvo el registro de fuentes) sin imports de Supabase ni React DOM; `scripts/probar-cotizaciones.ts` (con `--sql` y `--pdf`) pasa. — `--pdf` se corre con `node --require @react-pdf/renderer --import tsx …` (mismo motivo que `probar-contrato-pdf.tsx`); `--sql` se redirige a archivo y se ejecuta con `psql`.
+- [x] Validación zod en `src/lib/cotizacionValidation.ts` y `configValidation.ts`; mensajes en `validationMessages.ts`.
 
 ## UI (Atomic Design y `00-estandares-ui`)
-- [ ] `page.tsx` solo componen organisms/templates; `/cotizaciones`, `/cotizaciones/[id]` con `loading`, `error` y `not-found`.
-- [ ] Ítem de menú «Cotizaciones» visible para admin y operador (P4).
-- [ ] `CotizacionesTable` en `AppDataGrid` con paginación en servidor y `mobileCard`; filtros `?estado=`, `?q=`, `?desde`/`?hasta` y página en la URL.
-- [ ] Diálogos en `AppDialog` (`CotizacionForm` md `fullScreen` en `xs`); `useForm({ disabled })`, `Button loading`, cierre protegido con `dirty`; ficha con `FichaHeader`.
-- [ ] Confirmaciones con `useConfirm` y toasts con `useNotify` (nunca `window.alert`/`confirm`); `EmptyState`/`ErrorState`.
-- [ ] Números con `lib/format.ts`, cifras tabulares, montos a la derecha; colores solo del theme.
-- [ ] Componentes genéricos nuevos registrados en «Componentes compartidos» de `00-estandares-ui/spec.md` (`DocumentoPublicoLayout`, `lib/pdf/marca.tsx`, `src/theme/marca.ts`).
-- [ ] Modo claro/oscuro y responsive (375/768/1024/1440), incluida la página pública y el PDF abierto en móvil.
+- [x] `page.tsx` solo componen organisms/templates; `/cotizaciones`, `/cotizaciones/[id]` con `loading`, `error` y `not-found`. — `/cotizaciones` (listado) no tiene `not-found` (no aplica: no hay id).
+- [x] Ítem de menú «Cotizaciones» visible para admin y operador (P4).
+- [x] `CotizacionesTable` en `AppDataGrid` con paginación en servidor y `mobileCard`; filtros `?estado=`, `?q=`, `?desde`/`?hasta` y página en la URL.
+- [x] Diálogos en `AppDialog` (`CotizacionForm` md `fullScreen` en `xs`); `useForm({ disabled })`, `Button loading`, cierre protegido con `dirty`; ficha con `FichaHeader`.
+- [x] Confirmaciones con `useConfirm` y toasts con `useNotify` (nunca `window.alert`/`confirm`); `EmptyState`/`ErrorState`.
+- [x] Números con `lib/format.ts`, cifras tabulares, montos a la derecha; colores solo del theme.
+- [x] Componentes genéricos nuevos registrados en «Componentes compartidos» de `00-estandares-ui/spec.md` (`DocumentoPublicoLayout`, `lib/pdf/marca.tsx`, `src/theme/marca.ts`). — También `CotizacionDocumento`, `CotizacionNoDisponible` e `isotipo.ts`.
+- [ ] Modo claro/oscuro y responsive (375/768/1024/1440), incluida la página pública y el PDF abierto en móvil. — **Pendiente de revisión visual** con las migraciones aplicadas.
 
 ## Tipos y calidad
-- [ ] Tipos de la spec en `src/types/domain.ts`, sin `any` sin justificar.
-- [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
+- [x] Tipos de la spec en `src/types/domain.ts`, sin `any` sin justificar.
+- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores.
 
 ## Pendientes / deuda técnica
-- _(anotar aquí con fecha lo que se difiera, sin borrar ítems)_
+- **2026-10-22 — Migraciones sin aplicar en Supabase**: aplicar en orden `20261022100000_cotizaciones_esquema.sql`, `20261022100100_cotizaciones_enlace_publico.sql`, `20261022100200_cotizaciones_pedido.sql` (todas validadas en Postgres local).
+- **2026-10-22 — `SITE_URL` en Vercel** con el dominio de producción (tarea 29).
+- **2026-10-22 — Fuentes Barlow del PDF**: agregar los TTF y `OFL.txt` en `src/lib/pdf/fuentes/` (hoy Helvetica de respaldo).
+- **2026-10-22 — Pruebas manuales pendientes** (tareas 9, 17, 18, 26 y 29): flujo completo como operador, página pública en ventana privada (vigente, vencida, revocada, token alterado), Web Share en Android, `wa.me` en escritorio, revisión visual claro/oscuro y responsive.
