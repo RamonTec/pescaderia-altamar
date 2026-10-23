@@ -100,3 +100,10 @@ Rama sugerida `feat/cotizaciones-pedido`; commit `feat(cotizaciones): convertir 
 
 ## Tarea agregada por otro módulo (anotar aquí cuando ocurra)
 - _(ej.: "NN-modulo necesita … — agregado el <fecha>")_
+- **00-estandares-ui Fase 3, rediseño "Puerto" (tarea agregada el 2026-10-22)**: la tarea 76 de `00-estandares-ui/tasks.md` pasa el PDF a la marca nueva.
+  - `lib/pdf/fuentes.ts`: Fraunces + Instrument Sans, en lugar de Barlow.
+  - `lib/pdf/marca.tsx`: filete de latón, en lugar de las franjas.
+  - `CotizacionPdf.tsx`: `MARCA_CLARO.midnight`, en lugar de `hull`.
+  - `DocumentoPublicoLayout`: filete de latón (tarea 74).
+
+  No cambian datos, RPC ni el contenido del PDF. Verificar con `npx tsx scripts/probar-cotizaciones.ts --pdf`.
