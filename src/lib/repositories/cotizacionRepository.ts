@@ -45,7 +45,7 @@ function normalizaListado(f: CotizacionListado): CotizacionListado {
 }
 
 const COLUMNAS_LISTADO =
-  'id, numero, fecha, fecha_vencimiento, estado, estado_efectivo, cliente_id, cliente, telefono, total_usd, n_lineas, enviada_at, updated_at, tiene_enlace'
+  'id, numero, fecha, fecha_vencimiento, estado, estado_efectivo, cliente_id, cliente, telefono, total_usd, n_lineas, enviada_at, updated_at, tiene_enlace, pedido_id'
 
 interface NombresUsuarios {
   creado_por_nombre: string | null
@@ -147,6 +147,15 @@ export function makeCotizacionRepository(db: SupabaseClient = createClient()): I
         .single()
       if (error) throw error
       return normalizaCotizacion(data as Cotizacion)
+    },
+
+    async convertirEnPedido(id, fechaEntrega) {
+      const { data, error } = await db.rpc('convertir_cotizacion_en_pedido', {
+        p_id: id,
+        p_fecha_entrega: fechaEntrega,
+      })
+      if (error) throw error
+      return data as string
     },
 
     async cambiarEstado(id, cambio) {

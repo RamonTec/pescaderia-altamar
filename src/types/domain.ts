@@ -1884,6 +1884,8 @@ export interface Cotizacion {
   token_publico: string | null
   token_generado_at: string | null
   token_generado_por: string | null
+  /** Fase D (P8): pedido creado desde la cotización. */
+  pedido_id: string | null
   created_at: string
   created_by: string
   updated_at: string
@@ -1920,6 +1922,8 @@ export interface CotizacionListado {
   updated_at: string
   /** Fase C: tiene enlace público activo. */
   tiene_enlace: boolean
+  /** Fase D: pedido creado desde la cotización. */
+  pedido_id: string | null
 }
 
 /** Cotización con líneas, datos del cliente registrado y nombres de usuarios (ficha). */

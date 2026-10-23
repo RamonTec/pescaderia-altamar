@@ -147,7 +147,7 @@ export function CotizacionesTable({
 
   const accionesDe = React.useCallback(
     (row: CotizacionListado): RowAction[] => {
-      const permitidas = accionesPermitidas(row.estado_efectivo)
+      const permitidas = accionesPermitidas(row.estado_efectivo, row.pedido_id !== null)
       return ACCIONES_MENU.flatMap((a) => {
         const fn = acciones[a.accion]
         if (!fn || !permitidas.has(a.accion)) return []

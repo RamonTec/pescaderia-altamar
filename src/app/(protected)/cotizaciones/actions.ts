@@ -26,6 +26,7 @@ import {
   renovar,
 } from '@/lib/services/cotizacionService'
 import type { CotizacionDetalle, CotizacionInput } from '@/types/domain'
+import { convertirEnPedido } from '@/lib/services/cotizacionPedidoService'
 
 /**
  * Server Actions de cotizaciones (21): `safeParse` → servicio →
@@ -180,5 +181,29 @@ export async function prepararEnvioAction(
     return { envio, error: null }
   } catch (e) {
     return { envio: null, error: errorDe(e).error }
+  }
+}
+
+const convertirSchema = z.object({
+  id: z.string().uuid(),
+  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Indica la fecha de entrega'),
+})
+
+/** Fase D (P8): crea el pedido de 05 desde una cotización aceptada. */
+export async function convertirEnPedidoAction(input: {
+  id: string
+  fecha_entrega: string
+}): Promise<GuardarCotizacionState> {
+  const safe = convertirSchema.safeParse(input)
+  if (!safe.success) {
+    return { error: 'Revisa los campos marcados', success: null, fieldErrors: fieldErrorsDeZod(safe.error) }
+  }
+  try {
+    const pedidoId = await convertirEnPedido(safe.data.id, safe.data.fecha_entrega)
+    revalidar(safe.data.id)
+    revalidatePath('/pedidos')
+    return { error: null, success: 'Pedido creado desde la cotización', id: pedidoId }
+  } catch (e) {
+    return errorDe(e)
   }
 }

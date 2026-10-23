@@ -76,9 +76,13 @@ const CAMPO_POR_HINT: Record<string, string | null> = {
   cotizacion_vencida: null,
   transicion_invalida: null,
   usar_guardar_cotizacion: null,
+  // Fase D (P8)
+  cotizacion_convertida: null,
+  pedido_requiere_aceptada: null,
+  fecha_entrega_requerida: 'fecha_entrega',
 }
 
-function traducir(e: unknown): never {
+export function traducir(e: unknown): never {
   const pg = (e ?? {}) as PgErrorLike
   if (pg.code === 'P0001' && pg.hint && pg.hint in CAMPO_POR_HINT) {
     const campo = CAMPO_POR_HINT[pg.hint] ?? (pg.details?.startsWith('items.') ? pg.details : undefined)
@@ -87,12 +91,12 @@ function traducir(e: unknown): never {
   throw e
 }
 
-interface Contexto {
+export interface Contexto {
   db: SupabaseClient
   cotizaciones: ICotizacionRepository
 }
 
-async function contexto(): Promise<Contexto> {
+export async function contexto(): Promise<Contexto> {
   const usuario = await getUsuarioActual()
   if (!usuario?.rol) throw new CotizacionError(MSG_SIN_SESION_COTIZACION)
   const db = await createClient()

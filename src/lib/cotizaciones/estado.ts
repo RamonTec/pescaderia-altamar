@@ -35,9 +35,14 @@ export function accionesPermitidas(
 ): ReadonlySet<AccionCotizacion> {
   switch (estado) {
     case 'borrador':
-    case 'enviada':
       return new Set<AccionCotizacion>([
         'editar', 'compartir', 'descargar_pdf', 'aceptar', 'rechazar', 'renovar', 'duplicar', 'anular',
+      ])
+    case 'enviada':
+      // Fase D: una enviada vigente se acepta al convertirla en pedido.
+      return new Set<AccionCotizacion>([
+        'editar', 'compartir', 'descargar_pdf', 'aceptar', 'rechazar', 'renovar', 'duplicar', 'anular',
+        'convertir_pedido',
       ])
     case 'vencida':
       return new Set<AccionCotizacion>(['editar', 'descargar_pdf', 'rechazar', 'renovar', 'duplicar', 'anular'])

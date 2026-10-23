@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { CotizacionForm } from '@/components/organisms/CotizacionForm'
 import { AnularCotizacionDialog } from '@/components/organisms/AnularCotizacionDialog'
 import {
+  ConvertirPedidoDialog,
+  type CotizacionConvertir,
+} from '@/components/organisms/ConvertirPedidoDialog'
+import {
   CompartirCotizacionDialog,
   type CotizacionCompartir,
 } from '@/components/organisms/CompartirCotizacionDialog'
@@ -28,7 +32,7 @@ interface EstadoForm {
 /**
  * Diálogos y acciones de una cotización (21), compartidos por el listado y
  * la ficha: formulario (crear / editar / duplicar / renovar), responder,
- * anular y compartir. Desde el listado, `abrirFormulario` acepta un id y trae el detalle.
+ * anular, compartir y convertir en pedido (Fase D). Desde el listado, `abrirFormulario` acepta un id y trae el detalle.
  */
 export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string) {
   const router = useRouter()
@@ -42,6 +46,7 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
   const [anular, setAnular] = React.useState<CotizacionResumenDialogo | null>(null)
   const [cargandoId, setCargandoId] = React.useState<string | null>(null)
   const [compartir, setCompartir] = React.useState<(CotizacionCompartir & { n: number }) | null>(null)
+  const [convertir, setConvertir] = React.useState<CotizacionConvertir | null>(null)
 
   const contador = React.useRef(0)
 
@@ -110,6 +115,12 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
         onClose={() => setResponder(null)}
       />
       <AnularCotizacionDialog cotizacion={anular} onClose={() => setAnular(null)} />
+      <ConvertirPedidoDialog
+        key={`convertir-${convertir?.id ?? ''}`}
+        cotizacion={convertir}
+        hoy={hoy}
+        onClose={() => setConvertir(null)}
+      />
       <CompartirCotizacionDialog
         key={`compartir-${compartir?.n ?? 0}`}
         cotizacion={compartir}
@@ -129,6 +140,7 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
       setResponder({ cotizacion, respuesta }),
     anular: setAnular,
     compartir: abrirCompartir,
+    convertir: setConvertir,
     cargandoId,
     dialogos,
   }

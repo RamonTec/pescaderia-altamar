@@ -924,6 +924,8 @@ export interface ICotizacionRepository {
   cambiarEstado(id: string, cambio: CotizacionCambioEstado): Promise<Cotizacion>
   /** Crea, regenera (`token`) o revoca (`null`) el enlace; `token_generado_*` los fija el guard. */
   cambiarToken(id: string, token: string | null): Promise<Cotizacion>
+  /** Fase D: RPC atómica `convertir_cotizacion_en_pedido`; devuelve el id del pedido. */
+  convertirEnPedido(id: string, fechaEntrega: string): Promise<string>
 }
 
 /**

@@ -59,9 +59,9 @@ export function CotizacionFicha({
   /** Base absoluta de los enlaces públicos (servidor). */
   baseEnlace: string
 }) {
-  const { abrirFormulario, responder, anular, compartir, dialogos } = useCotizacionAcciones(catalogo, hoy)
+  const { abrirFormulario, responder, anular, compartir, convertir, dialogos } = useCotizacionAcciones(catalogo, hoy)
   const estado = estadoEfectivo(c, hoy)
-  const permitidas = accionesPermitidas(estado)
+  const permitidas = accionesPermitidas(estado, c.pedido_id !== null)
   const nombreCliente = c.cliente?.nombre ?? c.cliente_nombre ?? '—'
   const resumen = { id: c.id, numero: c.numero, cliente: nombreCliente, total_usd: c.total_usd }
   const actualizadaTrasEnviar =
@@ -87,6 +87,19 @@ export function CotizacionFicha({
   if (permitidas.has('rechazar')) menu.push({ label: 'Marcar rechazada', onClick: () => responder(resumen, 'rechazada') })
   if (permitidas.has('renovar')) menu.push({ label: 'Renovar', onClick: () => void abrirFormulario('renovar', c) })
   if (permitidas.has('duplicar')) menu.push({ label: 'Duplicar', onClick: () => void abrirFormulario('duplicar', c) })
+  if (permitidas.has('convertir_pedido')) {
+    menu.push({
+      label: 'Convertir en pedido',
+      onClick: () =>
+        convertir({
+          id: c.id,
+          numero: c.numero,
+          cliente: nombreCliente,
+          clienteRegistrado: c.cliente_id !== null,
+          enviada: c.estado === 'enviada',
+        }),
+    })
+  }
   if (permitidas.has('anular')) menu.push({ label: 'Anular', destructive: true, onClick: () => anular(resumen) })
 
   return (
@@ -151,6 +164,14 @@ export function CotizacionFicha({
               {c.cliente ? <FichaDato label="RIF/CI">{c.cliente.rif_ci}</FichaDato> : null}
               <FichaDato label="Teléfono">{c.cliente ? c.cliente.telefono : c.cliente_telefono}</FichaDato>
             </FichaDatos>
+            {c.pedido_id ? (
+              <Typography variant="body2">
+                Convertida en pedido.{' '}
+                <Link component={NextLink} href="/pedidos">
+                  Ver en Pedidos
+                </Link>
+              </Typography>
+            ) : null}
             {c.cliente?.bloqueado ? (
               <Typography variant="caption" color="error.main">
                 Cliente bloqueado: no se le vende a crédito.
