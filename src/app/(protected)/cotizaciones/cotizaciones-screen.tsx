@@ -32,7 +32,7 @@ export function CotizacionesScreen({
   catalogo: CatalogoCotizacion
   hoy: string
 }) {
-  const { abrirFormulario, anular, cargandoId, dialogos } = useCotizacionAcciones(catalogo, hoy)
+  const { abrirFormulario, anular, compartir, cargandoId, dialogos } = useCotizacionAcciones(catalogo, hoy)
   const nueva = React.useCallback(() => void abrirFormulario('crear', null), [abrirFormulario])
 
   const acciones = React.useMemo<ManejadoresAccionCotizacion>(
@@ -41,10 +41,12 @@ export function CotizacionesScreen({
       renovar: (row) => void abrirFormulario('renovar', row.id),
       duplicar: (row) => void abrirFormulario('duplicar', row.id),
       anular: (row) => anular(resumen(row)),
+      compartir: (row) =>
+        compartir({ id: row.id, numero: row.numero, cliente: row.cliente, estado_efectivo: row.estado_efectivo }),
       // En el mismo clic (sin `await` previo) para que no lo bloqueen como emergente.
       descargar_pdf: (row) => window.open(`/cotizaciones/${row.id}/pdf?descargar=1`, '_blank', 'noopener'),
     }),
-    [abrirFormulario, anular]
+    [abrirFormulario, anular, compartir]
   )
 
   return (

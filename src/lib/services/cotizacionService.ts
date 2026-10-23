@@ -19,6 +19,7 @@ import { estadoEfectivo } from '@/lib/cotizaciones/estado'
 import { parseBusquedaNumero } from '@/lib/cotizaciones/numero'
 import { fechaHoy } from '@/lib/format'
 import { urlPublica } from '@/lib/cotizaciones/enlace'
+import { mensajeWhatsAppCotizacion } from '@/lib/cotizaciones/mensaje'
 import { getUsuarioActual } from './authService'
 import { getConfigNegocio } from './configService'
 
@@ -330,5 +331,43 @@ export async function revocarEnlace(id: string): Promise<void> {
     await cotizaciones.cambiarToken(id, null)
   } catch (e) {
     traducir(e)
+  }
+}
+
+export interface EnvioCotizacion {
+  url: string
+  /** Mensaje de WhatsApp prellenado (editable en el diálogo). */
+  mensaje: string
+  /** Teléfono del cliente (registrado o libre); el navegador arma el `wa.me`. */
+  telefono: string | null
+}
+
+/**
+ * Prepara el diálogo «Compartir» (P10): crea el enlace si falta y arma el
+ * mensaje. Una vencida no se comparte (el enlace no la mostraría, P7): hay
+ * que renovarla. Una anulada no tiene enlace.
+ */
+export async function prepararEnvio(id: string): Promise<EnvioCotizacion> {
+  const { db, cotizaciones } = await contexto()
+  const d = await cotizaciones.getDetalle(id)
+  if (!d) throw new CotizacionError('La cotización no existe')
+  if (d.estado === 'anulada') throw new CotizacionError('Una cotización anulada no se comparte')
+  if (estadoEfectivo(d, fechaHoy()) === 'vencida') {
+    throw new CotizacionError('Renueva la cotización antes de compartirla')
+  }
+  const { url } = await crearEnlace(id)
+  const config = await getConfigNegocio(db)
+  const cliente = d.cliente?.nombre ?? d.cliente_nombre ?? 'cliente'
+  return {
+    url,
+    mensaje: mensajeWhatsAppCotizacion({
+      cliente,
+      numero: d.numero,
+      nombreComercial: config?.nombre_comercial ?? null,
+      totalUsd: d.total_usd,
+      fechaVencimiento: d.fecha_vencimiento,
+      url,
+    }),
+    telefono: d.cliente ? d.cliente.telefono : d.cliente_telefono,
   }
 }

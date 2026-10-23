@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { CotizacionForm } from '@/components/organisms/CotizacionForm'
 import { AnularCotizacionDialog } from '@/components/organisms/AnularCotizacionDialog'
 import {
+  CompartirCotizacionDialog,
+  type CotizacionCompartir,
+} from '@/components/organisms/CompartirCotizacionDialog'
+import {
   ResponderCotizacionDialog,
   type CotizacionResumenDialogo,
 } from '@/components/organisms/ResponderCotizacionDialog'
@@ -23,8 +27,8 @@ interface EstadoForm {
 
 /**
  * Diálogos y acciones de una cotización (21), compartidos por el listado y
- * la ficha: formulario (crear / editar / duplicar / renovar), responder y
- * anular. Desde el listado, `abrirFormulario` acepta un id y trae el detalle.
+ * la ficha: formulario (crear / editar / duplicar / renovar), responder,
+ * anular y compartir. Desde el listado, `abrirFormulario` acepta un id y trae el detalle.
  */
 export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string) {
   const router = useRouter()
@@ -37,6 +41,7 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
   } | null>(null)
   const [anular, setAnular] = React.useState<CotizacionResumenDialogo | null>(null)
   const [cargandoId, setCargandoId] = React.useState<string | null>(null)
+  const [compartir, setCompartir] = React.useState<(CotizacionCompartir & { n: number }) | null>(null)
 
   const contador = React.useRef(0)
 
@@ -79,6 +84,11 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
 
   const vista = form ?? ultimoForm
 
+  const abrirCompartir = React.useCallback((c: CotizacionCompartir) => {
+    contador.current += 1
+    setCompartir({ ...c, n: contador.current })
+  }, [])
+
   const dialogos = (
     <>
       <CotizacionForm
@@ -100,6 +110,16 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
         onClose={() => setResponder(null)}
       />
       <AnularCotizacionDialog cotizacion={anular} onClose={() => setAnular(null)} />
+      <CompartirCotizacionDialog
+        key={`compartir-${compartir?.n ?? 0}`}
+        cotizacion={compartir}
+        onClose={() => setCompartir(null)}
+        onRenovar={() => {
+          const id = compartir?.id
+          setCompartir(null)
+          if (id) void abrirFormulario('renovar', id)
+        }}
+      />
     </>
   )
 
@@ -108,6 +128,7 @@ export function useCotizacionAcciones(catalogo: CatalogoCotizacion, hoy: string)
     responder: (cotizacion: CotizacionResumenDialogo, respuesta: 'aceptada' | 'rechazada') =>
       setResponder({ cotizacion, respuesta }),
     anular: setAnular,
+    compartir: abrirCompartir,
     cargandoId,
     dialogos,
   }

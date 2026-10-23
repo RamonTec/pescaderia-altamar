@@ -28,6 +28,13 @@ import {
   type CotizacionFormInput,
 } from '../src/lib/cotizacionValidation'
 import { fechaHoy } from '../src/lib/format'
+import {
+  mensajeCotizacionGenerica,
+  mensajeCotizacionVencida,
+  mensajeWhatsAppCotizacion,
+  urlWhatsAppCotizacion,
+} from '../src/lib/cotizaciones/mensaje'
+import { tokenValido, urlPublica } from '../src/lib/cotizaciones/enlace'
 
 let fallas = 0
 
@@ -217,6 +224,29 @@ igual('parse cot12 → 12', parseBusquedaNumero('cot12'), 12)
 igual('parse « 45 » → 45', parseBusquedaNumero(' 45 '), 45)
 igual('parse Pescados → null', parseBusquedaNumero('Pescados'), null)
 igual('parse 0 → null', parseBusquedaNumero('0'), null)
+
+// ---------- mensajes y enlace ----------
+{
+  const m = mensajeWhatsAppCotizacion({
+    cliente: 'Ana',
+    numero: 123,
+    nombreComercial: 'Altamar Sea Food',
+    totalUsd: 174,
+    fechaVencimiento: '2026-10-29',
+    url: 'https://altamar.test/c/x',
+  })
+  verdadero('mensaje con número, negocio, total y enlace', m.startsWith('Hola Ana, le enviamos la cotización COT-000123 de Altamar Sea Food por ') && m.endsWith('Puede verla y descargarla aquí: https://altamar.test/c/x'), m)
+  verdadero('mensaje sin Bs', !/Bs/.test(m), m)
+  igual('wa.me con 0414-1234567', urlWhatsAppCotizacion('0414-1234567', 'hola'), 'https://wa.me/584141234567?text=hola')
+  igual('wa.me sin teléfono → elegir contacto', urlWhatsAppCotizacion(null, 'hola'), 'https://wa.me/?text=hola')
+  igual('wa.me con fijo 0295 → elegir contacto', urlWhatsAppCotizacion('0295-2911234', 'hola'), 'https://wa.me/?text=hola')
+  igual('respaldo vencida', mensajeCotizacionVencida(123), 'Hola, la cotización COT-000123 venció. Quisiera una nueva.')
+  igual('respaldo genérico', mensajeCotizacionGenerica(), 'Hola, quisiera una cotización.')
+  igual('urlPublica sin barra doble', urlPublica('t', 'https://a.test/'), 'https://a.test/c/t')
+  verdadero('token de 32 base64url válido', tokenValido('abcdefghijABCDEFGHIJ0123456789_-'))
+  verdadero('token de 31 inválido', !tokenValido('abcdefghijABCDEFGHIJ0123456789_'))
+  verdadero('token con caracteres raros inválido', !tokenValido('abcdefghijABCDEFGHIJ0123456789%%'))
+}
 
 // ---------- esquemas ----------
 const UUID = '22222222-2222-4222-8222-222222222222'

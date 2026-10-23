@@ -20,7 +20,9 @@ import {
   getCotizacion,
   guardarCotizacion,
   marcarEnviada,
+  prepararEnvio,
   rechazar,
+  type EnvioCotizacion,
   renovar,
 } from '@/lib/services/cotizacionService'
 import type { CotizacionDetalle, CotizacionInput } from '@/types/domain'
@@ -164,5 +166,19 @@ export async function obtenerCotizacionAction(
     return { cotizacion, error: cotizacion ? null : 'La cotización no existe' }
   } catch (e) {
     return { cotizacion: null, error: errorDe(e).error }
+  }
+}
+
+/** Diálogo «Compartir»: crea el enlace si falta y arma el mensaje (P10). */
+export async function prepararEnvioAction(
+  id: string
+): Promise<{ envio: EnvioCotizacion | null; error: string | null }> {
+  if (!z.string().uuid().safeParse(id).success) return { envio: null, error: 'Cotización inválida' }
+  try {
+    const envio = await prepararEnvio(id)
+    revalidar(id)
+    return { envio, error: null }
+  } catch (e) {
+    return { envio: null, error: errorDe(e).error }
   }
 }

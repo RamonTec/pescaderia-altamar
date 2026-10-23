@@ -5,7 +5,7 @@ import NextLink from 'next/link'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
 import { FichaHeader } from '@/components/molecules/FichaHeader'
 import { FichaDato, FichaDatos, FichaSeccion } from '@/components/molecules/FichaSeccion'
 import { CotizacionEstadoChip } from '@/components/molecules/CotizacionEstadoChip'
@@ -54,7 +54,7 @@ export function CotizacionFicha({
   catalogo: CatalogoCotizacion
   hoy: string
 }) {
-  const { abrirFormulario, responder, anular, dialogos } = useCotizacionAcciones(catalogo, hoy)
+  const { abrirFormulario, responder, anular, compartir, dialogos } = useCotizacionAcciones(catalogo, hoy)
   const estado = estadoEfectivo(c, hoy)
   const permitidas = accionesPermitidas(estado)
   const nombreCliente = c.cliente?.nombre ?? c.cliente_nombre ?? '—'
@@ -63,6 +63,9 @@ export function CotizacionFicha({
     c.enviada_at !== null && Date.parse(c.updated_at) - Date.parse(c.enviada_at) > 1000
 
   const menu: RowAction[] = []
+  if (permitidas.has('editar')) {
+    menu.push({ label: 'Editar', onClick: () => void abrirFormulario('editar', c) })
+  }
   if (permitidas.has('descargar_pdf')) {
     menu.push({
       label: 'Descargar PDF',
@@ -97,8 +100,13 @@ export function CotizacionFicha({
           </Box>
         }
         primaryAction={
-          permitidas.has('editar')
-            ? { label: 'Editar', icon: <EditOutlinedIcon />, onClick: () => void abrirFormulario('editar', c) }
+          c.estado !== 'anulada'
+            ? {
+                label: 'Compartir',
+                icon: <ShareOutlinedIcon />,
+                onClick: () =>
+                  compartir({ id: c.id, numero: c.numero, cliente: nombreCliente, estado_efectivo: estado }),
+              }
             : undefined
         }
         menuActions={menu}
