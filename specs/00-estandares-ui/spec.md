@@ -29,7 +29,7 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 | `success` | relleno `#ABC7F1`; texto/ícono `#2F5E9E` *(P-UI1)* | `#ABC7F1` | estados "pagada", positivo |
 | `warning` | `#A15C07` | `#E9B460` | aviso, "por vencer" |
 | `error` | `#B3261E` | `#EE8A83` | error, vencida, destructivo |
-| `info` | `#44597A` *(P-UI6)* | `#9FB4D3` *(P-UI6)* | "pendiente", kg en gráficos |
+| `info` | `#44597A` *(P-UI6)* | `#9FB4D3` *(P-UI6)* | kg en gráficos, avisos informativos |
 | `background.default` (marfil) | `#F7F6F2` | `#0A1424` | fondo de la app |
 | `background.paper` | `#FFFFFF` | `#121F35` | superficies: tablas, tarjetas, diálogos, inputs |
 | `background.subtle` (token nuevo) | `#F0EEE7` | `#17253D` *(P-UI10)* | encabezado de tabla, fila en hover, zonas suaves |
@@ -52,9 +52,9 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 | `success` (Pagada) | `#ABC7F1` / `#0B1B33` | `rgba(#ABC7F1, .16)` / `#ABC7F1` |
 | `warning` | `#F8EEDD` / `#7E4705` | `rgba(#E9B460, .16)` / `#E9B460` |
 | `error` (Vencida) | `#F8E5E3` / `#8E1F18` | `rgba(#EE8A83, .16)` / `#EE8A83` |
-| `info`, `primary`, `secondary` | tenue del color / su tono oscuro *(propuesta)* | tenue / su tono claro |
+| `info`, `primary`, `secondary` | tenue del color / su tono oscuro *(aprobado 2026-10-22)* | tenue / su tono claro |
 
-El artboard llama "Pendiente" al chip ámbar. En la app el mapeo de estados de cartera de `09` **no cambia** (`por_vencer` → `warning`, `pendiente` → `info`): el chip ámbar del artboard corresponde a `warning`.
+Estado "Pendiente" en ámbar, como en el artboard (decisión del cliente, 2026-10-22). El mapeo de cartera de `09` (`COLOR_ESTADO_CARTERA`) cambia en un solo punto: `pendiente` pasa de `info` a `warning`. `por_vencer` sigue en `warning`, así que los dos estados comparten color y se distinguen por la etiqueta, igual que ya hace `CarteraIndicador` (ámbar para pendientes y por vencer).
 
 **Un solo gesto memorable: el latón.** El filete de latón (`atoms/FileteLaton`, reemplaza a `PeneroStripes`, *P-UI2*) es el **único** elemento decorativo. Aparece solo en:
 - el filete de 2 px bajo el logo del sidebar;
@@ -345,7 +345,7 @@ El cliente aprobó el 2026-10-22 las diez propuestas tal como están (P-UI1 a P-
 | P-UI3 | Radio de diálogos | 8, igual que las superficies; 0 a pantalla completa |
 | P-UI4 | Logo | Sigue el isotipo provisional, redibujado en Puerto (proa medianoche + filete de latón + "Altamar" en Fraunces). Se reemplaza al recibir el logo real (pendiente (g)) |
 | P-UI5 | Tamaño de `h5` (no está en la muestra) | 24 px Fraunces 500 |
-| P-UI6 | `info` (no está en la muestra; lo usan "pendiente" y kg en gráficos) | `#44597A` claro / `#9FB4D3` oscuro, pizarra azulada, distinto de `primary` y de `success` |
+| P-UI6 | `info` (no está en la muestra; lo usan los kg en gráficos; "pendiente" pasó a ámbar el 2026-10-22) | `#44597A` claro / `#9FB4D3` oscuro, pizarra azulada, distinto de `primary` y de `success` |
 | P-UI7 | Contorno de input (`#E4E1D8` da < 3:1 sobre blanco) | `#E4E1D8` para separadores; `#A9A397` para el contorno de `OutlinedInput` en claro |
 | P-UI8 | Cifras tabulares, si Instrument Sans o Fraunces no traen `tnum` | Consultar antes de sumar una tercera familia |
 | P-UI9 | Paleta categórica de gráficos | Claro: `#0B1B33`, `#2F5E9E`, `#7A5C2E`, `#A15C07`, `#5B6474`, `#B3261E`. Oscuro: `#ABC7F1`, `#D4B27A`, `#EEF0F4`, `#E9B460`, `#A3ADBD`, `#EE8A83`. Verificar 3:1 de cada una |
@@ -354,5 +354,5 @@ El cliente aprobó el 2026-10-22 las diez propuestas tal como están (P-UI1 a P-
 ## Fuera de alcance (MVP)
 - Internacionalización (todo queda en español, moneda USD/Bs fijas).
 - Modo de alto contraste separado del modo oscuro estándar.
-- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. Tampoco se cambia el mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) ni la anatomía de pantallas: solo la piel.
+- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. El mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) solo cambia `pendiente` → `warning` (ver chips de estado). La anatomía de pantallas no cambia: solo la piel.
 - Animaciones elaboradas (parallax, scroll-triggered, animaciones de página complejas) o cualquier librería de animación de terceros — las transiciones básicas ya quedan cubiertas en la sección "Transiciones y micro-interacciones" arriba.

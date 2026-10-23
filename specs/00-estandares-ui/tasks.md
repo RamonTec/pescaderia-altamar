@@ -183,7 +183,7 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 
    Se conservan cero sombras en reposo y el borde de 1 px.
    - Hecho cuando: cada radio de la tabla "Jerarquía de superficies y radios" se ve en `/estandares` y no quedan radios escritos a mano en `sx` que lo contradigan (grep de `borderRadius:` en `src/components` revisado).
-67. **`Chip variant="soft"`** pasa a usar `soft`/`onSoft` (tarea 63) en lugar del alfa de `mainChannel`. En claro, "Pagada" se ve con fondo `#ABC7F1` y texto `#0B1B33`, "Por vencer" con `#F8EEDD`/`#7E4705` y "Vencida" con `#F8E5E3`/`#8E1F18`.
+67. **`Chip variant="soft"`** pasa a usar `soft`/`onSoft` (tarea 63) en lugar del alfa de `mainChannel`. En claro, "Pagada" se ve con fondo `#ABC7F1` y texto `#0B1B33`, "Pendiente" y "Por vencer" con `#F8EEDD`/`#7E4705` y "Vencida" con `#F8E5E3`/`#8E1F18`. En `atoms/EstadoCarteraChip.tsx`, `COLOR_ESTADO_CARTERA.pendiente` pasa de `info` a `warning` (decisión del cliente, 2026-10-22; tarea agregada en `09-cuentas-por-cobrar/tasks.md`).
    - Hecho cuando: `StatusChips`, `EstadoCarteraChip`, `LoteChip`, `SenalFacturaChip`/`NivelSenalChip` y `TasaChip` se ven así en `/estandares` y en sus pantallas, sin cambiar sus props.
 68. **`fontSize="xlarge"` para íconos**: aumento de `SvgIconPropsSizeOverrides` + variante en `MuiSvgIcon` (40 px).
    - Hecho cuando: `<XIcon fontSize="xlarge" />` tipa y mide 40 px.
