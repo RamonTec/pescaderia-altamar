@@ -2026,6 +2026,10 @@ export interface CotizacionPublica extends CotizacionDocumentoDatos {
 
 /** Resultado de leer el enlace `/c/[token]` (P7, sin gracia tras el vencimiento). */
 export type ResultadoCotizacionPublica =
-  | { resultado: 'disponible'; negocio: NegocioDocumento; cotizacion: CotizacionPublica }
+  | {
+      resultado: 'disponible'
+      negocio: NegocioDocumento & { instrucciones_pago: string | null }
+      cotizacion: CotizacionPublica
+    }
   | { resultado: 'vencida'; negocio: ContactoNegocio; numero: number }
   | { resultado: 'no_disponible'; negocio: ContactoNegocio }

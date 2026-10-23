@@ -1,7 +1,12 @@
 /**
  * Datos del PDF de una cotización (21-cotizaciones, Fase B): función pura.
  */
-import type { ConfigNegocio, CotizacionDetalle, DatosCotizacionPdf } from '@/types/domain'
+import type {
+  ConfigNegocio,
+  CotizacionDetalle,
+  DatosCotizacionPdf,
+  ResultadoCotizacionPublica,
+} from '@/types/domain'
 import { documentoDesdeDetalle } from './documento'
 import { estadoEfectivo } from './estado'
 
@@ -37,5 +42,19 @@ export function datosPdfDesdeDetalle(
     instrucciones_pago: config?.instrucciones_pago?.trim() || null,
     sello: SELLO[estadoEfectivo(detalle, hoy)] ?? null,
     actualizada_at: detalle.updated_at,
+  }
+}
+
+/** Datos del PDF público (solo `disponible`): mismos bloques que el interno. */
+export function datosPdfDesdePublica(
+  r: Extract<ResultadoCotizacionPublica, { resultado: 'disponible' }>
+): DatosCotizacionPdf {
+  const { estado_publico, updated_at, ...documento } = r.cotizacion
+  return {
+    documento,
+    negocio: negocioDesdeConfig(r.negocio),
+    instrucciones_pago: r.negocio.instrucciones_pago?.trim() || null,
+    sello: estado_publico === 'aceptada' ? 'ACEPTADA' : estado_publico === 'rechazada' ? 'RECHAZADA' : null,
+    actualizada_at: updated_at,
   }
 }

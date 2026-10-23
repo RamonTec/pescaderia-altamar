@@ -15,7 +15,7 @@ import type {
 
 interface FilaPublica {
   resultado: 'disponible' | 'vencida' | 'no_disponible'
-  negocio: Partial<NegocioDocumento> | null
+  negocio: (Partial<NegocioDocumento> & { instrucciones_pago?: string | null }) | null
   cotizacion?: Record<string, unknown> | null
 }
 
@@ -70,6 +70,7 @@ export function makeCotizacionPublicaRepository(db: SupabaseClient): ICotizacion
             razon_social: texto(n.razon_social),
             rif: texto(n.rif),
             direccion: texto(n.direccion),
+            instrucciones_pago: texto(n.instrucciones_pago),
           },
           cotizacion: cotizacionDe(fila.cotizacion),
         }

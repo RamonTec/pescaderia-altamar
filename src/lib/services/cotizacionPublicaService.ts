@@ -1,8 +1,11 @@
-import type { ResultadoCotizacionPublica } from '@/types/domain'
+import type { ContactoNegocio, ResultadoCotizacionPublica } from '@/types/domain'
 import type { ICotizacionPublicaRepository } from '@/lib/repositories/interfaces'
 import { makeCotizacionPublicaRepository } from '@/lib/repositories/cotizacionPublicaRepository'
 import { createAnonClient } from '@/lib/supabase/anon'
 import { tokenValido } from '@/lib/cotizaciones/enlace'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones/numero'
+import { datosPdfDesdePublica } from '@/lib/cotizaciones/pdfDatos'
+import { reactPdfCotizacionRenderer, type ICotizacionPdfRenderer } from '@/lib/cotizaciones/pdf/renderer'
 
 /**
  * Lectura del enlace público `/c/[token]` (21-cotizaciones, P7), sin sesión.
@@ -25,4 +28,26 @@ export async function getPorToken(
     return { resultado: 'no_disponible', negocio: r.negocio }
   }
   return repo.porToken(token)
+}
+
+/** Solo el contacto público del negocio (página `not-found` del enlace). */
+export async function getContactoNegocio(
+  repo: ICotizacionPublicaRepository = makeCotizacionPublicaRepository(createAnonClient())
+): Promise<ContactoNegocio> {
+  const r = await repo.porToken(null)
+  return { nombre_comercial: r.negocio.nombre_comercial, telefono: r.negocio.telefono }
+}
+
+/**
+ * PDF público: SOLO con `resultado = disponible`; en cualquier otro caso
+ * devuelve `null` sin renderizar nada (la ruta redirige a `/c/[token]`).
+ */
+export async function pdfCotizacionPublica(
+  token: string,
+  renderer: ICotizacionPdfRenderer = reactPdfCotizacionRenderer
+): Promise<{ bytes: Uint8Array; nombre: string } | null> {
+  const r = await getPorToken(token)
+  if (r.resultado !== 'disponible') return null
+  const bytes = await renderer.render(datosPdfDesdePublica(r))
+  return { bytes, nombre: `cotizacion-${formatNumeroCotizacion(r.cotizacion.numero)}.pdf` }
 }

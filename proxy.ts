@@ -49,8 +49,11 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
+// 21-cotizaciones: `c/` (con la barra) deja pública solo la ruta corta del
+// enlace `/c/[token]`; `/cotizaciones`, `/catalogos`, `/clientes`, `/cobros`,
+// `/compras` y `/contratos` siguen protegidas.
 export const config = {
   matcher: [
-    '/((?!login|recuperar|actualizar-password|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!login|recuperar|actualizar-password|c/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
