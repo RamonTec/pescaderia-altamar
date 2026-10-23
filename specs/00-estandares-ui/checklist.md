@@ -66,7 +66,7 @@
 ## Fase 3 — Rediseño Puerto (2026-10-22)
 
 ### Decisiones
-- [ ] P-UI1 a P-UI10 respondidas por el cliente, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 58).
+- [x] P-UI1 a P-UI10 respondidas por el cliente, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 58). _(2026-10-22: las diez aprobadas por el cliente tal como se propusieron.)_
 - [ ] Cifras tabulares (`tnum`) verificadas en Instrument Sans y Fraunces, con el resultado anotado en la tarea 59.
 
 ### Tokens y theme

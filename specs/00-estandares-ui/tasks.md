@@ -142,7 +142,7 @@ Problemas planteados por el usuario sobre `ClienteForm`: sin división clara de 
 
 El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **reemplaza a "Peñero"**. Lo pidió el usuario el 2026-10-22. Valores, escala y reglas en `spec.md` § "Identidad visual «Puerto»" y § "Tipografía". Referencia: artboard "B · Puerto" del lienzo citado en la spec.
 
-**Alcance**: la piel (tokens, fuentes, radios, decorativo y componentes base) más la revisión de cada pantalla. No cambia datos, reglas ni la anatomía de tablas, diálogos y formularios. Las decisiones P-UI1 a P-UI10 (`spec.md` § "Decisiones pendientes de la Fase 3") se ejecutan con la propuesta. Si el cliente cambia alguna, se toca solo el token o el componente que indica la tarea. Rama sugerida: `feat/rediseno-puerto`.
+**Alcance**: la piel (tokens, fuentes, radios, decorativo y componentes base) más la revisión de cada pantalla. No cambia datos, reglas ni la anatomía de tablas, diálogos y formularios. Las decisiones P-UI1 a P-UI10 (`spec.md` § "Decisiones de la Fase 3") las aprobó el cliente el 2026-10-22 tal como se propusieron. Si el cliente cambia alguna, se toca solo el token o el componente que indica la tarea. Rama sugerida: `feat/rediseno-puerto`.
 
 **Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. Para no romper consumidores a mitad de fase, los tokens nuevos conviven con los de Peñero hasta la tarea 88.
 
@@ -150,6 +150,7 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 
 58. **Decisiones**: presentar al usuario P-UI1 a P-UI10 con la propuesta de cada una.
    - Hecho cuando: cada decisión está marcada como aprobada, o con el valor elegido, en la tabla de `spec.md`. Las que sigan abiertas quedan anotadas sin bloquear: se avanza con la propuesta.
+   - **Hecho 2026-10-22** (rama `docs/rediseno-puerto`): el cliente aprobó las diez propuestas sin cambios; tabla de `spec.md` actualizada.
 59. **Verificar cifras tabulares** de Instrument Sans 400/500/600 y Fraunces 500/600 con el método de la tarea 30: leer la tabla GSUB de los `.woff2`. Se usan los de Google Fonts, descargados a un directorio temporal fuera del repo. Si no se pueden descargar, se usan los que `next/font` deja en `.next/static/media` al terminar la tarea 64, y esta verificación se hace antes de la 65.
    - Hecho cuando: el resultado (`tnum` sí/no por familia) queda anotado en esta tarea. Si alguna no lo trae, se aplica P-UI8 (consultar) antes de la tarea 65.
 60. **`src/theme/marca.ts`**: agregar a `MarcaPaleta` las claves Puerto (`midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`) en `MARCA_CLARO` y `MARCA_OSCURO`, con los valores de la spec (P-UI10 en oscuro). Las de Peñero se dejan (compat). Actualizar el comentario del archivo.
