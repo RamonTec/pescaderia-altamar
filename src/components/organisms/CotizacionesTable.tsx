@@ -7,9 +7,11 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import InputAdornment from '@mui/material/InputAdornment'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import type { GridColDef } from '@mui/x-data-grid'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined'
 import DateRangeOutlinedIcon from '@mui/icons-material/DateRangeOutlined'
 import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
 import { RangoFechasSelector } from '@/components/molecules/RangoFechasSelector'
@@ -167,6 +169,11 @@ export function CotizacionesTable({
             <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
               {formatNumeroCotizacion(row.numero)}
             </Typography>
+            {row.tiene_enlace ? (
+              <Tooltip title="Con enlace público activo">
+                <LinkOutlinedIcon fontSize="small" color="action" aria-label="Con enlace público" />
+              </Tooltip>
+            ) : null}
           </Box>
         ),
       },

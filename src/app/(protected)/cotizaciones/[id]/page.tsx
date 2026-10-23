@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { CotizacionFicha } from './cotizacion-ficha'
-import { getCatalogoCotizacion, getCotizacion } from '@/lib/services/cotizacionService'
+import { baseUrlPublica, getCatalogoCotizacion, getCotizacion } from '@/lib/services/cotizacionService'
 import { fechaHoy } from '@/lib/format'
 
 /**
@@ -14,7 +14,7 @@ export default async function CotizacionFichaPage({ params }: { params: Promise<
 
   const cotizacion = await getCotizacion(id)
   if (!cotizacion) notFound()
-  const catalogo = await getCatalogoCotizacion()
+  const [catalogo, base] = await Promise.all([getCatalogoCotizacion(), baseUrlPublica()])
 
-  return <CotizacionFicha cotizacion={cotizacion} catalogo={catalogo} hoy={fechaHoy()} />
+  return <CotizacionFicha cotizacion={cotizacion} catalogo={catalogo} hoy={fechaHoy()} baseEnlace={base} />
 }

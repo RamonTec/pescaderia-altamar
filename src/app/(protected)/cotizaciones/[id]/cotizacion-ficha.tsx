@@ -11,6 +11,8 @@ import { FichaDato, FichaDatos, FichaSeccion } from '@/components/molecules/Fich
 import { CotizacionEstadoChip } from '@/components/molecules/CotizacionEstadoChip'
 import type { RowAction } from '@/components/molecules/RowActionsMenu'
 import { CotizacionDocumento } from '@/components/organisms/CotizacionDocumento'
+import { EnlacePublicoCotizacion } from '@/components/organisms/EnlacePublicoCotizacion'
+import { urlPublica } from '@/lib/cotizaciones/enlace'
 import { accionesPermitidas, estadoEfectivo } from '@/lib/cotizaciones/estado'
 import { documentoDesdeDetalle } from '@/lib/cotizaciones/documento'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones/numero'
@@ -49,10 +51,13 @@ export function CotizacionFicha({
   cotizacion: c,
   catalogo,
   hoy,
+  baseEnlace,
 }: {
   cotizacion: CotizacionDetalle
   catalogo: CatalogoCotizacion
   hoy: string
+  /** Base absoluta de los enlaces públicos (servidor). */
+  baseEnlace: string
 }) {
   const { abrirFormulario, responder, anular, compartir, dialogos } = useCotizacionAcciones(catalogo, hoy)
   const estado = estadoEfectivo(c, hoy)
@@ -73,6 +78,10 @@ export function CotizacionFicha({
       onClick: () => window.open(`/cotizaciones/${c.id}/pdf?descargar=1`, '_blank', 'noopener'),
     })
     menu.push({ label: 'Ver PDF', onClick: () => window.open(`/cotizaciones/${c.id}/pdf`, '_blank', 'noopener') })
+  }
+  if (c.token_publico) {
+    const urlCliente = urlPublica(c.token_publico, baseEnlace)
+    menu.push({ label: 'Ver como el cliente', onClick: () => window.open(urlCliente, '_blank', 'noopener,noreferrer') })
   }
   if (permitidas.has('aceptar')) menu.push({ label: 'Marcar aceptada', onClick: () => responder(resumen, 'aceptada') })
   if (permitidas.has('rechazar')) menu.push({ label: 'Marcar rechazada', onClick: () => responder(resumen, 'rechazada') })
@@ -172,6 +181,18 @@ export function CotizacionFicha({
             </Box>
           </FichaSeccion>
         </Box>
+
+        <FichaSeccion titulo="Enlace público">
+          <EnlacePublicoCotizacion
+            id={c.id}
+            token={c.token_publico}
+            base={baseEnlace}
+            generadoAt={c.token_generado_at}
+            generadoPor={c.token_generado_por_nombre}
+            anulada={c.estado === 'anulada'}
+            vencida={estado === 'vencida'}
+          />
+        </FichaSeccion>
 
         <FichaSeccion titulo="Notas y términos">
           <FichaDatos>
