@@ -8,7 +8,8 @@
 --   token se crea, regenera o revoca en borrador/enviada/aceptada/rechazada,
 --   nunca en anulada; anular lo pone en `null`; `token_generado_*` los fija
 --   el trigger.
--- - `cotizaciones_listado_view` suma `tiene_enlace` (al final).
+-- - `cotizaciones_listado_view` suma `tiene_enlace` y
+--   `cotizaciones_usuarios_view` suma `token_generado_por_nombre` (al final).
 -- - `cotizacion_publica(text)`: ÚNICA puerta anónima (P7). La tabla sigue sin
 --   ningún permiso para `anon`. Siempre devuelve `negocio` (contacto) y un
 --   `resultado`:
@@ -192,6 +193,28 @@ select
 from public.cotizaciones c
 left join public.clientes cl on cl.id = c.cliente_id;
 
+
+-- Nombres del historial (+ quién generó el enlace), mismo desvío que en A.
+create or replace view public.cotizaciones_usuarios_view
+as
+select
+  c.id,
+  pc.nombre as creado_por_nombre,
+  pe.nombre as enviada_por_nombre,
+  pr.nombre as respondida_por_nombre,
+  pa.nombre as anulada_por_nombre,
+  pu.nombre as actualizado_por_nombre,
+  pt.nombre as token_generado_por_nombre
+from public.cotizaciones c
+left join public.perfiles pc on pc.id = c.created_by
+left join public.perfiles pe on pe.id = c.enviada_por
+left join public.perfiles pr on pr.id = c.respondida_por
+left join public.perfiles pa on pa.id = c.anulada_por
+left join public.perfiles pu on pu.id = c.updated_by
+left join public.perfiles pt on pt.id = c.token_generado_por;
+
+revoke all on public.cotizaciones_usuarios_view from anon;
+grant select on public.cotizaciones_usuarios_view to authenticated;
 
 -- ============ RPC cotizacion_publica ============
 create or replace function public.cotizacion_publica(p_token text)
