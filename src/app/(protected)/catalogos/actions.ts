@@ -204,6 +204,9 @@ export async function updateConfigAction(
       rif: safe.data.rif || null,
       direccion: safe.data.direccion || null,
       telefono: safe.data.telefono ? formatearTelefonoVe(safe.data.telefono) : null,
+      // 21-cotizaciones: defaults de cada cotización nueva.
+      cotizacion_validez_dias: safe.data.cotizacion_validez_dias,
+      cotizacion_terminos: safe.data.cotizacion_terminos || null,
     })
   } catch (e) {
     return { error: toActionError(e).error, success: null }
