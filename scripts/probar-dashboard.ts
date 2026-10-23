@@ -21,6 +21,7 @@ import {
   topConResto,
 } from '../src/lib/dashboard/series'
 import { diasFlujoDesdeParam, rangoDesdeParams } from '../src/lib/dashboardValidation'
+import { utilidadNeta } from '../src/lib/dashboard/utilidad'
 
 let fallas = 0
 
@@ -190,6 +191,39 @@ igual('731 días → válido', rangoDesdeParams({ desde: '2024-10-08', hasta: '2
 igual('732 días → default', rangoDesdeParams({ desde: '2024-10-07', hasta: '2026-10-08' }, HOY).valido, false)
 igual('flujo 30', diasFlujoDesdeParam('30'), 30)
 igual('flujo inválido → 7', diasFlujoDesdeParam('10'), 7)
+
+// ---------- Utilidad Neta (20-gastos, Fase D) ----------
+igual('utilidad neta positiva con ventas', utilidadNeta(300, 100, 1000), {
+  ventas_usd: 1000,
+  margen_bruto_usd: 300,
+  gastos_usd: 100,
+  utilidad_neta_usd: 200,
+  margen_neto_pct: 0.2,
+})
+
+igual('utilidad neta negativa (pérdida)', utilidadNeta(100, 300, 1000), {
+  ventas_usd: 1000,
+  margen_bruto_usd: 100,
+  gastos_usd: 300,
+  utilidad_neta_usd: -200,
+  margen_neto_pct: -0.2,
+})
+
+igual('utilidad neta con ventas en 0 → pct null', utilidadNeta(0, 150, 0), {
+  ventas_usd: 0,
+  margen_bruto_usd: 0,
+  gastos_usd: 150,
+  utilidad_neta_usd: -150,
+  margen_neto_pct: null,
+})
+
+igual('utilidad neta con ventas negativas → pct null', utilidadNeta(-50, 100, -50), {
+  ventas_usd: -50,
+  margen_bruto_usd: -50,
+  gastos_usd: 100,
+  utilidad_neta_usd: -150,
+  margen_neto_pct: null,
+})
 
 if (fallas > 0) {
   console.error(`\n${fallas} caso(s) fallaron`)

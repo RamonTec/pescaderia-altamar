@@ -9,6 +9,8 @@ import type {
   FilaFlujo,
   FilaMezclaVentas,
   FilaTopCliente,
+  GastoPorCategoria,
+  GastosPendientesResumen,
   KpisDia,
   LoteAntiguo,
   MermaProceso,
@@ -340,6 +342,27 @@ export function makeDashboardRepository(db: SupabaseClient): IDashboardRepositor
           dias_desde_generado: n(f.dias_desde_generado),
         })
       )
+    },
+
+    async gastos(r: RangoFechas): Promise<GastoPorCategoria[]> {
+      const data = await filas(db, 'dashboard_gastos', rango(r))
+      return data.map((d) => ({
+        categoria_id: s(d.categoria_id),
+        categoria: s(d.categoria),
+        es_sistema: Boolean(d.es_sistema),
+        subcategoria_id: sn(d.subcategoria_id),
+        subcategoria: sn(d.subcategoria),
+        total_usd: n(d.total_usd),
+        n_gastos: n(d.n_gastos),
+      }))
+    },
+
+    async gastosPendientes(): Promise<GastosPendientesResumen> {
+      const d = await fila(db, 'dashboard_gastos_pendientes')
+      return {
+        n: n(d.n),
+        monto_usd_estimado: nn(d.monto_usd_estimado),
+      }
     },
   }
 }

@@ -17,6 +17,8 @@ export interface CopyableTextProps {
   variant?: TypographyProps['variant']
   /** Texto del toast al copiar. */
   copiedMessage?: string
+  /** Se llama tras copiar con éxito (21: copiar el enlace marca la cotización como enviada). */
+  onCopied?: () => void
 }
 
 /**
@@ -30,6 +32,7 @@ export function CopyableText({
   mono = true,
   variant = 'body2',
   copiedMessage = 'Copiado',
+  onCopied,
 }: CopyableTextProps) {
   const notify = useNotify()
 
@@ -37,6 +40,7 @@ export function CopyableText({
     try {
       await navigator.clipboard.writeText(value)
       notify.success(copiedMessage)
+      onCopied?.()
     } catch {
       notify.error('No se pudo copiar')
     }

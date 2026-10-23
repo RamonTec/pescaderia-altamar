@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Isotipo PROVISIONAL de Altamar (mismo dibujo que atoms/BrandMark). Reemplazar con el logo real. -->
+  <!-- Isotipo PROVISIONAL de Altamar: copia estática de src/lib/marca/isotipo.ts (geometría) y src/theme/marca.ts (MARCA_CLARO). Reemplazar con el logo real. -->
   <rect width="64" height="64" rx="12" fill="#F3F6F6"/>
   <g transform="translate(0 12)">
     <path d="M2 10 L9 14 H61 L52 34 Q50 37 46 37 H16 Q12 37 10 34 Z" fill="#0E4A5C"/>

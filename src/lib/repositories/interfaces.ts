@@ -1,10 +1,18 @@
 import type {
   CanalRecordatorioId,
+  ResultadoCotizacionPublica,
+  Cotizacion,
+  CotizacionDetalle,
+  CotizacionListado,
+  EstadoCotizacion,
   CategoriaGasto,
   EstadoGasto,
   Empleado,
   Gasto,
   GastoDetalle,
+  GastoPorCategoria,
+  GastoRecurrente,
+  GastosPendientesResumen,
   Cliente,
   ClienteInput,
   CondicionPago,
@@ -709,6 +717,10 @@ export interface IDashboardRepository {
   flujoProyectado(dias: number): Promise<FilaFlujo[]>
   exposicionCambiaria(): Promise<ExposicionCambiaria>
   contratosSinFirmar(): Promise<ContratoPendienteFirma[]>
+  /** Gastos confirmados en el período por categoría (20-gastos, Fase D). */
+  gastos(rango: RangoFechas): Promise<GastoPorCategoria[]>
+  /** Gastos pendientes de confirmar hasta hoy (20-gastos, Fase D). */
+  gastosPendientes(): Promise<GastosPendientesResumen>
 }
 
 /* ==================== Gastos operativos (20) ==================== */
@@ -752,6 +764,7 @@ export type GastoNuevo = Pick<
   | 'periodo_desde'
   | 'periodo_hasta'
   | 'empleado_id'
+  | 'recurrente_id'
 >
 
 export type GastoCambios = Partial<GastoNuevo> & { estado?: EstadoGasto }
@@ -814,4 +827,111 @@ export interface IEmpleadoRepository {
   costo(id: string, rango: RangoFechas): Promise<PagoNominaCosto[]>
   /** Pagos `confirmado` de todos los empleados con `fecha` en el rango. */
   pagosDelRango(rango: RangoFechas): Promise<PagoNominaCosto[]>
+}
+
+/* ==================== GASTOS RECURRENTES (20-gastos, Fase C) ==================== */
+
+export type GastoRecurrenteNuevo = Omit<
+  GastoRecurrente,
+  'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by' | 'categoria_nombre' | 'empleado_nombre'
+>
+
+export type GastoRecurrenteCambios = Partial<GastoRecurrenteNuevo>
+
+export interface ResultadoGeneracionRecurrente {
+  generados: number
+  por_recurrente: Array<{ recurrente_id: string; nombre: string; generados: number }>
+}
+
+/**
+ * Tabla `gastos_recurrentes` (20-gastos, Fase C; solo admin por RLS).
+ * Solo acceso y mapeo; sin lógica de negocio.
+ */
+export interface IGastoRecurrenteRepository {
+  list(): Promise<GastoRecurrente[]>
+  getById(id: string): Promise<GastoRecurrente | null>
+  create(data: GastoRecurrenteNuevo): Promise<GastoRecurrente>
+  update(id: string, cambios: GastoRecurrenteCambios): Promise<GastoRecurrente>
+  /** Invoca la RPC `generar_gastos_recurrentes(p_hasta)`. */
+  generar(hasta?: string): Promise<ResultadoGeneracionRecurrente>
+}
+
+
+/* ==================== Cotizaciones (21) ==================== */
+
+/** Filtro de estado del listado: `abiertas` = borrador + enviada no vencidas. */
+export type FiltroEstadoCotizacionRepo =
+  | 'abiertas'
+  | 'todas'
+  | 'borrador'
+  | 'enviada'
+  | 'vencida'
+  | 'aceptada'
+  | 'rechazada'
+  | 'anulada'
+
+export interface FiltrosCotizacionesRepo {
+  estado: FiltroEstadoCotizacionRepo
+  /** Número exacto buscado (`cot123` → 123), en OR con `texto`. */
+  numero?: number
+  /** Texto ya normalizado (sin acentos, minúsculas) contra nombre y dígitos del teléfono. */
+  texto?: string
+  desde?: string
+  hasta?: string
+  /** Página 0-based. */
+  pagina: number
+  tamano: number
+}
+
+/** Cabecera que recibe `guardar_cotizacion` (importes los calcula la RPC). */
+export interface CotizacionCabeceraRpc {
+  fecha: string
+  validez_dias: number
+  cliente_id: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
+  iva_pct: number
+  descuento_usd: number
+  notas_cliente: string | null
+  notas_internas: string | null
+  terminos: string | null
+}
+
+/** Cambio de estado (las columnas `*_at`/`*_por` las fija `cotizaciones_guard`). */
+export interface CotizacionCambioEstado {
+  estado: EstadoCotizacion
+  motivo_rechazo?: string | null
+  motivo_anulacion?: string | null
+}
+
+/**
+ * Cotizaciones (21). Escritura de cabecera + líneas solo por la RPC
+ * `guardar_cotizacion`; los estados por `update` bajo `cotizaciones_guard`.
+ * Solo acceso y mapeo `numeric → number`; los errores (con su `hint`) se
+ * devuelven tal cual.
+ */
+export interface ICotizacionRepository {
+  listar(filtros: FiltrosCotizacionesRepo): Promise<{ rows: CotizacionListado[]; total: number }>
+  getById(id: string): Promise<Cotizacion | null>
+  /** Cabecera + líneas + cliente registrado + nombres de usuarios. */
+  getDetalle(id: string): Promise<CotizacionDetalle | null>
+  /** Crea (`id` nulo) o edita por la RPC; devuelve el id. */
+  guardar(
+    id: string | null,
+    cabecera: CotizacionCabeceraRpc,
+    items: { producto_id: string; peso_kg: number; precio_usd_kg: number; nota: string | null }[]
+  ): Promise<string>
+  cambiarEstado(id: string, cambio: CotizacionCambioEstado): Promise<Cotizacion>
+  /** Crea, regenera (`token`) o revoca (`null`) el enlace; `token_generado_*` los fija el guard. */
+  cambiarToken(id: string, token: string | null): Promise<Cotizacion>
+  /** Fase D: RPC atómica `convertir_cotizacion_en_pedido`; devuelve el id del pedido. */
+  convertirEnPedido(id: string, fechaEntrega: string): Promise<string>
+}
+
+/**
+ * Lectura anónima del enlace público (21, P7): solo la RPC
+ * `cotizacion_publica`, con un cliente sin cookies. Mapea el `jsonb`.
+ */
+export interface ICotizacionPublicaRepository {
+  porToken(token: string | null): Promise<ResultadoCotizacionPublica>
 }

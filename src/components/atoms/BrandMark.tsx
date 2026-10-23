@@ -2,6 +2,14 @@
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import { NOMBRE_MARCA } from '@/theme/marca'
+import {
+  ISOTIPO_ALTO,
+  ISOTIPO_ANCHO,
+  ISOTIPO_CASCO,
+  ISOTIPO_FRANJAS,
+  ISOTIPO_VIEWBOX,
+} from '@/lib/marca/isotipo'
 
 /**
  * Marca de Altamar Sea Food.
@@ -9,7 +17,8 @@ import Typography from '@mui/material/Typography'
  * PROVISIONAL: el repo todavía no tiene el logo real. Este isotipo (proa de
  * peñero con las franjas de la borda) se dibuja en SVG con los tokens
  * `palette.brand.*`. Cuando llegue el archivo del logo se reemplaza solo
- * aquí, manteniendo la interfaz (`variant`, `size`, `orientation`).
+ * aquí y en `src/lib/marca/isotipo.ts` (geometría compartida con el PDF),
+ * manteniendo la interfaz (`variant`, `size`, `orientation`).
  * El ícono de la app (`src/app/icon.svg`) es una copia estática de este
  * mismo dibujo y se regenera junto con él.
  */
@@ -24,15 +33,15 @@ export interface BrandMarkProps {
   title?: string
 }
 
-const NAME = 'Altamar Sea Food'
+const NAME = NOMBRE_MARCA
 
 function Isotipo({ size, title }: { size: number; title?: string }) {
   return (
     <Box
       component="svg"
-      viewBox="0 0 64 40"
+      viewBox={ISOTIPO_VIEWBOX}
       width={size}
-      height={(size * 40) / 64}
+      height={(size * ISOTIPO_ALTO) / ISOTIPO_ANCHO}
       role={title ? 'img' : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
@@ -48,10 +57,10 @@ function Isotipo({ size, title }: { size: number; title?: string }) {
         }
       }}
     >
-      <path className="bm-hull" d="M2 10 L9 14 H61 L52 34 Q50 37 46 37 H16 Q12 37 10 34 Z" />
-      <polygon className="bm-ochre" points="9,14 61,14 59.4,18 10.2,18" />
-      <polygon className="bm-trim" points="10.2,18 59.4,18 58.8,19.6 10.7,19.6" />
-      <polygon className="bm-red" points="10.7,19.6 58.8,19.6 57.2,23.6 11.9,23.6" />
+      <path className="bm-hull" d={ISOTIPO_CASCO} />
+      <polygon className="bm-ochre" points={ISOTIPO_FRANJAS.ochre} />
+      <polygon className="bm-trim" points={ISOTIPO_FRANJAS.trim} />
+      <polygon className="bm-red" points={ISOTIPO_FRANJAS.red} />
     </Box>
   )
 }
