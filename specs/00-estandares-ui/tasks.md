@@ -138,6 +138,165 @@ Problemas planteados por el usuario sobre `ClienteForm`: sin división clara de 
    - **Ejecución 2026-10-07**: sección "Formularios" al final de la página. Revisión visual pendiente del usuario.
    - Verificación: escribir letras en NumberField no aparece nada; `04141234567` → `0414-1234567`; `v12345678` → `V-12345678`; zod sigue validando al submit (la máscara previene, no valida). _(Casos del RifCiField verificados con script node: escritura progresiva, pegado formateado y crudo, verificador, letra inválida bloqueada.)_
 
+## Fase 3 — Rediseño Puerto (planificada el 2026-10-22)
+
+El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **reemplaza a "Peñero"**. Lo pidió el usuario el 2026-10-22. Valores, escala y reglas en `spec.md` § "Identidad visual «Puerto»" y § "Tipografía". Referencia: artboard "B · Puerto" del lienzo citado en la spec.
+
+**Alcance**: la piel (tokens, fuentes, radios, decorativo y componentes base) más la revisión de cada pantalla. No cambia datos, reglas ni la anatomía de tablas, diálogos y formularios. Las decisiones P-UI1 a P-UI10 (`spec.md` § "Decisiones pendientes de la Fase 3") se ejecutan con la propuesta. Si el cliente cambia alguna, se toca solo el token o el componente que indica la tarea. Rama sugerida: `feat/rediseno-puerto`.
+
+**Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. Para no romper consumidores a mitad de fase, los tokens nuevos conviven con los de Peñero hasta la tarea 88.
+
+### Fase 3a — Tokens, fuentes y theme
+
+58. **Decisiones**: presentar al usuario P-UI1 a P-UI10 con la propuesta de cada una.
+   - Hecho cuando: cada decisión está marcada como aprobada, o con el valor elegido, en la tabla de `spec.md`. Las que sigan abiertas quedan anotadas sin bloquear: se avanza con la propuesta.
+59. **Verificar cifras tabulares** de Instrument Sans 400/500/600 y Fraunces 500/600 con el método de la tarea 30: leer la tabla GSUB de los `.woff2`. Se usan los de Google Fonts, descargados a un directorio temporal fuera del repo. Si no se pueden descargar, se usan los que `next/font` deja en `.next/static/media` al terminar la tarea 64, y esta verificación se hace antes de la 65.
+   - Hecho cuando: el resultado (`tnum` sí/no por familia) queda anotado en esta tarea. Si alguna no lo trae, se aplica P-UI8 (consultar) antes de la tarea 65.
+60. **`src/theme/marca.ts`**: agregar a `MarcaPaleta` las claves Puerto (`midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`) en `MARCA_CLARO` y `MARCA_OSCURO`, con los valores de la spec (P-UI10 en oscuro). Las de Peñero se dejan (compat). Actualizar el comentario del archivo.
+   - Hecho cuando: compila sin tocar consumidores y los hex nuevos viven solo aquí.
+61. **`src/theme/theme.ts` — esquema claro**: `primary`, `secondary` (latón texto), `success` (P-UI1: `main` `#2F5E9E`, `light` `#ABC7F1`), `warning`, `error`, `info` (P-UI6), `background.default`/`paper`, `text.*` y `divider` según la spec. En `BrandPalette` se suman las claves de la tarea 60. Actualizar el comentario de cabecera ("Puerto").
+   - Hecho cuando: `/estandares` en claro muestra la paleta nueva y ningún componente usa hex.
+62. **`theme.ts` — esquema oscuro**: `primary` latón `#D4B27A` con `contrastText` `#241A0B`, `secondary`, `success` `#ABC7F1`, `warning` `#E9B460`, `error` `#EE8A83`, `info`, fondos `#0A1424`/`#121F35`, texto `#EEF0F4`/`#A3ADBD` y `divider` `#22314B`.
+   - Hecho cuando: `/estandares` en oscuro muestra el botón principal latón con texto oscuro y los fondos nuevos.
+63. **Tokens nuevos del theme** (aumento de módulos en `theme.ts`):
+   - `background.subtle` (`TypeBackground`);
+   - `soft`/`onSoft` en `PaletteColor`, con los valores de la tabla de chips de la spec;
+   - `palette.chart` `c1`–`c6` (P-UI9);
+   - borde de input (P-UI7) como `palette.inputBorder` o como override de `MuiOutlinedInput.notchedOutline`, documentando cuál se usó.
+   - Hecho cuando: los cuatro existen como variables CSS (`--mui-palette-background-subtle`, etc.) en ambos esquemas y tipan sin `any`.
+64. **Fuentes en `src/app/layout.tsx`**: reemplazar `Barlow`/`Barlow_Condensed` por `Fraunces` (500/600) e `Instrument_Sans` (400/500/600) de `next/font/google`, subsets `latin` y `latin-ext`, con las mismas variables `--font-display`/`--font-body`. Antes, leer la guía de fuentes en `node_modules/next/dist/docs/` (nombre del export, `weight` vs fuente variable, `axes`). En `theme.ts`, `DISPLAY_FONT` pasa a `var(--font-display), Georgia, serif`.
+   - Hecho cuando: `layout.tsx` no importa Barlow, el HTML servido carga las dos familias nuevas y `npm run build` pasa.
+65. **Escala tipográfica en `theme.ts`**: `h3`, `h4` (con su tamaño en `xs`), `h5` (Fraunces 500, P-UI5), `h6` (Instrument Sans 600, ya **no** display), `subtitle1`, `subtitle2` (etiqueta 12/600/0.04em), `body1` (lh 1.55), `body2`, `caption` 12 y `button` 14/500, como la tabla de la spec. `overline` sigue sin mayúsculas.
+   - Hecho cuando: la sección de tipografía de `/estandares` coincide con la tabla de la spec.
+66. **Radios, bordes y elevación en `theme.ts`**:
+   - `shape` 6;
+   - `MuiChip` 4;
+   - `MuiMenuItem`, `MuiTooltip` y `MuiListItemButton` 4;
+   - `MuiFab` 6 (antes 12);
+   - `MuiPaper.rounded` 8;
+   - `MuiDialog` según P-UI3;
+   - menú, popover y `Autocomplete` 6;
+   - `MuiDataGrid` y `MuiTableContainer` 6;
+   - encabezado de `MuiTableCell` y `MuiDataGrid` sobre `background.subtle`, con el estilo de `subtitle2`;
+   - foco visible de 2 px de `primary`.
+
+   Se conservan cero sombras en reposo y el borde de 1 px.
+   - Hecho cuando: cada radio de la tabla "Jerarquía de superficies y radios" se ve en `/estandares` y no quedan radios escritos a mano en `sx` que lo contradigan (grep de `borderRadius:` en `src/components` revisado).
+67. **`Chip variant="soft"`** pasa a usar `soft`/`onSoft` (tarea 63) en lugar del alfa de `mainChannel`. En claro, "Pagada" se ve con fondo `#ABC7F1` y texto `#0B1B33`, "Por vencer" con `#F8EEDD`/`#7E4705` y "Vencida" con `#F8E5E3`/`#8E1F18`.
+   - Hecho cuando: `StatusChips`, `EstadoCarteraChip`, `LoteChip`, `SenalFacturaChip`/`NivelSenalChip` y `TasaChip` se ven así en `/estandares` y en sus pantallas, sin cambiar sus props.
+68. **`fontSize="xlarge"` para íconos**: aumento de `SvgIconPropsSizeOverrides` + variante en `MuiSvgIcon` (40 px).
+   - Hecho cuando: `<XIcon fontSize="xlarge" />` tipa y mide 40 px.
+69. **`src/app/globals.css`**: renombrar los keyframes `penero-*` a `puerto-*` (`puerto-sweep`, `puerto-fade-in`; `penero-paint` y `penero-bob` se borran si la tarea 72 los deja sin uso) y actualizar sus comentarios. Migrar el último `MONO` con `var(--font-geist-mono)` (`organisms/RegistrarPagoDialog.tsx`) a `NUM = { fontVariantNumeric: 'tabular-nums' }` y borrar el alias `--font-geist-mono` (cierra la segunda mitad del pendiente (f)).
+   - Hecho cuando: `rg 'penero-|geist' src` solo encuentra lo que todavía usan `PeneroStripes` y `BrandLoader`, que se limpia en las tareas 72 y 88.
+
+### Fase 3b — Decorativo y marca (P-UI2, P-UI4)
+
+70. **`src/components/atoms/FileteLaton.tsx`** (nuevo): `variant: 'rule' | 'sweep'`, `height` (2 por defecto), `width`, `track` (riel tenue en `sweep`); color `brand.brass`; `sweep` con `puerto-sweep` y quieto con `prefers-reduced-motion`. Duración y retardos como constantes exportadas, no ms sueltos (cierra el pendiente (c)).
+   - Hecho cuando: `/estandares` muestra ambas variantes en claro y oscuro.
+71. **`atoms/NavigationProgress.tsx`**: `PeneroSweep height={3}` → `FileteLaton variant="sweep" height={2}`. El registro de fuentes y el retardo de 100 ms (ahora constante) no cambian.
+   - Hecho cuando: navegar entre secciones muestra la línea de latón en el borde de la barra superior.
+72. **`organisms/BrandLoader.tsx`**: isotipo + "Altamar Sea Food" en `h3`/Fraunces + `FileteLaton sweep` de 2 px (antes franjas de 10 px). Se quita el vaivén `penero-bob` (Puerto es sobrio). Se conservan el retardo, el mínimo, el contador, `role="status"` y la versión sin movimiento.
+   - Hecho cuando: el login ("Entrando") y "Cerrar sesión" muestran el loader nuevo, y con `prefers-reduced-motion` todo queda quieto.
+73. **`atoms/BrandMark.tsx` + `src/lib/marca/isotipo.ts` + `src/app/icon.svg`**: isotipo provisional Puerto (P-UI4) con `brand.midnight`/`brand.onMidnight` y `brand.brass`; la variante `full` lleva "Altamar" en Fraunces 600; la `orientation` y el `size` no cambian. `icon.svg` se regenera con los hex claros de `marca.ts`.
+   - Hecho cuando: el menú, el loader, el login y la pestaña del navegador muestran el isotipo nuevo, sin franjas ocre ni rojas.
+74. **`templates/AuthLayout.tsx` y `templates/DocumentoPublicoLayout.tsx`**: panel `brand.midnight` con texto `brand.onMidnight`/`onMidnightMuted`, logo y `FileteLaton rule` en lugar de `PeneroStripes`. En la página pública, filete bajo el encabezado.
+   - Hecho cuando: `/login`, `/recuperar`, `/actualizar-password` y `/c/[token]` (vigente y respaldo) no usan franjas.
+75. **`molecules/CreditoResumen.tsx`**: el bloque "casco" pasa a `brand.midnight`, la barra de uso a `brand.brass` (y a `error.main` con ícono al superar el límite, no solo por color) y los textos a `onMidnight*`.
+   - Hecho cuando: la ficha de cliente muestra el bloque nuevo en claro y oscuro con contraste AA.
+76. **PDF y correo con la marca nueva** (tarea agregada en `21-cotizaciones` y `09-cuentas-por-cobrar`):
+   - `lib/pdf/fuentes.ts` y `lib/pdf/fuentes/LEEME.md`: Fraunces 600 e Instrument Sans 400/600 en TTF estáticos (OFL), con Helvetica de respaldo;
+   - `lib/pdf/marca.tsx`: filete de latón en lugar de franjas;
+   - `lib/cotizaciones/pdf/CotizacionPdf.tsx`: `MARCA_CLARO.hull` → `MARCA_CLARO.midnight`;
+   - `lib/cartera/recordatorios/plantillas.ts`: colores del correo desde las claves Puerto.
+   - Hecho cuando: `npx tsx scripts/probar-cotizaciones.ts --pdf` genera el PDF con la marca nueva y la vista previa del correo de `RecordatorioDialog` ya no lleva franjas.
+
+### Fase 3c — Componentes base
+
+77. **`templates/AppShell.tsx`**:
+   - sidebar `brand.midnight` en ambos esquemas;
+   - logo con nombre en Fraunces y `FileteLaton rule` de 2 px debajo;
+   - ítem activo con fondo `brand.navy`, punto de latón de 6 px a la izquierda (reemplaza el marcador de franjas, líneas ~190–200) y texto `onMidnight`; inactivos en `onMidnightMuted`; radio 4;
+   - riel `sm` y drawer temporal `xs` con el mismo tratamiento;
+   - barra superior en `background.paper` con borde `divider`;
+   - `ColorModeToggle`, `TasaIndicador` y el menú de cuenta legibles sobre su fondo.
+   - Hecho cuando: los tres breakpoints del menú se ven como el artboard y el foco del teclado es visible sobre medianoche.
+78. **`molecules/PageHeader.tsx`**: título `h4` (Fraunces 26/24). Revisar que el `Fab` de `xs` herede el radio 6 y el color `primary` de cada esquema.
+   - Hecho cuando: el título de cada listado se ve en serifa y el `Fab` en latón en oscuro.
+79. **`molecules/FichaHeader.tsx`**: nombre `h5` (Fraunces) con `component="h1"`, `meta` en `body2`/`caption` y vuelta en `secondary` (latón texto).
+   - Hecho cuando: las fichas de cliente, proveedor, compra, factura, lote, empleado y cotización comparten el encabezado nuevo.
+80. **`molecules/FormSection.tsx`**: título `h6` (ahora Instrument Sans 600, 18 px); divisor `divider`. Revisar `RepresentantesLegalesFieldArray` y el Stepper de `ProveedorForm`, que conservan encabezado propio: deben usar `h6` del theme, sin estilos sueltos.
+   - Hecho cuando: los formularios con secciones se ven iguales entre sí.
+81. **`molecules/KpiCard.tsx`**:
+   - título en `subtitle2`;
+   - cifra `h5` Fraunces 500 tabular;
+   - radio 6;
+   - `tone` con ícono (`ErrorOutlineOutlined`, `WarningAmberOutlined`, `CheckCircleOutlineOutlined`) además del borde izquierdo, porque `success` es azul como `primary`;
+   - el `Skeleton` usa `variant` de tipografía (`sx={{ typography: 'h5' }}`) en lugar de `fontSize: '1.625rem'`;
+   - comentario actualizado (sin Barlow).
+   - Hecho cuando: el dashboard distingue los KPI de estado sin depender del color.
+82. **`molecules/ChartCard.tsx`, `ChartLegendTable.tsx`, `ListaResumen.tsx` y `CadenaTrazabilidad.tsx`**: radio 8, borde `divider`, título `h6` sans y montos tabulares. En `CadenaTrazabilidad`, el `'& svg': { fontSize: 20 }` pasa a `fontSize="small"` en los íconos que recibe.
+   - Hecho cuando: el dashboard y `/facturas/[id]` se ven con superficies Puerto.
+83. **`organisms/AppDialog.tsx` + `molecules/ConfirmDialog.tsx`**: radio de P-UI3 (0 a pantalla completa), título `h6` sans, subtítulo `body2` `text.secondary`, pie con divisor fino cuando hay scroll (sin cambio) y botones con radio 6.
+   - Hecho cuando: los tres tamaños de `/estandares` y un `ConfirmDialog` se ven con el acabado nuevo.
+84. **`organisms/AppDataGrid.tsx` + `appDataGridColumns.tsx` + `molecules/RowActionsMenu.tsx`**:
+   - encabezado de 44 px sobre `background.subtle`, en `subtitle2`;
+   - hover de fila en `background.subtle`;
+   - divisores de 1 px y radio 6;
+   - tarjetas `xs` (`mobileCard`) con radio 6 y borde;
+   - `LinearProgress` de carga en `primary`;
+   - menú `⋮` con ítems de radio 4.
+   - Hecho cuando: la tabla de `/estandares` (con datos, vacía, cargando y error) y las tarjetas en 375 px se ven como el artboard.
+85. **Gráficos** (P-UI9): `lib/dashboard/chartColors.ts` toma `categorias` de `palette.chart` y revisa `usd`/`kg`/`positivo` para que no coincidan en tono. En `organisms/BarLineChart.tsx`, el `labelStyle` `fontSize: 12` de la referencia pasa a la escala (`theme.typography.caption`).
+   - Hecho cuando: las series del dashboard se distinguen en claro y oscuro, cada una con ≥ 3:1 contra `background.paper`.
+86. **Tamaños sueltos fuera del theme** (hoy hay 12 en 10 archivos de UI; los PDF de react-pdf no cuentan):
+   - íconos de estado de 40/48 → `fontSize="xlarge"` (tarea 68): `molecules/ErrorState.tsx`, `organisms/RecuperarForm.tsx`, `organisms/GastosRecurrentesTable.tsx`, `organisms/CotizacionNoDisponible.tsx` (×2);
+   - íconos de 16 → `fontSize="small"` o `inherit` dentro del texto: `organisms/CompraLineasLotes.tsx`, `molecules/TasaIndicador.tsx`, `app/(protected)/tasas/tasas-screen.tsx` (×2);
+   - `KpiCard` (tarea 81), `CadenaTrazabilidad` (tarea 82) y `BarLineChart` (tarea 85).
+   - Hecho cuando: `rg "fontSize:\s*['\"0-9]" src --glob '!src/lib/**/pdf/**' --glob '!src/lib/pdf/**' --glob '!src/lib/contratos/**'` no devuelve nada (el `fontSize: 'inherit'` de `AppShell` es válido).
+87. **Pantalla `/estandares`** (`estandares-screen.tsx`): paleta Puerto con los hex y su rol, escala tipográfica nueva, `FileteLaton` (dos variantes), chips de estado, `KpiCard` con `tone`, `ChartCard`, radios por jerarquía y botones en claro y oscuro. Quitar las referencias a franjas y a Peñero.
+   - Hecho cuando: la página sirve como referencia única de Puerto para los agentes.
+88. **Retirar Peñero** (después de las tareas 70–87, que dejan sin consumidores lo viejo): borrar `atoms/PeneroStripes.tsx` (`PeneroStripes` y `PeneroSweep`), las claves `hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red` y `trim` de `BrandPalette` y de `marca.ts`, y los keyframes sin uso.
+   - Hecho cuando: `rg -i 'penero|hull|ochre|brand\.red|brand\.trim' src` no encuentra nada.
+
+### Fase 3d — Verificación
+
+89. **Contraste AA** con herramienta (no a ojo), en claro y oscuro. Anotar cada par y su razón en el checklist. Como mínimo:
+   - `text.primary` y `text.secondary` sobre `background.default`, `paper` y `subtle`;
+   - texto de `primary` y `secondary` (latón texto) sobre `paper`;
+   - `contrastText` de cada botón;
+   - `onSoft` sobre `soft` de cada chip;
+   - `success` de texto (P-UI1), `warning` y `error` sobre `paper`;
+   - `onMidnight` y `onMidnightMuted` sobre `midnight` y sobre `navy`;
+   - contorno de input (P-UI7), foco y series de gráfico, ≥ 3:1.
+   - Hecho cuando: todos los pares dan ≥ 4.5:1 (texto) o ≥ 3:1 (texto grande y no textual), o el ajuste está hecho en el token.
+90. **Barridos con grep** (resultado esperado: vacío):
+   - hex fuera de `src/theme/`, `src/app/icon.svg` y los PDF;
+   - `Barlow` en `src/`;
+   - `penero`/`Penero` en `src/`;
+   - `brand.(hull|ochre|red|trim)`;
+   - `fontSize` suelto (tarea 86);
+   - clases de color de Tailwind.
+   - Hecho cuando: cada grep está anotado en el checklist con su resultado.
+91. **Revisión visual pantalla por pantalla** en claro y oscuro, a 375, 768, 1024 y 1440 px, contra el artboard:
+   - acceso: `/login`, `/recuperar`, `/actualizar-password`;
+   - inicio (dashboard);
+   - clientes y su ficha;
+   - proveedores y su ficha;
+   - `/catalogos` (las dos tabs);
+   - compras y su ficha;
+   - `/procesamiento`;
+   - `/inventario` y la ficha de lote;
+   - `/pedidos` y POS;
+   - `/facturas/[id]`;
+   - `/cobros`, `/notas-credito`, `/tasas`, `/contratos`;
+   - `/gastos` y la ficha de empleado;
+   - `/cotizaciones`, su ficha y `/c/[token]`;
+   - `/usuarios`, `/perfil` y `/estandares`;
+   - además, los diálogos principales de cada pantalla, el loader global y la barra de navegación.
+   - Hecho cuando: cada pantalla queda marcada en el checklist, y las diferencias con el artboard están corregidas o anotadas como pendiente con motivo.
+92. **Catálogo y cierre**: actualizar en `spec.md` la tabla de componentes (`FileteLaton` sin "propuesta"; `PeneroStripes`/`PeneroSweep` como retirados) y la tabla de decisiones P-UI con lo aprobado. Después, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
+   - Hecho cuando: los tres comandos pasan y la spec describe lo que hay en el código.
+
 ## Componentes agregados después de la primera pasada
 - _(los módulos 01-05 anotan aquí cualquier componente genérico nuevo que creen, con fecha y motivo, y lo agregan también a la tabla de `spec.md`)_
 - **2026-10-07 (estándar de formularios)**: `molecules/FormSection` (nuevo), `atoms/PhoneField` (nuevo), `NumberField` y `RifCiField` reconstruidos sobre `react-number-format`. Reglas de `size="small"` y división por `FormSection` en `spec.md` § "Estructura visual". Todos agregados a la tabla de `spec.md`.

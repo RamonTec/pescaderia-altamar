@@ -14,31 +14,72 @@ Este módulo se ejecuta **antes de `01-auth`** (el login ya debe usar estos est�
 - **Tailwind** es dueño de: layout entre componentes (`flex`, `grid`, `gap`, márgenes entre bloques, anchos responsivos). **Nunca clases de color de Tailwind** (`text-red-500`, `bg-white`, etc.) — eso rompe el modo oscuro porque Tailwind no conoce los color schemes de MUI. Esto ya estaba implícito en `/SPEC.md` §3 ("Tailwind v4 (layout/spacing; preflight desactivado)"); aquí se hace explícito y obligatorio.
 - Si una pantalla necesita un color que no es ninguno de los `palette` de MUI, se agrega como token nuevo al theme (ver abajo), no como valor hardcodeado ni clase de Tailwind.
 
-## Identidad visual "Peñero" (aprobada el 2026-10-06)
+## Identidad visual "Puerto" (elegida por el cliente el 2026-10-22)
 
-**Muestra visual aprobada por el usuario el 2026-10-07**: [Estándares visuales Altamar](https://claude.ai/artifact/3WKKVWcmPJVK7MnaKEPDyo) (lienzo privado del usuario). Tiene sistema base, loaders, shell con la tabla de Clientes y el indicador de facturas, modal en curso, y el teléfono con tarjetas y diálogo a pantalla completa, cada uno en claro y oscuro. Es la referencia visual de la Fase 2: si esta spec y la muestra difieren, se consulta al usuario.
+> **Reemplaza a "Peñero"** (ver "Historial" al final de esta sección). El usuario pidió explícitamente reabrir esa decisión: el cliente eligió "Puerto" para un acabado fresco, premium y confiable. Se implementa en la **Fase 3** de `tasks.md`; hasta que esa fase termine, el código sigue en Peñero.
 
-Marca: **Altamar Sea Food**. La dirección se inspira en el peñero, la lancha de pesca artesanal venezolana: casco azul petróleo, borda pintada con franjas ocre, blanca y roja, y neutros fríos de hielo y acero de cava. Los tokens viven en `src/theme/theme.ts` (`palette.*` y `palette.brand.*`); **ninguna pantalla usa hex sueltos**.
+**Referencia visual**: lienzo [Rediseño Altamar](https://claude.ai/artifact/Lz4AcGuda8miEXmi4oiwtU), artboard **"B · Puerto"** (privado del usuario). Si esta spec y el artboard difieren, se consulta al usuario. Los valores marcados *(propuesta)* no salen del artboard y son decisiones pendientes (ver "Decisiones pendientes de la Fase 3").
+
+Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: azul medianoche + blanco marfil, detalles en latón, títulos con serifa, datos en sans precisa, radios contenidos y líneas finas. Los tokens viven en `src/theme/theme.ts` (`palette.*`) y los hex de marca en `src/theme/marca.ts` (los lee también el PDF y el correo); **ninguna pantalla usa hex sueltos**.
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `primary` (casco) | `#0E4A5C` | `#7CC3D6` | acciones principales, selección, enlaces |
-| `secondary` (borda roja) | `#B8402E` | `#E58A74` | acento puntual; nunca compite con `primary` en la misma vista |
-| `brand.ochre` | `#E8B931` | `#D9A92A` | **solo franjas decorativas, nunca texto ni fondo de texto** |
-| `background.default` (hielo) | `#F3F6F6` | `#0F2229` | fondo de la app |
-| `background.paper` | `#FFFFFF` | `#15303A` | superficies: tablas, tarjetas, diálogos, inputs |
-| `text.primary` / `text.secondary` | `#13262C` / `#4A5D63` | `#E4EDEF` / `#9DB3B9` | |
+| `primary` | `#0B1B33` (medianoche), texto `#FFFFFF` | `#D4B27A` (latón), texto `#241A0B` | acción principal, selección. En oscuro el botón principal es latón |
+| `secondary` (latón texto) | `#7A5C2E` | `#D4B27A` | enlaces y acento puntual; nunca compite con `primary` en la misma vista |
+| `success` | relleno `#ABC7F1`; texto/ícono `#2F5E9E` *(propuesta, P-UI1)* | `#ABC7F1` | estados "pagada", positivo |
+| `warning` | `#A15C07` | `#E9B460` | aviso, "por vencer" |
+| `error` | `#B3261E` | `#EE8A83` | error, vencida, destructivo |
+| `info` | `#44597A` *(propuesta, P-UI6)* | `#9FB4D3` *(propuesta, P-UI6)* | "pendiente", kg en gráficos |
+| `background.default` (marfil) | `#F7F6F2` | `#0A1424` | fondo de la app |
+| `background.paper` | `#FFFFFF` | `#121F35` | superficies: tablas, tarjetas, diálogos, inputs |
+| `background.subtle` (token nuevo) | `#F0EEE7` | `#17253D` *(propuesta)* | encabezado de tabla, fila en hover, zonas suaves |
+| `divider` | `#E4E1D8` | `#22314B` | separadores y bordes de superficie |
+| borde de input | `#E4E1D8` si da 3:1; si no, `#A9A397` *(propuesta, P-UI7)* | `#2C3B55` | contorno de `OutlinedInput` |
+| `text.primary` / `text.secondary` | `#0B1B33` / `#5B6474` | `#EEF0F4` / `#A3ADBD` | |
+| `brand.midnight` / `brand.navy` | `#0B1B33` / `#1C2E4D` | `#0A1424` / `#1C2E4D` *(propuesta)* | sidebar y panel de login / ítem activo, hover y selección en el sidebar |
+| `brand.onMidnight` / `brand.onMidnightMuted` | `#F7F6F2` / `#A3ADBD` | `#EEF0F4` / `#A3ADBD` | texto sobre medianoche |
+| `brand.brass` | `#C9A66B` | `#D4B27A` | **solo decorativo** (filete, punto del ítem activo, progreso): **nunca texto** |
+| `brand.brassText` | `#7A5C2E` | `#D4B27A` | latón de texto fuera de MUI (PDF, correo); en pantalla se usa `secondary` |
 
-**Un solo gesto memorable: la borda.** Las franjas ocre, blanca y roja (`atoms/PeneroStripes`) son el **único** elemento decorativo del sistema, y aparecen solo en cuatro lugares: el loader global, la barra de progreso de navegación, el marcador del ítem activo del menú y el panel de login. Todo lo demás es sobrio: superficies planas sobre hielo, bordes de 1 px (`divider`) y cero sombras en elementos en reposo. **No se agregan** degradados, sombras decorativas, tarjetas "flotantes" ni íconos de colores.
+`brand` pasa de las claves de Peñero (`hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red`, `trim`) a las de Puerto. Las claves viejas conviven solo durante la Fase 3 y se borran al final.
 
-Jerarquía de superficies y radios (la forma comunica qué es cada cosa):
+**Estados sin depender solo del color**: `success` ahora es azul, como `primary`. Todo estado se comunica con texto (etiqueta del chip) y, donde no haya texto, con ícono (`KpiCard` con `tone`, flechas de `/tasas`, `CarteraIndicador`). Un borde o un punto de color nunca es la única señal.
+
+**Chips de estado** (`Chip variant="soft"`, radio 4, 22 px). El theme agrega a cada color dos campos, `soft` (fondo) y `onSoft` (texto). Ya no se calcula con alfa:
+
+| Rol | Claro: fondo / texto | Oscuro: fondo / texto |
+|---|---|---|
+| `success` (Pagada) | `#ABC7F1` / `#0B1B33` | `rgba(#ABC7F1, .16)` / `#ABC7F1` |
+| `warning` | `#F8EEDD` / `#7E4705` | `rgba(#E9B460, .16)` / `#E9B460` |
+| `error` (Vencida) | `#F8E5E3` / `#8E1F18` | `rgba(#EE8A83, .16)` / `#EE8A83` |
+| `info`, `primary`, `secondary` | tenue del color / su tono oscuro *(propuesta)* | tenue / su tono claro |
+
+El artboard llama "Pendiente" al chip ámbar. En la app el mapeo de estados de cartera de `09` **no cambia** (`por_vencer` → `warning`, `pendiente` → `info`): el chip ámbar del artboard corresponde a `warning`.
+
+**Un solo gesto memorable: el latón.** El filete de latón (`atoms/FileteLaton`, reemplaza a `PeneroStripes`, *propuesta P-UI2*) es el **único** elemento decorativo. Aparece solo en:
+- el filete de 2 px bajo el logo del sidebar;
+- el punto del ítem activo del menú;
+- el panel de login y el encabezado de `DocumentoPublicoLayout`;
+- la barra de progreso de navegación;
+- el loader global.
+
+Todo lo demás es sobrio: superficies planas sobre marfil, bordes de 1 px y cero sombras en reposo. **No se agregan** degradados, sombras decorativas, tarjetas "flotantes" ni íconos de colores.
+
+**Sidebar** (`AppShell`): fondo `brand.midnight` en ambos esquemas, nombre "Altamar" en Fraunces y filete de latón de 2 px bajo el logo. El ítem activo lleva fondo `brand.navy`, un punto de latón de 6 px a la izquierda y texto `brand.onMidnight`. Los ítems inactivos usan `brand.onMidnightMuted` y, en hover, `brand.navy` al 60 %. La barra superior es `background.paper` con borde inferior `divider`.
+
+Jerarquía de superficies y radios (radios contenidos, líneas finas):
 
 | Elemento | Radio | Elevación | Borde |
 |---|---|---|---|
-| Chip / etiqueta de estado (etiqueta de cava) | 4 | 0 | según estado |
-| Input, botón | 6 | 0 | input: `divider` |
-| Tarjeta, tabla, sección de ficha | 8 | 0 | 1 px `divider` |
-| Diálogo, menú, popover, tooltip (lo que flota) | 12 (diálogo) / 8 (menú) | sombra del theme | — |
+| Chip / etiqueta de estado, ítem de menú (sidebar y `Menu`), tooltip | 4 | 0 | según estado |
+| Botón, input, `Fab`, tarjeta KPI, tabla (`DataGrid`, `Table`) | 6 | 0 | 1 px (input: borde de input) |
+| Superficie / panel: `ChartCard`, sección de ficha, `CadenaTrazabilidad`, `Paper` genérico | 8 | 0 | 1 px `divider` |
+| Diálogo | 8 *(propuesta, P-UI3)*; 0 a pantalla completa | sombra del theme | — |
+| Menú, popover, listado de `Autocomplete` (lo que flota) | 6 | sombra del theme | — |
+
+### Historial: identidad "Peñero" (aprobada el 2026-10-06, reemplazada el 2026-10-22)
+
+Se inspiraba en el peñero, la lancha artesanal: casco azul petróleo (`#0E4A5C`) y franjas de la borda ocre, blanca y roja (`atoms/PeneroStripes`, el único decorativo, en loader, barra de navegación, ítem activo y login). Usaba neutros "hielo" (`#F3F6F6`), tipografía Barlow / Barlow Condensed y radios 4/6/8/12 (diálogo 12). Su muestra fue [Estándares visuales Altamar](https://claude.ai/artifact/3WKKVWcmPJVK7MnaKEPDyo), del 2026-10-07. Siguen vigentes, porque no dependen de la identidad: las reglas de capas Tailwind/MUI, cero hex sueltos, cero sombras en reposo, íconos `Outlined`, sentence case y toda la anatomía de tablas, diálogos, loaders y formularios.
 
 Íconos: un solo set, **`@mui/icons-material` en variante `Outlined`** (`ReceiptLongOutlined`, etc.). No se mezclan variantes rellenas y delineadas. El tamaño por defecto es 20 px en tablas y menús, y 24 px en la navegación.
 
@@ -48,26 +89,32 @@ Implementado: `colorSchemes` light/dark en `theme.ts`, `ColorModeToggle` (claro/
 
 ## Tipografía
 
-Familias (reemplaza "Geist Sans", vigente hasta el 2026-10-06):
+Familias de la identidad "Puerto" (2026-10-22). Reemplazan a **Barlow / Barlow Condensed**, vigentes del 2026-10-06 al 2026-10-22, que se retiran del layout, del theme y del PDF:
 
 | Familia | Variable | Rol |
 |---|---|---|
-| **Barlow Condensed** 500/600 | `--font-display` | títulos (`h4`–`h6`) y cifras protagonistas (KPI, total de una factura). Condensada como la rotulación de las lanchas: carácter sin ocupar ancho. |
-| **Barlow** 400/500/600 | `--font-body` | todo el texto de interfaz: formularios, tablas, menús, botones |
-| Cifras tabulares | `font-variant-numeric: tabular-nums` | montos, kg y tasas en tablas, para que alineen por columna. **Verificar** si Barlow trae cifras tabulares (`tnum`). Si las trae, **se retira Geist Mono** y los montos usan Barlow tabular, para no mezclar familias. Si no, Geist Mono queda solo para montos/kg/tasas en columnas. |
+| **Fraunces** 500/600 (serifa) | `--font-display` | 600: títulos (`h3`, `h4`, `h5` de ficha). 500: cifras destacadas (KPI, total de una factura, montos grandes) |
+| **Instrument Sans** 400/500/600 | `--font-body` | todo el texto de interfaz: formularios, tablas, menús, botones, títulos de sección (`h6`) |
+| Cifras tabulares | `font-variant-numeric: tabular-nums` | montos, kg y tasas en tablas y KPI. **Verificar** que Instrument Sans y Fraunces declaren `tnum` (mismo método que la tarea 30). Si alguna no lo trae, se consulta al usuario antes de sumar otra familia (P-UI8) |
 
-Escala (no se usan tamaños sueltos; si falta uno, se agrega primero a esta tabla):
+Las variables CSS conservan su nombre (`--font-display`, `--font-body`), así `theme.ts` y Tailwind (`--font-sans`) no cambian de contrato. Respaldo: `Georgia, serif` para display y `system-ui, sans-serif` para cuerpo.
 
-| Variant | Tamaño / interlínea | Peso | Uso |
+Escala (no se usan tamaños sueltos; si falta uno, se agrega primero a esta tabla). Sale de la muestra "B · Puerto"; `h5` no figura en ella y es *(propuesta, P-UI5)*:
+
+| Variant | Tamaño / interlínea | Familia y peso | Uso |
 |---|---|---|---|
-| `h4` | 34 px / 1.1 (28 px en `xs`) | Condensed 600 | título de página, uno por pantalla, en `PageHeader` |
-| `h5` | 26 px / 1.15 | Condensed 600 | cifra protagonista, título de ficha |
-| `h6` | 20,8 px / 1.2 | Condensed 600 | título de sección, tarjeta y diálogo |
-| `subtitle1` | 16 px / 1.5 | 500 | nombre principal en una fila o lista |
-| `body1` | 16 px / 1.5 | 400 | texto corrido (alertas, descripciones) |
-| `body2` | 14 px / 1.43 | 400 | tablas, formularios, menús |
-| `caption` | 12,5 px / 1.4 | 400 | ayudas, fechas secundarias, RIF bajo el nombre |
-| `button` | 14,5 px | 500 | sentence case, sin mayúsculas forzadas |
+| `h3` | 52 px / 1.05 (42 px en `xs`) | Fraunces 600 | display: panel de login, `BrandLoader`, página pública |
+| `h4` | 26 px / 1.2 (24 px en `xs`) | Fraunces 600 | título de página, uno por pantalla, en `PageHeader` |
+| `h5` | 24 px / 1.2 | Fraunces 500, tabular | cifra destacada (KPI, saldo, total) y nombre en `FichaHeader` |
+| `h6` | 18 px / 1.35 | Instrument Sans 600 | título de sección (`FormSection`), tarjeta (`ChartCard`) y diálogo (`AppDialog`) |
+| `subtitle1` | 16 px / 1.5 | Instrument Sans 500 | nombre principal en una fila o lista |
+| `subtitle2` (etiqueta) | 12 px / 1.4, `letter-spacing: 0.04em` | Instrument Sans 600 | encabezados de columna, título de `KpiCard`, rótulos cortos. **Sentence case**, sin mayúsculas |
+| `body1` | 16 px / 1.55 | Instrument Sans 400 | texto corrido (alertas, descripciones) |
+| `body2` | 14 px / 1.5 | Instrument Sans 400 | texto secundario, tablas, formularios, menús |
+| `caption` | 12 px / 1.4 | Instrument Sans 400 | ayudas, fechas secundarias, RIF bajo el nombre |
+| `button` | 14 px | Instrument Sans 500 | sentence case, sin mayúsculas forzadas |
+
+Íconos fuera de la escala de MUI (`small` 20, `medium` 24, `large` 35): el theme agrega `fontSize="xlarge"` (40 px), que usan los íconos de estado vacío o error. Dentro de un texto, el ícono va con `fontSize="inherit"`. No se escribe `sx={{ fontSize: N }}` en íconos.
 
 Reglas de texto:
 - **Sentence case** en todo: títulos, botones, columnas. No se usan etiquetas en MAYÚSCULAS ni `overline`.
@@ -94,13 +141,13 @@ Regla: **nunca una pantalla en blanco, nunca un spinner genérico centrado.** Ci
 
 | Nivel | Cuándo | Componente | Comportamiento |
 |---|---|---|---|
-| 1. **Global con logo** | carga inicial de la app tras el login, cerrar sesión y operaciones que bloquean toda la pantalla (generar el PDF de un contrato, reinicios de datos) | `organisms/BrandLoader` (pantalla completa) + `useGlobalLoader()` (`show(mensaje?)` / `hide()`, contador para llamadas anidadas) | Logo de Altamar centrado; debajo, las franjas de la borda recorren de izquierda a derecha como progreso indeterminado. **Aparece a los 150 ms** (si la operación termina antes, no parpadea) y, una vez visible, **dura al menos 400 ms**. Mensaje opcional en `body2` ("Generando contrato"). `role="status"` + `aria-live="polite"`. Con `prefers-reduced-motion`: logo estático y franjas quietas. |
-| 2. **Navegación** | cambio de ruta | `atoms/NavigationProgress` (barra de 3 px con las franjas, arriba del área de contenido) + `loading.tsx` de la ruta | La barra se activa con `useLinkStatus` en los ítems del menú y con los `loading.tsx`; el menú y la barra superior no se mueven. |
+| 1. **Global con logo** | carga inicial de la app tras el login, cerrar sesión y operaciones que bloquean toda la pantalla (generar el PDF de un contrato, reinicios de datos) | `organisms/BrandLoader` (pantalla completa) + `useGlobalLoader()` (`show(mensaje?)` / `hide()`, contador para llamadas anidadas) | Logo de Altamar centrado; debajo, un filete de latón de 2 px recorre de izquierda a derecha como progreso indeterminado (Puerto, 2026-10-22; antes: las franjas de la borda). **Aparece a los 150 ms** (si la operación termina antes, no parpadea) y, una vez visible, **dura al menos 400 ms**. Mensaje opcional en `body2` ("Generando contrato"). `role="status"` + `aria-live="polite"`. Con `prefers-reduced-motion`: logo estático y filete quieto. |
+| 2. **Navegación** | cambio de ruta | `atoms/NavigationProgress` (barra de 2 px de latón, antes 3 px con las franjas, en el borde inferior de la barra superior) + `loading.tsx` de la ruta | La barra se activa con `useLinkStatus` en los ítems del menú y con los `loading.tsx`; el menú y la barra superior no se mueven. |
 | 3. **Contenido de la página** | primera carga de los datos de la pantalla | `PageLoader` (`table`, `form`, `ficha`) dentro del shell | Skeleton con la forma de la pantalla real; `Fade` (`duration.short`) al llegar el contenido. |
 | 4. **Refresco de datos** | filtrar, paginar en servidor o recargar una tabla montada | `AppDataGrid` `loading` con `slotProps.loadingOverlay.variant: 'skeleton'` (o `'linear-progress'` si ya hay filas) | La estructura de la tabla nunca desaparece. |
 | 5. **Acción puntual** | guardar, confirmar, enviar | `Button` con la prop nativa **`loading`** de MUI | Ver "Botones y acciones en curso". |
 
-Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los íconos de Next). Mientras llega, `atoms/BrandMark` dibuja un isotipo provisional en SVG (proa de peñero + franjas de la borda, usando los tokens `brand.*`) con la misma interfaz (`size`, `variant: 'full' | 'isotipo'`). Cuando llegue el archivo (SVG, idealmente con versión monocroma), se reemplaza **solo dentro de `BrandMark`**, y se generan `favicon` e íconos de la app con él.
+Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los íconos de Next). Mientras llega, `atoms/BrandMark` dibuja un isotipo provisional en SVG. En Peñero era la proa con las franjas de la borda; en Puerto, *propuesta P-UI4*, es una proa en `brand.midnight` (o `brand.onMidnight` sobre medianoche) con un filete de `brand.brass`, más el nombre "Altamar" en Fraunces 600 en la variante `full`. La interfaz es la misma (`size`, `variant: 'full' | 'isotipo'`). Cuando llegue el archivo (SVG, idealmente con versión monocroma), se reemplaza **solo dentro de `BrandMark`**, y se generan `favicon` e íconos de la app con él.
 
 ## Botones y acciones en curso
 
@@ -116,8 +163,8 @@ Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los 
 Todas las tablas usan **`organisms/AppDataGrid`**, un envoltorio de `DataGrid` con los defaults del sistema. Hoy las 8 tablas repiten su configuración, y el tamaño de página varía entre 10 y 25.
 
 - **Idioma**: `esES` de `@mui/x-data-grid/locales` aplicado **en el theme**, para todas las tablas ("Filas por página", "1–25 de 132", etc.).
-- **Anatomía**: barra superior (búsqueda rápida a la izquierda, filtros como chips, acciones de tabla a la derecha) → encabezado de 44 px sobre hielo, peso 600, `text.secondary`, sin separadores de columna → filas de 52 px con divisor de 1 px → pie de paginación.
-- **Columnas**: texto alineado a la izquierda; **montos, kg y tasas a la derecha, con cifras tabulares**; fechas con `formatFecha`; estados con chips de 22 px; la columna de acciones es la última, con menú `⋮` (nunca más de un ícono suelto por fila). Si la fila abre una ficha, toda la fila es clicable (`cursor: pointer`, fondo `action.hover` con `transitions.create('background-color')`) y el menú detiene la propagación.
+- **Anatomía**: barra superior (búsqueda rápida a la izquierda, filtros como chips, acciones de tabla a la derecha) → encabezado de 44 px sobre `background.subtle` (antes "hielo"), en `subtitle2` (600), `text.secondary`, sin separadores de columna → filas de 52 px con divisor de 1 px → pie de paginación.
+- **Columnas**: texto alineado a la izquierda; **montos, kg y tasas a la derecha, con cifras tabulares**; fechas con `formatFecha`; estados con chips de 22 px; la columna de acciones es la última, con menú `⋮` (nunca más de un ícono suelto por fila). Si la fila abre una ficha, toda la fila es clicable (`cursor: pointer`, fondo `background.subtle` en Puerto, antes `action.hover`, con `transitions.create('background-color')`) y el menú detiene la propagación.
 - **Paginación**:
 
   | Tipo de tabla | Modo | Ejemplos |
@@ -230,9 +277,10 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `RepresentantesLegalesFieldArray` | `molecules` | Lista editable de representantes legales (tipado genérico, filas con `Collapse`) |
 | `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast; `variant` (ej. `h5` para el código de un lote) y `copiedMessage` (07-lotes) |
 | `StatusChips` | `molecules` | Chips `soft` de 22 px: Activo (solo con `mostrarActivo`, en listados) / Inactivo, Bloqueado (tooltip con el motivo, convive con Activo) y Doc. incompleta (tooltip con faltantes). Sin chips que mostrar no renderiza nada |
-| `PeneroStripes` | `atoms` | Franjas de la borda: único elemento decorativo (ver "Identidad visual") |
+| `PeneroStripes` | `atoms` | Franjas de la borda (Peñero). **Se retira en la Fase 3**; lo reemplaza `FileteLaton` |
+| `FileteLaton` (Fase 3, *propuesta P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
 | `BrandMark` | `atoms` | Logo de Altamar (`variant: full / isotipo`, `size`, `orientation`); isotipo provisional en SVG hasta tener el archivo real (ícono de la app en `src/app/icon.svg`) |
-| `NavigationProgress` | `atoms` | Barra de 3 px con las franjas; `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
+| `NavigationProgress` | `atoms` | Barra de progreso (Peñero: 3 px con las franjas; Puerto: 2 px, `FileteLaton sweep`); `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
 | `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global con logo: `show(msg, { untilNavigation })` devuelve `release`, `hide()`, `run(tarea, msg)`; 150 ms de retardo, 400 ms mínimo, contador |
 | `AppDataGrid` | `organisms` | Toda tabla: toolbar (búsqueda, filtros, acciones), `mode` cliente/servidor (`rowCount` + `onQueryChange`), `?pagina=` en la URL (`paginaDesdeParam` para `page.tsx`), tamaño recordado por `tableId`, `mobileCard` en `xs`, `hideOnMobile`, `getRowHref` (clic o Enter en una celda; recuerda el origen para `FichaHeader`), estados vacío/sin resultados/error/cargando. Búsqueda en modo cliente: `normalizeSearch` (por defecto `normalizarBusqueda`, sin acentos y minúsculas; `normalizarBusquedaSinSeparadores` quita además espacios, puntos y guiones) y `getSearchValues(row)` (por defecto, el valor crudo de cada columna); cada palabra debe aparecer en algún valor, igual en grilla y tarjetas |
 | `AppDialog` | `organisms` | Todo diálogo de formulario: `size` xs/sm/md, `title`/`subtitle`, `primaryAction`, `pending`, `dirty`, `error`, `onSubmit` (el diálogo es un `<form>`), `footer` (pie custom que reemplaza el estándar, ej. navegación de Stepper; 11-refactor-visual-proveedores); pantalla completa + `Slide` en `xs`, cierre protegido, foco al primer campo. Referencia: `ClienteForm` |
@@ -240,7 +288,7 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `RowActionsMenu` | `molecules` | Menú `⋮` de una fila o tarjeta, con estado `pending` y opciones destructivas |
 | `FichaHeader` | `molecules` | Encabezado de ficha: vuelta (`backHref`, `backLabel`; `router.back()` si se vino de ese listado, para conservar `?pagina=` y filtros), nombre `h5` (`component="h1"`), `meta` (documento, tipo, chips), `primaryAction` (`outlined` en `sm+`, primera opción del `⋮` en `xs`), `menuActions` (`RowAction[]`, en `RowActionsMenu`) y `pending` (10-refactor-visual-clientes) |
 | `BloqueoDialog` | `organisms` | Bloqueo con motivo obligatorio (clientes y proveedores): `AppDialog xs`, primario `color="error"` con `loading`, `pending` y `dirty` (motivo escrito) protegen el cierre, guarda contra doble envío; error del motivo en el campo, otros en el `Alert` |
-| `PeneroSweep` | `atoms` (en `PeneroStripes.tsx`) | Franjas barriendo (progreso indeterminado) para `NavigationProgress` y `BrandLoader` |
+| `PeneroSweep` | `atoms` (en `PeneroStripes.tsx`) | Franjas barriendo (progreso indeterminado) para `NavigationProgress` y `BrandLoader`. **Se retira en la Fase 3** (→ `FileteLaton variant="sweep"`) |
 | `TasaChip` | `molecules` | Chip de una tasa referencial: valor, fuente, fecha valor y aviso de "arrastrada" (08-tasas) |
 | `TasaSelector` | `organisms` | Selector de tasa de una operación (08-tasas): referencial por fecha (BCV/paralela, Server Action con debounce) o manual con desviación en vivo; escribe `tasa_origen`/`tasa_fuente`/`tasa` en el form dueño (`FormProvider`); `pedirConfirmacionTasaManual` centraliza el ConfirmDialog del umbral |
 | `EstadoCarteraChip` (+ `COLOR_ESTADO_CARTERA`) | `atoms` | Estado de cobro/pago de un documento de cartera: Vencida/Por vencer/Pendiente/Pagada/Anulada, chip `soft` 22 px (09-cuentas-por-cobrar; ficha de cliente, `/cobros`, futuro CxP) |
@@ -256,7 +304,7 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `LotesCreadosDialog` | `organisms` | Códigos de los lotes recién creados, grandes y copiables, para rotular; enlace a cada ficha (07-lotes; compras y procesamiento) |
 | `LotesLineaVenta` + `AsignacionLotesPanel` | `organisms` | Lotes de una línea de venta: propuesta PEPS (debounce 300 ms, `Skeleton`), chips, "Cambiar lotes" en línea (kg por lote, aviso en vivo si no cuadra o excede), "Volver a PEPS", error de stock insuficiente y `onSuficiencia` para bloquear la emisión (07-lotes; POS y entrega de pedido) |
 | `PerdidaLoteDialog` | `organisms` | Pérdida en un lote: kg ≤ stock, motivo (dañado/vencido/faltante/otro), detalle; `AppDialog sm` (07-lotes; inventario y ficha del lote) |
-| `KpiCard` | `molecules` | Indicador: título `body2`, cifra `h5` (Barlow Condensed, tabular), secundaria `caption`, acento de estado `tone` (`error`/`warning`/`success`, borde izquierdo), `href` (toda la tarjeta enlaza), `loading` (skeleton), `children` extra (15-dashboard) |
+| `KpiCard` | `molecules` | Indicador: título `body2` (Puerto: `subtitle2`), cifra `h5` (Peñero: Barlow Condensed; Puerto: Fraunces 500, tabular), secundaria `caption`, radio 6 en Puerto, acento de estado `tone` (`error`/`warning`/`success`, borde izquierdo; en Puerto también con ícono, porque el color no basta), `href` (toda la tarjeta enlaza), `loading` (skeleton), `children` extra (15-dashboard) |
 | `ChartCard` | `molecules` | Tarjeta de sección o gráfico: radio 8, borde `divider`, sin sombra; título `h6`, `help`, `action`; estados `loading` (skeleton de `skeletonHeight`), `error` (`ErrorState`), `empty` (`EmptyState compact`); `Fade` al llegar el contenido (15-dashboard) |
 | `ChartLegendTable` | `molecules` | Alternativa accesible a un gráfico: tabla con los mismos datos, colapsable ("Ver tabla") o `variant="hidden"` (solo lectores de pantalla); columnas con `render` ya formateado y `align: 'right'` para números (15-dashboard) |
 | `ListaResumen` | `molecules` | Lista compacta de resumen: principal + secundaria, monto tabular (+ detalle) y estado a la derecha, filas ≥ 56 px, `href` hace la fila enlace (15-dashboard: deudores, clientes inactivos, contratos) |
@@ -266,13 +314,13 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `IvaVentaSwitch` | `molecules` | Interruptor "Factura con IVA (16 %)" de una venta (% de configuración), controlado, precargado con el "Aplica IVA" del cliente; aviso «Este cliente normalmente sí/no lleva IVA» si difiere; `helperText`/`error` (18-iva-opcional; POS y entrega de pedido) |
 | `TotalesVenta` (+ `totalesVenta`) | `molecules` | Subtotal, IVA (`IVA (16 %)` o «Sin IVA») y total de una venta con `totalesDe` y `lib/format.ts`, cifras tabulares a la derecha; `totalesVenta(items, ivaPct)` omite líneas incompletas; `etiquetaTotal` (18-iva-opcional; POS, entrega de pedido, nota de crédito) |
 | `CadenaTrazabilidad` | `molecules` | Cadena genérica de eslabones `{ icono, titulo, lineas, href? }` unidos por flechas: horizontal en `md+`, vertical en `xs`/`sm`; bordes `divider`, radio 8, cifras tabulares (17; compra → proceso → venta por lote) |
-| `DocumentoPublicoLayout` | `templates` | Página pública sin sesión (21-cotizaciones, `/c/[token]`): `BrandMark` + franjas de la borda, datos del negocio, contenido centrado (máx. 880 px), sin `AppShell` ni datos de usuario. Reutilizable para otros documentos públicos |
+| `DocumentoPublicoLayout` | `templates` | Página pública sin sesión (21-cotizaciones, `/c/[token]`): `BrandMark` + franjas de la borda (Puerto: filete de latón), datos del negocio, contenido centrado (máx. 880 px), sin `AppShell` ni datos de usuario. Reutilizable para otros documentos públicos |
 | `CotizacionDocumento` | `organisms` | Vista de solo lectura de una cotización (cliente, líneas, totales USD, notas y términos), mismo orden que el PDF; la comparten la ficha y la página pública; solo recibe datos para el cliente (21) |
 | `CotizacionNoDisponible` | `organisms` | Página de respaldo de un enlace público (`vencida` con número / `generica` sin datos) con WhatsApp al negocio (21). Patrón a seguir si otro documento tiene enlace público |
-| `lib/pdf/marca.tsx` + `lib/pdf/fuentes.ts` | `src/lib/pdf` | PDF con la identidad (react-pdf): `EncabezadoMarca` (isotipo + nombre + datos del negocio + franjas), `PiePagina` con «Página N de M», `registrarFuentesMarca()` (Barlow desde TTF en `lib/pdf/fuentes/`; Helvetica si faltan). Para cualquier PDF nuevo (21) |
+| `lib/pdf/marca.tsx` + `lib/pdf/fuentes.ts` | `src/lib/pdf` | PDF con la identidad (react-pdf): `EncabezadoMarca` (isotipo + nombre + datos del negocio + franjas; Puerto: filete de latón), `PiePagina` con «Página N de M», `registrarFuentesMarca()` (Barlow desde TTF en `lib/pdf/fuentes/`; Puerto: Fraunces + Instrument Sans; Helvetica si faltan). Para cualquier PDF nuevo (21) |
 | `src/theme/marca.ts` + `src/lib/marca/isotipo.ts` | `src/theme`, `src/lib/marca` | Hex de `palette.brand` (claro/oscuro) y geometría del isotipo: única fuente para lo que vive fuera de MUI (PDF, correo). `theme.ts` y `BrandMark` los leen (21, tarea agregada en 00) |
 
-Gráficas: `@mui/x-charts` (v9, alineada con `x-data-grid`; agregada en 15-dashboard, D1). Colores con `coloresGrafico(theme)` de `lib/dashboard/chartColors.ts` (variables CSS de `theme.palette`, nunca hex ni `brand.ochre`); cada gráfico lleva `aria-label` y su `ChartLegendTable`. Las animaciones del paquete respetan `prefers-reduced-motion`.
+Gráficas: `@mui/x-charts` (v9, alineada con `x-data-grid`; agregada en 15-dashboard, D1). Colores con `coloresGrafico(theme)` de `lib/dashboard/chartColors.ts` (variables CSS de `theme.palette`, nunca hex ni `brand.*` decorativo). En Puerto, la serie categórica sale de un token nuevo `palette.chart` (`c1`–`c6`, claro y oscuro, *propuesta P-UI9*). Cada color debe dar ≥ 3:1 contra `background.paper` (WCAG 1.4.11), y por eso no se usa `brand.brass` claro (`#C9A66B`). `success` y `primary` ya no se distinguen por tono, así que los gráficos no dependen solo del color para positivo/negativo: van con leyenda, etiqueta y `ChartLegendTable`; cada gráfico lleva `aria-label` y su `ChartLegendTable`. Las animaciones del paquete respetan `prefers-reduced-motion`.
 
 Además de los anteriores: `lib/navigationOrigin.ts` (`recordarOrigen` / `consumirOrigen`: de qué listado se abrió una ficha, para `FichaHeader`), `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage), `lib/validationMessages.ts` (mensajes de validación compartidos), `lib/actionState.ts` (`ActionState` + `toActionError`), `lib/documentoStore.ts` (`DocumentoStore` para `DocumentoUpload`), `lib/bancosVe.ts` (catálogo de bancos y utilidades de cuenta), `lib/useGlobalLoader.tsx` (`GlobalLoaderProvider` en el layout raíz + `useGlobalLoader`), variante de theme `Chip variant="soft"` (estados) y la página de muestra `/estandares` (solo desarrollo y admin). Dominio de cartera (09): `lib/cartera/` (puro: `estado.ts`, `resumen.ts`, `recordatorios/plantillas.ts`, `recordatorios/telefono.ts`, canales Strategy en `recordatorios/canales/`).
 
@@ -284,8 +332,27 @@ Cada módulo que cree un componente genérico nuevo (no específico de su domini
 - Todo `IconButton` sin texto visible lleva `aria-label`.
 - Ningún `:focus` se remueve vía CSS; si se reemplaza el estilo default de foco, debe seguir siendo visible.
 - Formularios: `<label>` asociado a su input (MUI `TextField` ya lo hace si se usa `label`, no se debe omitir por diseño).
+- Puerto (2026-10-22): los pares de texto se verifican con herramienta y quedan anotados en el checklist de la Fase 3. Contornos de input, foco y series de gráfico, ≥ 3:1 contra su fondo (WCAG 1.4.11). El latón decorativo (`#C9A66B`) y el `success` de relleno (`#ABC7F1`) **nunca** van como texto sobre claro. El foco visible es un contorno de 2 px de `primary` (en oscuro, latón).
+
+## Decisiones pendientes de la Fase 3 (Puerto)
+
+Las tareas de la Fase 3 usan la propuesta de cada una. Si el cliente elige otra cosa, se cambia solo el token o el componente indicado.
+
+| Id | Decisión | Propuesta |
+|---|---|---|
+| P-UI1 | Texto e ícono de `success` sobre claro (`#ABC7F1` da ~1,7:1 sobre blanco) | `success.main` `#2F5E9E` (~6,5:1) para texto e ícono; `#ABC7F1` como `success.soft`/`light` (relleno, chip "Pagada"). En oscuro, `#ABC7F1` para todo |
+| P-UI2 | Reemplazo de `PeneroStripes` y de los loaders con franjas | `atoms/FileteLaton`: filete de latón estático (sidebar, login, documento público, PDF) y en barrido (navegación 2 px, loader global). El ítem activo del menú lleva un punto de latón |
+| P-UI3 | Radio de diálogos | 8, igual que las superficies; 0 a pantalla completa |
+| P-UI4 | Logo | Sigue el isotipo provisional, redibujado en Puerto (proa medianoche + filete de latón + "Altamar" en Fraunces). Se reemplaza al recibir el logo real (pendiente (g)) |
+| P-UI5 | Tamaño de `h5` (no está en la muestra) | 24 px Fraunces 500 |
+| P-UI6 | `info` (no está en la muestra; lo usan "pendiente" y kg en gráficos) | `#44597A` claro / `#9FB4D3` oscuro, pizarra azulada, distinto de `primary` y de `success` |
+| P-UI7 | Contorno de input (`#E4E1D8` da < 3:1 sobre blanco) | `#E4E1D8` para separadores; `#A9A397` para el contorno de `OutlinedInput` en claro |
+| P-UI8 | Cifras tabulares, si Instrument Sans o Fraunces no traen `tnum` | Consultar antes de sumar una tercera familia |
+| P-UI9 | Paleta categórica de gráficos | Claro: `#0B1B33`, `#2F5E9E`, `#7A5C2E`, `#A15C07`, `#5B6474`, `#B3261E`. Oscuro: `#ABC7F1`, `#D4B27A`, `#EEF0F4`, `#E9B460`, `#A3ADBD`, `#EE8A83`. Verificar 3:1 de cada una |
+| P-UI10 | Tonos oscuros sin valor en la muestra: `background.subtle`, sidebar y `brand.navy` | `#17253D`, `#0A1424` con borde `#22314B`, `#1C2E4D`. Confirmar contra el artboard |
 
 ## Fuera de alcance (MVP)
 - Internacionalización (todo queda en español, moneda USD/Bs fijas).
 - Modo de alto contraste separado del modo oscuro estándar.
+- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. Tampoco se cambia el mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) ni la anatomía de pantallas: solo la piel.
 - Animaciones elaboradas (parallax, scroll-triggered, animaciones de página complejas) o cualquier librería de animación de terceros — las transiciones básicas ya quedan cubiertas en la sección "Transiciones y micro-interacciones" arriba.
