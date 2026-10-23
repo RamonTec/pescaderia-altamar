@@ -18,7 +18,9 @@
 --     vencida:       `fecha_vencimiento < hoy (Caracas)`, en cualquier otro
 --                    estado; solo el número (sin gracia, P7).
 --     disponible:    el resto; solo campos públicos (nunca notas internas,
---                    ids, usuarios ni el teléfono del cliente).
+--                    ids, usuarios ni el teléfono del cliente). Del negocio,
+--                    además: razón social, RIF, dirección e instrucciones de
+--                    pago (las mismas que imprime el PDF interno).
 
 -- ============ Columnas ============
 alter table public.cotizaciones
@@ -277,7 +279,8 @@ begin
     'negocio', v_negocio || jsonb_build_object(
       'razon_social', v_cfg.razon_social,
       'rif', v_cfg.rif,
-      'direccion', v_cfg.direccion
+      'direccion', v_cfg.direccion,
+      'instrucciones_pago', v_cfg.instrucciones_pago
     ),
     'cotizacion', jsonb_build_object(
       'numero', v_c.numero,
