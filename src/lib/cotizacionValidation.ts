@@ -125,3 +125,41 @@ export const anularCotizacionSchema = z.object({
   motivo: z.string().trim().max(500, MSG_MAX_500),
 })
 export type AnularCotizacionInput = z.input<typeof anularCotizacionSchema>
+
+export const FILTROS_ESTADO_COTIZACION = [
+  'abiertas',
+  'todas',
+  'borrador',
+  'enviada',
+  'vencida',
+  'aceptada',
+  'rechazada',
+  'anulada',
+] as const
+
+/** Filtros del listado en la URL (`?estado=`, `?q=`, `?desde`/`?hasta`, `?pagina=`, `?limite=`). */
+export const filtrosCotizacionesSchema = z
+  .object({
+    pagina: z.coerce.number().int().min(1).catch(1).default(1),
+    limite: z.coerce
+      .number()
+      .refine((n) => n === 25 || n === 50 || n === 100)
+      .catch(25)
+      .default(25),
+    estado: z.enum(FILTROS_ESTADO_COTIZACION).catch('abiertas').default('abiertas'),
+    q: z
+      .string()
+      .trim()
+      .max(80)
+      .optional()
+      .catch(undefined)
+      .transform((v) => (v ? v : undefined)),
+    desde: z.string().regex(FECHA_REGEX).optional().catch(undefined),
+    hasta: z.string().regex(FECHA_REGEX).optional().catch(undefined),
+  })
+  .transform((v) =>
+    // El rango solo cuenta completo y ordenado.
+    v.desde && v.hasta && v.desde <= v.hasta ? v : { ...v, desde: undefined, hasta: undefined }
+  )
+
+export type FiltrosCotizacionesUrl = z.output<typeof filtrosCotizacionesSchema>

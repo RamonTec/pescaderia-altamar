@@ -1960,3 +1960,23 @@ export interface TotalesCotizacion {
   iva_usd: number
   total_usd: number
 }
+
+/**
+ * Lo que muestra el documento de una cotización (`CotizacionDocumento`, PDF
+ * y página pública): solo datos para el cliente. **Nunca** notas internas,
+ * ids, usuarios ni (en el enlace público) el teléfono del cliente libre.
+ */
+export interface CotizacionDocumentoDatos {
+  numero: number
+  fecha: string
+  fecha_vencimiento: string
+  cliente: { nombre: string; rif_ci: string | null; telefono: string | null }
+  items: Pick<CotizacionItem, 'producto_nombre' | 'peso_kg' | 'precio_usd_kg' | 'subtotal_usd' | 'nota'>[]
+  subtotal_usd: number
+  descuento_usd: number
+  iva_pct: number
+  iva_usd: number
+  total_usd: number
+  notas_cliente: string | null
+  terminos: string | null
+}
