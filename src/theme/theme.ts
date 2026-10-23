@@ -4,6 +4,7 @@ import { createTheme, type Theme } from '@mui/material/styles'
 import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
+import { MARCA_CLARO, MARCA_OSCURO } from './marca'
 
 /**
  * Identidad "Peñero" (Altamar Sea Food): casco azul petróleo, franjas de
@@ -63,23 +64,16 @@ export const theme = createTheme(
   colorSchemes: {
     light: {
       palette: {
-        primary: { main: '#0E4A5C', contrastText: '#FFFFFF' },
-        secondary: { main: '#B8402E', contrastText: '#FFFFFF' },
+        primary: { main: MARCA_CLARO.hull, contrastText: '#FFFFFF' },
+        secondary: { main: MARCA_CLARO.red, contrastText: '#FFFFFF' },
         success: { main: '#2F7D6A' },
         warning: { main: '#B86E00' },
         error: { main: '#C0282D' },
         background: { default: '#F3F6F6', paper: '#FFFFFF' },
         text: { primary: '#13262C', secondary: '#4A5D63' },
         divider: 'rgba(19, 38, 44, 0.14)',
-        brand: {
-          hull: '#0E4A5C',
-          hullDeep: '#0A3644',
-          onHull: '#EAF2F3',
-          onHullMuted: '#A9C6CD',
-          ochre: '#E8B931',
-          red: '#B8402E',
-          trim: '#EAF2F3',
-        },
+        // Hex de marca en `src/theme/marca.ts` (los usa también el PDF, 21).
+        brand: { ...MARCA_CLARO },
       },
     },
     dark: {
@@ -92,15 +86,7 @@ export const theme = createTheme(
         background: { default: '#0F2229', paper: '#15303A' },
         text: { primary: '#E4EDEF', secondary: '#9DB3B9' },
         divider: 'rgba(228, 237, 239, 0.14)',
-        brand: {
-          hull: '#123F4E',
-          hullDeep: '#0A2A35',
-          onHull: '#EAF2F3',
-          onHullMuted: '#9DBFC7',
-          ochre: '#D9A92A',
-          red: '#B8402E',
-          trim: '#C9D8DB',
-        },
+        brand: { ...MARCA_OSCURO },
       },
     },
   },
