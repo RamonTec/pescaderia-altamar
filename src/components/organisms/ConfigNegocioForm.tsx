@@ -45,6 +45,9 @@ function toFormValues(c: ConfigNegocio | null): ConfigFormValues {
     rif: c?.rif ?? '',
     direccion: c?.direccion ?? '',
     telefono: c?.telefono ?? '',
+    // 21-cotizaciones: default de la migración (7 días) si la fila no lo trae.
+    cotizacion_validez_dias: c?.cotizacion_validez_dias ?? 7,
+    cotizacion_terminos: c?.cotizacion_terminos ?? '',
   }
 }
 
@@ -70,6 +73,7 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
   const diasCredito = useWatch({ control, name: 'dias_credito_default' })
   const diasAviso = useWatch({ control, name: 'dias_aviso_por_vencer' })
   const instrucciones = useWatch({ control, name: 'instrucciones_pago' })
+  const validezCotizacion = useWatch({ control, name: 'cotizacion_validez_dias' })
 
   React.useEffect(() => {
     reset(toFormValues(config))
@@ -347,6 +351,34 @@ export function ConfigNegocioForm({ config }: ConfigNegocioFormProps) {
             {...register('direccion')}
             error={!!formState.errors.direccion}
             helperText={formState.errors.direccion?.message}
+          />
+          </FormSection>
+
+          <FormSection
+            titulo="Cotizaciones"
+            ayuda="Valores que se precargan en cada cotización nueva; se pueden cambiar en cada una."
+          >
+          <NumberField
+            label="Validez por defecto *"
+            fullWidth
+            size="small"
+            decimals={0}
+            suffix="días"
+            value={validezCotizacion}
+            onChange={(v) => methods.setValue('cotizacion_validez_dias', v ?? 7, { shouldDirty: true })}
+            error={!!formState.errors.cotizacion_validez_dias}
+            helperText={formState.errors.cotizacion_validez_dias?.message ?? 'De 1 a 90 días desde la fecha de la cotización.'}
+          />
+          <TextField
+            label="Términos y condiciones por defecto"
+            fullWidth
+            size="small"
+            multiline
+            minRows={3}
+            placeholder="Ej. Pago de contado. Despacho en 24 h. Precios sujetos a disponibilidad."
+            {...register('cotizacion_terminos')}
+            error={!!formState.errors.cotizacion_terminos}
+            helperText={formState.errors.cotizacion_terminos?.message ?? 'Salen en el PDF y en el enlace público. Hasta 2000 caracteres.'}
           />
           </FormSection>
 
