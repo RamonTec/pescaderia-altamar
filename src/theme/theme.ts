@@ -5,6 +5,7 @@ import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
 import { MARCA_CLARO, MARCA_OSCURO } from './marca'
+import { MOTION } from './tokens'
 
 /**
  * Identidad "Puerto" (Altamar Sea Food): azul medianoche (#0B1B33), blanco
@@ -197,6 +198,24 @@ export const theme = createTheme(
   // chip/menú/tooltip 4, botón/input/fab/tabla 6 (`shape`), panel/ficha 8
   // (`MuiPaper.rounded`), diálogo 8 (0 en pantalla completa).
   shape: { borderRadius: 6 },
+  // Movimiento (spec.md § Movimiento y tarea 95). Se alimenta de tokens.ts.
+  transitions: {
+    duration: {
+      shortest: MOTION.duraciones.rapida, // 120 ms: hover, presión, cambio de estado
+      shorter: MOTION.duraciones.rapida, // 120 ms
+      short: MOTION.duraciones.media, // 200 ms: menús, toasts, acordeones
+      standard: MOTION.duraciones.media, // 200 ms
+      complex: MOTION.duraciones.lenta, // 280 ms: modales y drawers entrada
+      enteringScreen: MOTION.duraciones.lenta, // 280 ms
+      leavingScreen: MOTION.duraciones.salida, // 180 ms: modales y drawers salida
+    },
+    easing: {
+      easeInOut: MOTION.curvas.entrada,
+      easeOut: MOTION.curvas.entrada, // cubic-bezier(.2,0,0,1)
+      easeIn: MOTION.curvas.salida, // cubic-bezier(.4,0,1,1)
+      sharp: MOTION.curvas.salida,
+    },
+  },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
