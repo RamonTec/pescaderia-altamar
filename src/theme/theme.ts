@@ -319,18 +319,76 @@ export const theme = createTheme(
     MuiFab: {
       styleOverrides: { root: { borderRadius: 6, textTransform: 'none' } },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        sizeSmall: {
+          '&:not(.MuiInputBase-multiline)': {
+            height: 40,
+          },
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor: 'var(--mui-palette-background-paper)',
+          backgroundColor: theme.vars.palette.background.field,
           borderRadius: 6,
+          '&:not(.MuiInputBase-multiline)': {
+            height: 40,
+          },
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.vars.palette.inputBorder,
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.vars.palette.text.secondary,
           },
+          '&.Mui-focused': {
+            boxShadow: `0 0 0 3px ${theme.vars.palette.focusRing}`,
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: theme.vars.palette.primary.main,
+              borderWidth: '1px',
+            },
+          },
+          '&.Mui-error': {
+            boxShadow: 'none',
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: theme.vars.palette.error.main,
+            },
+          },
+          ...theme.applyStyles('dark', {
+            '&.Mui-focused': {
+              boxShadow: 'none',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#D4B27A',
+                borderWidth: '2px',
+              },
+            },
+          }),
         }),
+        input: {
+          '&.MuiInputBase-inputSizeSmall': {
+            paddingTop: 8.5,
+            paddingBottom: 8.5,
+          },
+        },
+      },
+    },
+    MuiInputAdornment: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.vars.palette.text.secondary,
+        }),
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.75rem', // 12 px
+          lineHeight: 1.4,
+          marginTop: 6, // 6 px bajo el campo
+          marginLeft: 0,
+          marginRight: 0,
+        },
       },
     },
     MuiPaper: {
