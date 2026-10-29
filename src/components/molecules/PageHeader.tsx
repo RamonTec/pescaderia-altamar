@@ -12,6 +12,7 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
+import { ESPACIO } from '@/theme/tokens'
 
 export interface PageHeaderAction {
   label: string
@@ -64,10 +65,13 @@ export function PageHeader({
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
-        alignItems: { xs: 'stretch', sm: 'center' },
+        // La acción se alinea con el título, no con el centro del bloque
+        // título + subtítulo.
+        alignItems: { xs: 'stretch', sm: 'flex-start' },
         justifyContent: 'space-between',
         gap: 1.5,
-        mb: { xs: 2.5, md: 3 },
+        // 48 px (32 en xs) hasta el bloque siguiente (spec § Espaciado).
+        mb: { xs: ESPACIO.bloquesPaginaXs, md: ESPACIO.bloquesPagina },
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
