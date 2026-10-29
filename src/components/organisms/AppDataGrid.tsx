@@ -80,7 +80,7 @@ export interface AppDataGridQuery {
 }
 
 export interface AppDataGridMobileCard {
-  /** Línea principal (`subtitle1`). */
+  /** Línea principal (`body2` 500, como `colPrincipal`). */
   primary: React.ReactNode
   /** Línea secundaria (`caption`): RIF, fecha… */
   secondary?: React.ReactNode
@@ -340,6 +340,22 @@ function defaultSearchValues<R extends GridValidRowModel>(row: R, columns: GridC
   return columns.map((c) => (row as Record<string, unknown>)[c.field])
 }
 
+/**
+ * Las columnas siempre llenan el ancho (spec § Patrones › Listado): si
+ * ninguna tiene `flex`, la primera de texto pasa a flexible con su ancho como
+ * mínimo.
+ */
+function conColumnaFlexible<R extends GridValidRowModel>(columns: GridColDef<R>[]): GridColDef<R>[] {
+  if (columns.some((c) => c.flex)) return columns
+  const i = columns.findIndex(
+    (c) => (!c.type || c.type === 'string') && c.field !== ACTIONS_FIELD
+  )
+  if (i === -1) return columns
+  return columns.map((c, j) =>
+    j === i ? { ...c, flex: 1, minWidth: c.minWidth ?? c.width ?? 160, width: undefined } : c
+  )
+}
+
 function filterRows<R extends GridValidRowModel>(
   rows: readonly R[],
   search: string,
@@ -486,6 +502,10 @@ export function AppDataGrid<R extends GridValidRowModel>({
     [server, rows, appliedSearch, columns, normalizeSearch, getSearchValues]
   )
 
+  const gridColumns = React.useMemo(() => conColumnaFlexible(columns), [columns])
+  // Sin filas no hay paginación ("0–0 de 0" nunca se ve).
+  const sinFilas = !loading && (server ? (rowCount ?? 0) : visibleRows.length) === 0
+
   const useCards = isXs && !!mobileCard
 
   const openRow = (row: R) => {
@@ -586,11 +606,12 @@ export function AppDataGrid<R extends GridValidRowModel>({
         <DataGrid<R>
           aria-label={label}
           rows={visibleRows}
-          columns={columns}
+          columns={gridColumns}
           getRowId={getRowId}
           autoHeight
-          rowHeight={52}
-          columnHeaderHeight={44}
+          rowHeight={56}
+          columnHeaderHeight={40}
+          hideFooter={sinFilas}
           disableColumnMenu
           disableRowSelectionOnClick
           loading={loading}
@@ -745,7 +766,7 @@ function MobileCards<R extends GridValidRowModel>({
       const href = getRowHref?.(row)
       const main = (
         <Box sx={{ minWidth: 0, flexGrow: 1, display: 'grid', gap: 0.25 }}>
-          <Typography variant="subtitle1" noWrap>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
             {card.primary}
           </Typography>
           {card.secondary || card.status ? (

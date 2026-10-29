@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import type { ChipProps } from '@mui/material/Chip'
 import type { GridColDef, GridValidRowModel } from '@mui/x-data-grid'
 import { EstadoChip } from '@/components/atoms/EstadoChip'
@@ -13,7 +14,10 @@ import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/fo
  * kg y tasas a la derecha con cifras tabulares (las aplica el theme), fechas
  * con `formatFecha`, estados como chips de 22 px y la columna de acciones al
  * final con un solo menú `⋮`. Se combinan con `{ ...colMonto(...), flex: 1 }`.
+ * Un dato faltante (`null`, `''`) se muestra como "—".
  */
+
+const FALTANTE = '—'
 
 type Base<R extends GridValidRowModel> = Partial<GridColDef<R>>
 
@@ -37,20 +41,75 @@ function numberCol<R extends GridValidRowModel>(
     field,
     headerName,
     minWidth: 120,
-    valueFormatter: (value: number | null | undefined) =>
-      value === null || value === undefined ? '—' : format(Number(value)),
+    valueFormatter: (value: number | string | null | undefined) =>
+      value === null || value === undefined || value === '' ? FALTANTE : format(Number(value)),
     ...extra,
   }
 }
 
-/** Monto en USD (por defecto) o Bs. */
+/**
+ * Columna principal: el nombre en `body2` 500 y, debajo en la misma celda, el
+ * identificador secundario (código, RIF) en `caption`. Flexible por defecto.
+ * La búsqueda rápida usa el valor de `field`; si el secundario también debe
+ * encontrarse, la tabla pasa `getSearchValues`.
+ */
+export function colPrincipal<R extends GridValidRowModel>({
+  field,
+  headerName,
+  secundario,
+  ...extra
+}: {
+  field: string
+  headerName: string
+  secundario?: (row: R) => string | null | undefined
+} & Base<R>): GridColDef<R> {
+  return {
+    field,
+    headerName,
+    flex: 1,
+    minWidth: 200,
+    valueFormatter: (value: string | null | undefined) => value || FALTANTE,
+    renderCell: ({ row, formattedValue }) => {
+      const sub = secundario?.(row)
+      return (
+        <Box sx={{ minWidth: 0, display: 'grid', lineHeight: 1.3 }}>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+            {formattedValue as React.ReactNode}
+          </Typography>
+          {sub ? (
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {sub}
+            </Typography>
+          ) : null}
+        </Box>
+      )
+    },
+    ...extra,
+  }
+}
+
+/**
+ * Monto en USD (por defecto) o Bs. `destacarPositivo` pone en 600 los valores
+ * mayores que 0 (saldos).
+ */
 export function colMonto<R extends GridValidRowModel>(
   field: string,
   headerName: string,
-  options: { moneda?: 'usd' | 'bs' } & Base<R> = {}
+  options: { moneda?: 'usd' | 'bs'; destacarPositivo?: boolean } & Base<R> = {}
 ): GridColDef<R> {
-  const { moneda = 'usd', ...extra } = options
-  return numberCol<R>(field, headerName, moneda === 'bs' ? formatBs : formatUsd, extra)
+  const { moneda = 'usd', destacarPositivo = false, ...extra } = options
+  return numberCol<R>(field, headerName, moneda === 'bs' ? formatBs : formatUsd, {
+    ...(destacarPositivo
+      ? {
+          renderCell: ({ value, formattedValue }) => (
+            <Box component="span" sx={{ fontWeight: Number(value) > 0 ? 600 : undefined }}>
+              {formattedValue as React.ReactNode}
+            </Box>
+          ),
+        }
+      : {}),
+    ...extra,
+  })
 }
 
 /** Peso en kg con 3 decimales. */
@@ -103,9 +162,9 @@ export function colEstado<R extends GridValidRowModel>(
     headerName,
     minWidth: 120,
     valueFormatter: (value: string | null | undefined) =>
-      value ? (estados[value]?.label ?? value) : '',
+      value ? (estados[value]?.label ?? value) : FALTANTE,
     renderCell: ({ value }) => {
-      if (!value) return null
+      if (!value) return FALTANTE
       const def = estados[String(value)]
       return <EstadoChip label={def?.label ?? String(value)} color={def?.color ?? 'default'} />
     },
