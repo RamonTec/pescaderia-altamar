@@ -27,6 +27,10 @@ import {
   type GridSortModel,
   type GridValidRowModel,
 } from '@mui/x-data-grid'
+import {
+  SegmentedControl,
+  type SegmentedControlOption,
+} from '@/components/atoms/SegmentedControl'
 import { EmptyState, type EmptyStateProps } from '@/components/molecules/EmptyState'
 import { ErrorState } from '@/components/molecules/ErrorState'
 import { ACTIONS_FIELD } from '@/components/organisms/appDataGridColumns'
@@ -88,6 +92,12 @@ export interface AppDataGridMobileCard {
   actions?: React.ReactNode
 }
 
+export interface AppDataGridEstados<T extends string = string> {
+  value: T
+  onChange: (value: T) => void
+  options: readonly SegmentedControlOption<T>[]
+}
+
 export interface AppDataGridProps<R extends GridValidRowModel> {
   /** Identificador estable: clave del tamaño de página en `localStorage`. */
   tableId: string
@@ -108,10 +118,21 @@ export interface AppDataGridProps<R extends GridValidRowModel> {
   /** `false` oculta la búsqueda rápida. */
   searchable?: boolean
   searchPlaceholder?: string
-  /** Filtros como chips, a la derecha de la búsqueda. */
+  /**
+   * Filtro de estado (≤ 5 opciones excluyentes) como `SegmentedControl` con
+   * contadores, a la derecha de la búsqueda (spec § Patrones › Filtros).
+   */
+  estados?: AppDataGridEstados
+  /** Filtros adicionales (`FilterMenuButton`), después del filtro de estado. */
   filters?: React.ReactNode
   /** Acciones de la tabla (exportar…), a la derecha de la barra. */
   actions?: React.ReactNode
+  /**
+   * Limpia los filtros de la tabla (estado y `filters`). Pasarla **solo con
+   * algún filtro activo**: entonces la tabla sin filas muestra «Sin
+   * resultados» con «Limpiar filtros» en lugar del estado vacío.
+   */
+  onClearFilters?: () => void
   /** Tarjeta para `xs`. */
   mobileCard?: (row: R) => AppDataGridMobileCard
   /** Si la fila abre una ficha: toda la fila es clicable. */
@@ -145,24 +166,46 @@ declare module '@mui/x-data-grid' {
     emptyState?: EmptyStateProps
     search?: string
     onClearSearch?: () => void
+    onClearFilters?: () => void
   }
   interface NoResultsOverlayPropsOverrides {
     search?: string
     onClearSearch?: () => void
+    onClearFilters?: () => void
   }
 }
 
-function NoResults({ search, onClearSearch }: { search?: string; onClearSearch?: () => void }) {
+interface NoResultsProps {
+  search?: string
+  onClearSearch?: () => void
+  onClearFilters?: () => void
+}
+
+function NoResults({ search, onClearSearch, onClearFilters }: NoResultsProps) {
+  const limpiarBusqueda = search && onClearSearch
   return (
     <EmptyState
       icon={<SearchOffOutlinedIcon />}
       title={search ? `Sin resultados para «${search}»` : 'Sin resultados'}
-      description="Revisa lo que escribiste o prueba con otra palabra."
+      description={
+        search
+          ? 'Revisa lo que escribiste o prueba con otra palabra.'
+          : 'Ningún registro cumple los filtros elegidos.'
+      }
       action={
-        onClearSearch ? (
-          <Button variant="outlined" onClick={onClearSearch}>
-            Limpiar búsqueda
-          </Button>
+        limpiarBusqueda || onClearFilters ? (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+            {limpiarBusqueda ? (
+              <Button variant="outlined" onClick={onClearSearch}>
+                Limpiar búsqueda
+              </Button>
+            ) : null}
+            {onClearFilters ? (
+              <Button variant="text" onClick={onClearFilters}>
+                Limpiar filtros
+              </Button>
+            ) : null}
+          </Box>
         ) : undefined
       }
     />
@@ -181,15 +224,12 @@ function NoRowsOverlay({
   emptyState,
   search,
   onClearSearch,
-}: {
-  emptyState?: EmptyStateProps
-  search?: string
-  onClearSearch?: () => void
-}) {
+  onClearFilters,
+}: NoResultsProps & { emptyState?: EmptyStateProps }) {
   return (
     <OverlayBox>
-      {search ? (
-        <NoResults search={search} onClearSearch={onClearSearch} />
+      {search || onClearFilters ? (
+        <NoResults search={search} onClearSearch={onClearSearch} onClearFilters={onClearFilters} />
       ) : emptyState ? (
         <EmptyState {...emptyState} />
       ) : null}
@@ -197,16 +237,10 @@ function NoRowsOverlay({
   )
 }
 
-function NoResultsOverlay({
-  search,
-  onClearSearch,
-}: {
-  search?: string
-  onClearSearch?: () => void
-}) {
+function NoResultsOverlay({ search, onClearSearch, onClearFilters }: NoResultsProps) {
   return (
     <OverlayBox>
-      <NoResults search={search} onClearSearch={onClearSearch} />
+      <NoResults search={search} onClearSearch={onClearSearch} onClearFilters={onClearFilters} />
     </OverlayBox>
   )
 }
@@ -345,8 +379,10 @@ export function AppDataGrid<R extends GridValidRowModel>({
   emptyState,
   searchable = true,
   searchPlaceholder = 'Buscar',
+  estados,
   filters,
   actions,
+  onClearFilters,
   mobileCard,
   getRowHref,
   hideOnMobile,
@@ -460,13 +496,13 @@ export function AppDataGrid<R extends GridValidRowModel>({
   }
 
   const toolbar =
-    searchable || filters || actions ? (
+    searchable || estados || filters || actions ? (
       <Box
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 1.25,
+          gap: 1.5,
           px: useCards ? 0 : 2,
           py: useCards ? 0 : 1.5,
         }}
@@ -488,7 +524,16 @@ export function AppDataGrid<R extends GridValidRowModel>({
                 ),
               },
             }}
-            sx={{ width: { xs: '100%', sm: 320 } }}
+            sx={{ width: { xs: '100%', sm: 340 } }}
+          />
+        ) : null}
+        {estados ? (
+          <SegmentedControl
+            aria-label={`Estado de ${label.toLowerCase()}`}
+            value={estados.value}
+            onChange={estados.onChange}
+            options={estados.options}
+            sx={{ maxWidth: '100%' }}
           />
         ) : null}
         {filters ? <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{filters}</Box> : null}
@@ -516,6 +561,7 @@ export function AppDataGrid<R extends GridValidRowModel>({
         getRowHref={getRowHref}
         toolbar={toolbar}
         onClearSearch={clearSearch}
+        onClearFilters={onClearFilters}
         onPage={(p) => handlePagination({ page: p, pageSize })}
       />
     )
@@ -573,8 +619,13 @@ export function AppDataGrid<R extends GridValidRowModel>({
           }
           slots={{ noRowsOverlay: NoRowsOverlay, noResultsOverlay: NoResultsOverlay }}
           slotProps={{
-            noRowsOverlay: { emptyState, search: appliedSearch, onClearSearch: clearSearch },
-            noResultsOverlay: { search: appliedSearch, onClearSearch: clearSearch },
+            noRowsOverlay: {
+              emptyState,
+              search: appliedSearch,
+              onClearSearch: clearSearch,
+              onClearFilters,
+            },
+            noResultsOverlay: { search: appliedSearch, onClearSearch: clearSearch, onClearFilters },
             loadingOverlay: {
               variant: visibleRows.length > 0 ? 'linear-progress' : 'skeleton',
               noRowsVariant: 'skeleton',
@@ -626,6 +677,7 @@ interface MobileCardsProps<R extends GridValidRowModel> {
   getRowHref?: (row: R) => string
   toolbar: React.ReactNode
   onClearSearch: () => void
+  onClearFilters?: () => void
   onPage: (page: number) => void
 }
 
@@ -646,6 +698,7 @@ function MobileCards<R extends GridValidRowModel>({
   getRowHref,
   toolbar,
   onClearSearch,
+  onClearFilters,
   onPage,
 }: MobileCardsProps<R>) {
   const total = server ? (rowCount ?? rows.length) : rows.length
@@ -679,8 +732,8 @@ function MobileCards<R extends GridValidRowModel>({
   } else if (visible.length === 0) {
     body = (
       <Paper component="li">
-        {search ? (
-          <NoResults search={search} onClearSearch={onClearSearch} />
+        {search || onClearFilters ? (
+          <NoResults search={search} onClearSearch={onClearSearch} onClearFilters={onClearFilters} />
         ) : (
           <EmptyState {...emptyState} />
         )}
