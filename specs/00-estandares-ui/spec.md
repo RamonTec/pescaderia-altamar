@@ -61,7 +61,7 @@ Ningún componente escribe hex, milisegundos ni sombras sueltas.
 | Divisor en modal | encabezado/cuerpo/pie del modal, secciones dentro de lo elevado | `#E4E1D8` | `#2C3B55` | `dialogDivider` (nuevo) |
 | Scrim | detrás del modal y del drawer temporal | `rgba(11,27,51,.55)` | `rgba(0,0,0,.6)` *(DS-8)* | `scrim` (nuevo) |
 
-**Mecanismo**: en el esquema oscuro, MUI aclara cada `Paper` con una capa blanca según su elevación (`--Paper-overlay`, que sale de `overlays` del esquema). Por eso el `Dialog` (elevación 24) se ve más claro que su pie y sus campos. La Fase 4 **anula esa capa**: el `Paper` no lleva `background-image` y el esquema oscuro no define overlays. La superficie elevada se pinta explícitamente con `background.elevated`. La tarea 97 elige el mecanismo concreto según la versión instalada y lo documenta en `theme.ts`.
+**Mecanismo**: en el esquema oscuro, MUI aclara cada `Paper` con una capa blanca según su elevación (`--Paper-overlay`, que sale de `overlays` del esquema). Por eso el `Dialog` (elevación 24) se ve más claro que su pie y sus campos. La Fase 4 **anula esa capa**: en `@mui/material` 9.4.0 se combinó `overlays: Array(25).fill('none')` en `colorSchemes.dark` (neutralizando todas las variables `--mui-overlays-*`) con `backgroundImage: 'none'` en `MuiPaper.styleOverrides.root`. La superficie elevada se pinta explícitamente con `background.elevated` (`#1A2A45` en oscuro, `#FFFFFF` en claro) junto con las sombras semánticas de `tokens.ts` (`SOMBRAS.elevacion1` / `SOMBRAS.elevacion2`) y borde `dialogDivider` (`#2C3B55`). Documentado en `theme.ts` y aplicado a `MuiDialog`, `MuiMenu`, `MuiPopover`, `MuiAutocomplete`, `MuiDrawer` temporal y `MuiBackdrop` (`scrim`).
 
 Regla del modal: el encabezado, el cuerpo y el pie usan **la misma superficie**, separados solo por un divisor `dialogDivider`. Ningún hijo de un modal pinta `background.paper` encima de lo elevado.
 
@@ -246,17 +246,84 @@ Hay un solo componente, `molecules/Fallback` (nuevo): ícono en un círculo de 4
 
 ### Catálogo e inventario
 
-- **Inventario**: hay ~150 componentes en `src/components`. La tarea 94 llena la tabla «Unificación» con cada duplicado y su destino. Duplicados ya detectados:
+- **Inventario**: hay ~150 componentes en `src/components`. La tarea 94 llena la tabla «Unificación» con cada duplicado y su destino:
 
-| Duplicado | Destino |
-|---|---|
-| Chips de filtro con contador (catálogos, proveedores, clientes, cartera) y `ToggleButtonGroup` de filtros (notas de crédito, pedidos, tasas) y de opciones (Contado/Crédito, USD/Bs, BCV/Paralela, Tipo de persona; 21 archivos) | `SegmentedControl` |
-| `EstadoChip` de columnas, `StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip`, `SenalFacturaChip`/`NivelSenalChip` | `EstadoChip` base |
-| `CarteraResumenCards` y `KpiCard` | `KpiCard` con variante seleccionable |
-| `EmptyState`, `ErrorState`, `CotizacionNoDisponible`, `PagePlaceholder` | `Fallback` |
-| `PageLoader`, `DashboardSkeletons`, `CarteraSeccionSkeleton` | `atoms/Skeletons` |
-| `CompraItemsFieldArray`, `PedidoItemsFieldArray`, `CotizacionItemsFieldArray`, `SalidasProcesoFieldArray` | `LineasEditor` (la lógica de cada dominio se queda en su archivo) |
-| `FichaSeccion`, `ChartCard` y `Paper` sueltos como sección | `FichaSeccion` / `ChartCard` (sin `Paper` suelto) |
+#### Unificación
+
+| Componente | Rol | Duplicado de… | Destino | Tarea |
+|---|---|---|---|---|
+| **Átomos** | | | | |
+| `atoms/BrandMark` | Dominio / marca | — | Se queda (se actualiza con isotipo provisional Puerto) | 138 |
+| `atoms/ColorModeToggle` | Primitivo | — | Se queda | 99 |
+| `atoms/EstadoCarteraChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 |
+| `atoms/NavigationProgress` | Primitivo / carga | — | Se queda (ajustar retardo a 100 ms y filete de latón) | 122, 137 |
+| `atoms/NumberField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
+| `atoms/PageLoader` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 |
+| `atoms/PasswordField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
+| `atoms/PeneroStripes` | Marca (obsoleto) | `FileteLaton` | Se retira (reemplazado por `FileteLaton`) | 140 |
+| `atoms/PhoneField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
+| `atoms/RifCiField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
+| `atoms/SenalFacturaChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 |
+| **Moléculas** | | | | |
+| `molecules/CadenaTrazabilidad` | Patrón / dominio | — | Se queda (superficie nivel 0) | 154 |
+| `molecules/CarteraIndicador` | Dominio | — | Se queda | 153 |
+| `molecules/CarteraResumenCards` | Patrón / dominio | `KpiCard` | Se apoya en `KpiCard` seleccionable | 120, 153 |
+| `molecules/ChartCard` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, unifica tarjetas de gráfico) | 121 |
+| `molecules/ChartLegendTable` | Patrón | — | Se queda | 121 |
+| `molecules/ClienteFormFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 |
+| `molecules/CompraItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
+| `molecules/ConfirmDialog` | Patrón | — | Se queda (superficie elevada) | 116 |
+| `molecules/CopyableText` | Primitivo | — | Se queda | 110 |
+| `molecules/CotizacionEstadoChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 152 |
+| `molecules/CotizacionItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 152 |
+| `molecules/CreditoResumen` | Dominio | `FichaSeccion` | Se queda (superficie normal, texto sin latón) | 139, 153 |
+| `molecules/DiasCreditoField` | Primitivo / dominio | — | Se queda | 105 |
+| `molecules/DocumentosRequeridos` | Dominio | — | Se queda (lista de filas, sin cajas punteadas anidadas) | 155 |
+| `molecules/DocumentoUpload` | Patrón | — | Se queda (zona sin cajas punteadas anidadas) | 155 |
+| `molecules/EmptyState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 |
+| `molecules/ErrorState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 |
+| `molecules/FichaHeader` | Patrón | — | Se queda (vuelta en `text.secondary`, nombre `h5`) | 120 |
+| `molecules/FichaSeccion` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, reemplaza a `Paper` suelto) | 120 |
+| `molecules/FormSection` | Patrón | — | Se queda (encabezado `sectionTitle` + divisor) | 114 |
+| `molecules/IvaVentaSwitch` | Dominio | — | Se queda | 150 |
+| `molecules/KpiCard` | Patrón | `CarteraResumenCards` | Se queda (agrega variante seleccionable) | 120 |
+| `molecules/ListaResumen` | Patrón | — | Se queda | 120 |
+| `molecules/LoteAutocomplete` | Primitivo / dominio | — | Se queda | 105 |
+| `molecules/LoteChip` | Dominio | `EstadoChip` | Se queda | 104 |
+| `molecules/MetodoPagoCard` | Dominio | — | Se queda | 150 |
+| `molecules/MetodosPagoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 |
+| `molecules/PageHeader` | Patrón | — | Se queda (título Fraunces `h4`) | 113 |
+| `molecules/PedidoItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
+| `molecules/ProveedorIdentificacionFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 |
+| `molecules/RangoFechasSelector` | Patrón | — | Se queda (se apoya en `DateField`) | 106, 118 |
+| `molecules/RepresentantesLegalesFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 |
+| `molecules/RowActionsMenu` | Patrón | — | Se queda (gatillo de 32 px, destructivo en `error` con `ConfirmDialog`) | 110 |
+| `molecules/SalidasProcesoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
+| `molecules/StatusChips` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 147 |
+| `molecules/TasaChip` | Dominio | — | Se queda | 148 |
+| `molecules/TasaIndicador` | Dominio | — | Se queda | 148 |
+| `molecules/TotalesVenta` | Dominio | — | Se queda | 119 |
+| **Plantillas (Templates)** | | | | |
+| `templates/AppShell` | Patrón / plantilla | — | Se queda (quitar `ActiveStripes`, márgenes 16/24/64, 48 px entre bloques) | 136 |
+| `templates/AuthLayout` | Patrón / plantilla | — | Se queda | 147 |
+| `templates/DashboardTemplate` | Patrón / plantilla | — | Se queda | 148 |
+| `templates/DocumentoPublicoLayout` | Patrón / plantilla | — | Se queda (`FileteLaton`) | 136, 152 |
+| **Organismos genéricos, carga, feedback y fallbacks** | | | | |
+| `organisms/AppDataGrid` y `appDataGridColumns` | Patrón | — | Se queda (búsqueda 340 px, `SegmentedControl`, 56 px, `rowDivider`, celdas centradas) | 101, 111, 112, 127 |
+| `organisms/AppDialog` | Patrón | — | Se queda (superficie elevada `#1A2A45`, sin overlay, `dialogDivider`, `lg`, pending, error) | 97, 116, 126 |
+| `organisms/BarLineChart` | Patrón | — | Se queda | 121 |
+| `organisms/BrandLoader` | Carga | `PeneroStripes` | Se queda (`FileteLaton`, sin vaivén, tokens de tiempos) | 125, 137 |
+| `organisms/DashboardSkeletons` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 |
+| `organisms/NotificationProvider` | Feedback | — | Se queda (toast nuevo, elevación 1, action) | 108, 124 |
+| `organisms/PagePlaceholder` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` | 128 |
+| `organisms/CotizacionNoDisponible` | Fallback / dominio | `Fallback` | Se apoya en `molecules/Fallback` | 128, 152 |
+| `organisms/TasaSelector` | Dominio | — | Se queda | 148 |
+| **Patrones duplicados en pantallas** | | | | |
+| Chips de filtro con contador (`catalogos`, `proveedores`, `clientes`, `cartera`) y `ToggleButtonGroup` de filtros (`notas-credito`, `pedidos`, `tasas`) y de opciones (Contado/Crédito, USD/Bs, BCV/Paralela, Tipo de persona; 21 archivos en `src/app/(protected)/**/*-screen.tsx`) | Patrón | `SegmentedControl` | Se retiran y se unifican en `atoms/SegmentedControl` | 103, 147, 149, 150 |
+| **Organismos específicos de dominio (sin duplicación)** | | | | |
+| Diálogos y formularios de dominio (`ClienteForm`, `CompraForm`, `GastoForm`, `PedidoForm`, `CotizacionForm`, `ProductoForm`, `ProcesamientoForm`, `NotaCreditoForm`, `PagoProveedorDialog`, `RegistrarPagoDialog`, `BloqueoDialog`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDialog`, `FormGrid`, `FormSection`, `SubmitButton`) | 150, 151 |
+| Tablas de dominio (`ClientesTable`, `ComprasTable`, `CotizacionesTable`, `GastosTable`, `PedidosTable`, `ProcesamientosTable`, `ProductosTable`, `ProveedoresTable`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDataGrid` con `SegmentedControl` y sin chips normales) | 147, 149 |
+| Paneles, gráficos y listas de dominio (`AgingCarteraChart`, `AntiguedadLotesChart`, `FlujoCajaChart`, `TopClientesPareto`, `TopDeudoresList`, `FacturaTotalesCard`, `LoteTimeline`, etc.) | Dominio | — | Se quedan (superficies nivel 0, `sectionTitle`, tipografía tabular) | 148, 153, 154 |
 
 - **`/estandares` es el catálogo vivo**, con una sección por bloque (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks). Cada componente aparece en sus estados y en ambos modos lado a lado. Un componente compartido nuevo **no se da por hecho** hasta estar en el catálogo.
 

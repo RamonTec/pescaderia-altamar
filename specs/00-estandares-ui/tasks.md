@@ -377,6 +377,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - **Hecho 2026-10-29** (rama `docs/design-system`): el usuario aprobó las ocho propuestas sin cambios; tabla de `spec.md` actualizada.
 94. **Inventario de componentes**: recorrer `src/components/**` (~150 archivos) y `src/app/**/*-screen.tsx`, y llenar en `spec.md` una tabla «Unificación» bajo § «Catálogo e inventario». Columnas: componente, rol (primitivo / patrón / dominio), duplicado de…, destino (se queda / se apoya en X / se retira) y tarea de la Fase 4 que lo resuelve. Parte de los duplicados ya listados en la spec.
    - Hecho cuando: todo componente de `atoms`, `molecules` y `templates`, más los `organisms` genéricos, figura en la tabla. Los de dominio sin duplicado pueden agruparse en una fila.
+   - **Hecho 2026-10-29**: tabla «Unificación» completa en `spec.md` con todos los componentes de `atoms`, `molecules`, `templates`, organismos genéricos y patrones de pantalla agrupados por categoría y asignados a su tarea de destino.
 95. **`src/theme/tokens.ts`** (nuevo):
    - `MOTION`: duraciones `rapida` 120, `media` 200, `lenta` 280 y `salida` 180; curvas `entrada` y `salida`;
    - `TIEMPOS`: `LOADER_RETARDO_MS` 150, `LOADER_MINIMO_MS` 400, `NAV_RETARDO_MS` 100, `TOAST_MS` 5000, `RESALTADO_MS` 2000;
@@ -385,6 +386,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    En `theme.ts`, `transitions.duration` y `transitions.easing` se alimentan de `MOTION`, con el mapeo comentado (`shortest`/`shorter` → rápida, `short`/`standard` → media, `enteringScreen`/`complex` → lenta, `leavingScreen` → salida).
    - Hecho cuando: `tokens.ts` compila sin `any`, `theme.transitions.duration.shortest === 120` y ningún componente nuevo de la Fase 4 escribe milisegundos.
+   - **Hecho 2026-10-29**: `src/theme/tokens.ts` creado y tipado; `theme.transitions` configurado con `MOTION` y mapeo documentado (`shortest: 120`).
 96. **`theme.ts` — tokens de superficie y color** (aumento de módulos, claro y oscuro, valores de `spec.md` § «Superficies por nivel» y «Color y jerarquía»):
    - `background.elevated` y `background.field`;
    - `inputBorder` oscuro → `#5E7194`;
@@ -396,12 +398,14 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Los valores *(DS-8)* llevan un comentario `// DS-8`.
    - Hecho cuando: cada token existe como variable CSS (`--mui-palette-background-elevated`, `--mui-palette-segmented-track`, etc.) en ambos esquemas, tipa sin `any`, y los hex nuevos viven solo en `theme.ts`.
+   - **Hecho 2026-10-29**: aumento de módulos completo en `theme.ts` para ambos esquemas. CSS variables generadas para superficies, divisores, controles de segmentado y tonos semánticos con opacos para dark mode comentados con `DS-8`.
 97. **Superficies elevadas sin la capa de MUI**. Leer en `node_modules/@mui/material/styles/` cómo se generan `overlays` y `--Paper-overlay` en la versión instalada, y anularlos: con `overlays` vacío o `'none'` en el esquema oscuro, o con `backgroundImage: 'none'` en `MuiPaper`. Documentar el mecanismo elegido en un comentario de `theme.ts` y en `spec.md` § «Superficies por nivel». Después:
    - `MuiDialog` `paper`: `background.elevated`, `SOMBRAS.elevacion2` y borde `dialogDivider` en oscuro;
    - `MuiBackdrop`: `scrim`;
    - `MuiMenu`, `MuiPopover` y `MuiAutocomplete` `paper`: `background.elevated` + `elevacion1` (reemplaza `shadows[8]`);
    - `MuiDrawer` temporal: `elevacion2`.
    - Hecho cuando: en oscuro, con las herramientas del navegador, el `Paper` del modal no tiene `background-image`, y el encabezado, el cuerpo y el pie dan `#1A2A45`. Un menú abierto sobre la página da `#1A2A45`.
+   - **Hecho 2026-10-29**: anulada capa automática de elevación con `overlays: Array(25).fill('none')` en dark mode y `backgroundImage: 'none'` en `MuiPaper.styleOverrides.root`. Superficies elevadas (`MuiDialog`, `MuiMenu`, `MuiPopover`, `MuiAutocomplete`, `MuiDrawer` modal) configuradas con `background.elevated` (`#1A2A45` en oscuro) y sombras de `tokens.ts`. Scrim para `MuiBackdrop`. Mecanismo documentado en `theme.ts` y `spec.md`.
 98. **Campo en el theme** (`MuiOutlinedInput`, `MuiInputBase`, `MuiFormHelperText`):
    - fondo `background.field`, borde `inputBorder`, hover `text.secondary`;
    - foco: en claro, borde `primary` + anillo `focusRing` de 3 px; en oscuro, borde `#D4B27A` de 2 px;
@@ -412,6 +416,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Se reemplaza `backgroundColor: 'var(--mui-palette-background-paper)'` (línea ~220).
    - Hecho cuando: en oscuro, un campo dentro del modal se ve más oscuro que la superficie y con borde visible (≥ 3:1, se verifica en 159), y no «hueco».
+   - **Hecho 2026-10-29**: `MuiOutlinedInput` actualizado con `background.field`, borde `inputBorder`, hover `text.secondary`, foco y error; alto 40px en `size="small"` sin limitar textareas; `MuiFormHelperText` a 6px y `MuiInputAdornment` en `text.secondary`.
 99. **Foco y jerarquía de color en el theme**:
    - `MuiButtonBase` `.Mui-focusVisible` con `focusRing` (reemplaza el contorno de `primary`, líneas ~205–212);
    - `MuiButton`: `variant="text"` y `variant="outlined"` con `color="primary"` pasan a `text.primary`, con borde `outlineBorder` en `outlined` (variants del theme, sin tocar consumidores); `contained` sin cambio;
@@ -420,8 +425,10 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - `MuiLink` en `text.primary` con subrayado;
    - `MuiChip` clicable o `filled` con `color="primary"` en neutro.
    - Hecho cuando: en oscuro, el único latón visible en `/clientes` y en un modal abierto es el botón principal y el foco. Comprobarlo con `rg "color=\"primary\"" src/components` sin cambiar nada de esos archivos.
+   - **Hecho 2026-10-29**: foco visible con `focusRing`, botones text y outlined en `text.primary`, tabs, switch, checkbox, radio, link en `text.primary`, y chip primary en neutro. Verificado con `rg` que el único botón con latón en oscuro es el primario `contained`.
 100. **Tipografía**: agregar las variantes `label` (13/1.4/500) y `sectionTitle` (16/1.4/600) en `typography`, con aumento de `TypographyVariants`, `TypographyVariantsOptions` y `TypographyPropsVariantOverrides`. El encabezado de `MuiTableCell` y `MuiDataGrid` pasa a leer `theme.typography.subtitle2` en lugar de repetir `0.75rem`/`0.04em` (líneas ~306–340).
    - Hecho cuando: `<Typography variant="label">` y `variant="sectionTitle"` tipan y miden lo indicado, y `rg "0\\.04em" src/theme/theme.ts` solo encuentra `subtitle2`.
+   - **Hecho 2026-10-29**: variantes `label` y `sectionTitle` creadas y tipadas; encabezados de tabla migrados a `...theme.typography.subtitle2`; `rg "0\\.04em"` sólo encuentra `subtitle2`.
 101. **Tabla en el theme** (`MuiDataGrid`):
    - encabezado de 40 px con el fondo `background.subtle` también en el relleno a la derecha (`.MuiDataGrid-filler`, `--DataGrid-containerBackground`, encabezado vacío);
    - celdas con `display: flex; align-items: center`;
@@ -430,6 +437,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - sin fondo de fila seleccionada;
    - icono de orden sin círculo (botón del encabezado transparente, `fontSize="small"`).
    - Hecho cuando: en `/estandares` (sección existente de tablas) el encabezado llega al borde derecho y la flecha no tiene fondo blanco.
+   - **Hecho 2026-10-29**: `MuiDataGrid` con encabezado 40px extendido al filler, celdas centradas, divisores `rowDivider`, hover suave, sin selección de fila por fondo e icono de orden sin círculo ni fondo blanco.
 102. **`src/app/globals.css` y skeleton**:
    - keyframe `puerto-highlight` (fondo `var(--mui-palette-highlight)` → transparente);
    - regla global de `prefers-reduced-motion: reduce` (animaciones y transiciones a 0,01 ms, una iteración);
@@ -438,6 +446,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Los keyframes `penero-*` se quedan hasta la tarea 140.
    - Hecho cuando: con «reducir movimiento» del sistema activado, el skeleton y la barra de navegación quedan quietos.
+   - **Hecho 2026-10-29**: keyframe `puerto-highlight` y regla global `prefers-reduced-motion: reduce` agregados a `globals.css`; `MuiSkeleton` configurado con pulso y fondo `background.subtle`.
 
 ### Fase 4b — Primitivos
 
