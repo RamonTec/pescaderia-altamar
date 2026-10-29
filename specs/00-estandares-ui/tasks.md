@@ -457,6 +457,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - El contador va en `caption` y `text.secondary`, y se anuncia en el nombre accesible ("Activos, 12").
    - En `xs` hace scroll horizontal dentro de su contenedor, sin desbordar la página.
    - Hecho cuando: compila, en claro y oscuro la opción elegida se distingue sin depender solo del color (por peso y sombra) y el teclado funciona.
+   - **Hecho 2026-10-29**: Creado `src/components/atoms/SegmentedControl.tsx` con tokens `palette.segmented`, selección distinguible en ambos modos, navegación accesible con flechas y scroll en `xs`.
 104. **`src/components/atoms/EstadoChip.tsx`** (nuevo):
    - `tono` (`error` \| `warning` \| `success` \| `neutral`), `label`, `tooltip?`;
    - 22 px, radio 4, punto de 6 px (`dot`), texto 12/600, colores `soft`/`onSoft`.
@@ -469,6 +470,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    `LoteChip` y `TasaChip` son etiquetas de identidad y no de estado: pasan a `neutral` sin punto.
    - Hecho cuando: `rg "variant=\"soft\"" src/components src/app` solo encuentra `EstadoChip`, `LoteChip` y `TasaChip`.
+   - **Hecho 2026-10-29**: Creado `src/components/atoms/EstadoChip.tsx` (22 px, dot 6 px, tonos semánticos con soft/onSoft). Rebasados `appDataGridColumns.tsx`, `StatusChips.tsx` (retirado «Activo»), `EstadoCarteraChip.tsx`, `CotizacionEstadoChip.tsx`, `SenalFacturaChip.tsx`, `LoteChip.tsx` y `TasaChip.tsx`. Verificado que solo tres componentes en todo el codebase usan `variant="soft"`.
 105. **Campo con etiqueta fija arriba (DS-1)**, en `theme.ts`:
    - variante A (propuesta):
      - `MuiInputLabel`: `defaultProps.shrink: true`, estática (`position: relative`, `transform: none`), en `label` y `text.primary`, con 6 px hasta el campo;
@@ -479,6 +481,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
      Verificar `NumberField`, `PhoneField`, `RifCiField`, `Select`, `Autocomplete`, `TasaSelector` y los adornos `$`/`kg`.
    - variante B (si DS-1 se rechaza): se mantiene la etiqueta flotante, pero los campos con adorno quedan con la etiqueta siempre encogida, para que «Costo/kg» se comporte igual que el resto.
    - Hecho cuando: en `/estandares` y en un `ClienteForm` abierto, todas las etiquetas quedan arriba y alineadas, «Costo/kg $» igual que las demás, y sin cambios en los archivos consumidores.
+   - **Hecho 2026-10-29**: Configurada etiqueta estática arriba (DS-1) en `theme.ts` con `shrink: true`, sin hendidura en `MuiOutlinedInput` (`notched: false`, sin `legend`), asterisco en `text.secondary` y márgenes normalizados.
 106. **`src/components/atoms/DateField.tsx`** (nuevo), sobre `DatePicker` de `@mui/x-date-pickers` (ya en `package.json`):
    - `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`, formato `DD/MM/YYYY`;
    - `minDate`/`maxDate` en ISO, `error`, `helperText`, `size="small"` y ancho mínimo de 160 px;
@@ -486,8 +489,10 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Mover el `LocalizationProvider` (dayjs, locale `es`) de `molecules/RangoFechasSelector.tsx` a un proveedor global en `src/theme/ThemeRegistry.tsx` (o `src/app/layout.tsx`), y quitarlo de `RangoFechasSelector`.
    - Hecho cuando: el campo muestra `29/10/2026`, devuelve `'2026-10-29'` y `RangoFechasSelector` sigue funcionando.
+   - **Hecho 2026-10-29**: Creado `src/components/atoms/DateField.tsx` (formato `DD/MM/YYYY`, valor ISO, 40 px, compatible con RHF). Movido `LocalizationProvider` (dayjs, es) a nivel global en `ThemeRegistry.tsx`.
 107. **`src/components/atoms/SubmitButton.tsx`** (nuevo): `Button` `contained` con `type="submit"` por defecto, `pending`, `pendingLabel` (por defecto "Guardando…") y `loading={pending}` + `loadingPosition="start"`. Mide su ancho en reposo y lo fija como `minWidth` mientras está `pending`, para que no salte. Si se le pasa `onClick`, ignora los clics mientras está `pending`.
    - Hecho cuando: al pasar a `pending`, el botón no cambia de ancho y muestra spinner + "Guardando…".
+   - **Hecho 2026-10-29**: Creado `src/components/atoms/SubmitButton.tsx` con fijación dinámica de `minWidth` para prevenir saltos de ancho en estado `pending`, bloqueo de clics y spinner + texto en curso.
 108. **Toast** (`organisms/NotificationProvider.tsx`, `lib/useNotify.ts`):
    - `notify.success/error/info(msg, opciones?)` con `opciones.action` (`{ label, href } | { label, onClick }`); las 97 llamadas actuales con un solo string no cambian;
    - contenido propio en lugar de `Alert filled`: fondo `brand.midnight`, texto `brand.onMidnight`, ícono de check `success.soft` (error: ícono `error` en su tono claro), acción en `brand.brass` como botón de texto, cerrar con `aria-label`;
@@ -496,17 +501,20 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - abajo a la derecha, y abajo al centro en `xs`, por encima del `Fab` del `PageHeader`;
    - la cola actual se conserva.
    - Hecho cuando: un toast con `action: { label: 'Ver', href }` navega y cierra, y el toast se ve igual en ambos modos.
+   - **Hecho 2026-10-29**: Rediseñado Toast en `NotificationProvider.tsx` y `useNotify.ts` con fondo `brand.midnight`, borde `dialogDivider` en oscuro, iconos semánticos claros, botón de acción en latón (`brand.brass`), botón cerrar accesible, roles `status`/`alert`, y Slide desde abajo a 80 px en `xs` (sobre el Fab).
 109. **`src/components/molecules/FilterMenuButton.tsx`** (nuevo):
    - props `label` ("Tipo"), `value`, `onChange`, `options`, `multiple?` y `todosLabel` ("todos");
    - el botón `outlined` muestra "Tipo: todos" o "Tipo: Crudo", y "Tipo: 2" si hay varias opciones elegidas;
    - el menú tiene `elevacion1`, `Checkbox` o `Radio` según `multiple`, y "Limpiar".
    - Hecho cuando: compila y funciona con teclado.
+   - **Hecho 2026-10-29**: Creado `src/components/molecules/FilterMenuButton.tsx` con botón `outlined`, soporte para selección única (Radio) y múltiple (Checkbox), contador en etiqueta, elevación 1 y acción "Limpiar".
 110. **`molecules/RowActionsMenu.tsx`**:
    - disparador `IconButton` de 32 px (44 px de área en `xs`);
    - las opciones `destructive` van en `error.main` dentro del menú, separadas por un divisor;
    - el menú tiene `elevacion1`;
    - `pending` sin cambio.
    - Hecho cuando: las tablas existentes muestran el `⋮` de 32 px sin cambios en los consumidores.
+   - **Hecho 2026-10-29**: Actualizado `src/components/molecules/RowActionsMenu.tsx` con disparador de 32 px (44 px en `xs`), elevación 1 y opciones `destructive` en `error.main` agrupadas y separadas por `Divider`.
 
 ### Fase 4c — Patrones
 
