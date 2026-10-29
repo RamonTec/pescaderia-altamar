@@ -673,6 +673,46 @@ export const theme = createTheme(
           borderRadius: 6,
           fontVariantNumeric: 'tabular-nums',
           '--DataGrid-containerBackground': theme.vars.palette.background.subtle,
+          '& .MuiDataGrid-filler': {
+            backgroundColor: theme.vars.palette.background.subtle,
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: theme.vars.palette.background.subtle,
+            minHeight: '40px !important',
+            maxHeight: '40px !important',
+            lineHeight: '40px !important',
+          },
+          '& .MuiDataGrid-columnHeader': {
+            backgroundColor: theme.vars.palette.background.subtle,
+            minHeight: '40px !important',
+            maxHeight: '40px !important',
+          },
+          '& .MuiDataGrid-cell': {
+            display: 'flex',
+            alignItems: 'center',
+            borderColor: theme.vars.palette.rowDivider,
+          },
+          '& .MuiDataGrid-withBorderColor': {
+            borderColor: theme.vars.palette.rowDivider,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: theme.vars.palette.background.subtle,
+          },
+          '& .MuiDataGrid-row.Mui-selected': {
+            backgroundColor: 'transparent',
+            '&:hover': {
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
+          },
+          '& .MuiDataGrid-iconButtonContainer .MuiIconButton-root': {
+            backgroundColor: 'transparent',
+            '&:hover': {
+              backgroundColor: 'transparent',
+            },
+          },
+          '& .MuiDataGrid-sortIcon': {
+            fontSize: '1rem',
+          },
         }),
         columnHeaderTitle: ({ theme }) => ({
           ...theme.typography.subtitle2,
@@ -680,10 +720,29 @@ export const theme = createTheme(
         }),
         columnHeader: ({ theme }) => ({
           backgroundColor: theme.vars.palette.background.subtle,
-          minHeight: 44,
-          maxHeight: 44,
+          minHeight: 40,
+          maxHeight: 40,
         }),
         columnSeparator: { display: 'none' },
+        cell: ({ theme }) => ({
+          display: 'flex',
+          alignItems: 'center',
+          borderColor: theme.vars.palette.rowDivider,
+        }),
+        row: ({ theme }) => ({
+          '&:hover': {
+            backgroundColor: theme.vars.palette.background.subtle,
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'transparent',
+            '&:hover': {
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
+          },
+        }),
+        filler: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.subtle,
+        }),
       },
     },
     MuiSvgIcon: {
