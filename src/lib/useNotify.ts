@@ -1,3 +1,10 @@
 'use client'
 
-export { NotificationProvider, useNotify, type NotifyApi } from '@/components/organisms/NotificationProvider'
+export {
+  NotificationProvider,
+  useNotify,
+  type NotifyApi,
+  type NotifyOptions,
+  type ToastAction,
+  type NotifySeverity,
+} from '@/components/organisms/NotificationProvider'
