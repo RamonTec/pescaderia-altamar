@@ -383,7 +383,59 @@ export const theme = createTheme(
         },
       },
     },
+    MuiInputLabel: {
+      defaultProps: { shrink: true },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          position: 'static',
+          transform: 'none !important',
+          marginBottom: 6,
+          ...theme.typography.label,
+          color: theme.vars.palette.text.primary,
+          pointerEvents: 'auto',
+          cursor: 'pointer',
+          '&.Mui-focused': {
+            color: theme.vars.palette.text.primary,
+          },
+          '&.Mui-error': {
+            color: theme.vars.palette.error.main,
+          },
+          '&.Mui-disabled': {
+            color: theme.vars.palette.text.secondary,
+          },
+          '& .MuiInputLabel-asterisk': {
+            color: theme.vars.palette.text.secondary,
+          },
+        }),
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '& .MuiFormLabel-asterisk': {
+            color: theme.vars.palette.text.secondary,
+          },
+        }),
+      },
+    },
+    MuiTextField: {
+      defaultProps: { margin: 'none' },
+      styleOverrides: {
+        root: {
+          margin: 0,
+        },
+      },
+    },
+    MuiFormControl: {
+      defaultProps: { margin: 'none' },
+      styleOverrides: {
+        root: {
+          margin: 0,
+        },
+      },
+    },
     MuiOutlinedInput: {
+      defaultProps: { notched: false },
       styleOverrides: {
         root: ({ theme }) => ({
           backgroundColor: theme.vars.palette.background.field,
@@ -393,6 +445,10 @@ export const theme = createTheme(
           },
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.vars.palette.inputBorder,
+            top: 0,
+            '& legend': {
+              display: 'none',
+            },
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.vars.palette.text.secondary,
