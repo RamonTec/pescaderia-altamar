@@ -118,13 +118,13 @@
 - [x] `prefers-reduced-motion` deja todo quieto (regla global + componentes). Skeleton con pulso (tarea 102).
 
 ### Primitivos (4b)
-- [ ] `SegmentedControl` con contador, teclado y selección distinguible sin depender solo del color.
-- [ ] `EstadoChip` (4 tonos con punto) es la base de `StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip` y `SenalFacturaChip`/`NivelSenalChip`. «Activo» ya no se muestra.
-- [ ] Etiquetas de campo según DS-1 (fijas arriba, o variante B anotada), sin cambios en los consumidores. Los adornos no desalinean la etiqueta.
-- [ ] `DateField` en `dd/mm/aaaa` con valor ISO; `LocalizationProvider` global.
-- [ ] `SubmitButton` conserva el ancho, muestra el verbo en curso e ignora el doble clic.
-- [ ] Toast nuevo (aspecto del lienzo, `action`, `role` correcto), compatible con las llamadas existentes.
-- [ ] `FilterMenuButton` y `RowActionsMenu` (32 px, destructivas dentro del menú) operables con teclado.
+- [x] `SegmentedControl` con contador, teclado y selección distinguible sin depender solo del color.
+- [x] `EstadoChip` (4 tonos con punto) es la base de `StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip` y `SenalFacturaChip`/`NivelSenalChip`. «Activo» ya no se muestra.
+- [x] Etiquetas de campo según DS-1 (fijas arriba, o variante B anotada), sin cambios en los consumidores. Los adornos no desalinean la etiqueta.
+- [x] `DateField` en `dd/mm/aaaa` con valor ISO; `LocalizationProvider` global.
+- [x] `SubmitButton` conserva el ancho, muestra el verbo en curso e ignora el doble clic.
+- [x] Toast nuevo (aspecto del lienzo, `action`, `role` correcto), compatible con las llamadas existentes.
+- [x] `FilterMenuButton` y `RowActionsMenu` (32 px, destructivas dentro del menú) operables con teclado.
 
 ### Patrones (4c)
 - [ ] `AppDataGrid`: búsqueda de 340 px, `estados`, filas de 56 px, columnas que llenan el ancho, `colPrincipal`, paginación oculta en vacío.

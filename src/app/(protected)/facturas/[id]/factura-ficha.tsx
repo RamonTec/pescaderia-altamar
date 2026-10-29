@@ -4,10 +4,9 @@ import * as React from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import Fade from '@mui/material/Fade'
 import Link from '@mui/material/Link'
-import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined'
@@ -83,7 +82,7 @@ export function FacturaFicha({ detalle, hoy, diasAviso, ivaPctConfig }: FacturaF
       ),
     ].join(' · '),
     amount: formatUsd(n.total_usd),
-    status: n.estado === 'anulada' ? <Chip size="small" variant="soft" label="Anulada" /> : undefined,
+    status: n.estado === 'anulada' ? <EstadoChip tono="neutral" label="Anulada" /> : undefined,
   }))
 
   const pagos: FilaResumen[] = detalle.pagos.map((p) => ({
@@ -127,14 +126,14 @@ export function FacturaFicha({ detalle, hoy, diasAviso, ivaPctConfig }: FacturaF
               <span>Vence {formatFecha(factura.fecha_vencimiento)}</span>
               <EstadoCarteraChip estado={estado} />
               {correcciones.length > 0 ? (
-                <Chip size="small" variant="soft" color="info" label={`Corregida · ${correcciones.length}`} />
+                <EstadoChip tono="neutral" label={`Corregida · ${correcciones.length}`} />
               ) : null}
               {contrato?.desactualizado ? (
-                <Tooltip
-                  title={`El contrato ${numeroContrato(contrato.numero)} es anterior a una corrección: anúlalo y genera otro desde Cobros o Contratos`}
-                >
-                  <Chip size="small" variant="soft" color="warning" label="Contrato desactualizado" tabIndex={0} />
-                </Tooltip>
+                <EstadoChip
+                  tono="warning"
+                  label="Contrato desactualizado"
+                  tooltip={`El contrato ${numeroContrato(contrato.numero)} es anterior a una corrección: anúlalo y genera otro desde Cobros o Contratos`}
+                />
               ) : null}
             </>
           }

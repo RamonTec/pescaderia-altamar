@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
@@ -119,12 +119,10 @@ export function HistorialCorreccionesCompra({ correcciones }: { correcciones: re
             </Typography>
             {propagacion || c.contrato_id ? (
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.75 }}>
-                {propagacion ? <Chip size="small" variant="soft" color="info" label={propagacion} /> : null}
+                {propagacion ? <EstadoChip tono="neutral" label={propagacion} /> : null}
                 {c.contrato_id ? (
-                  <Chip
-                    size="small"
-                    variant="soft"
-                    color="warning"
+                  <EstadoChip
+                    tono="warning"
                     label={`Contrato ${c.contrato_numero != null ? numeroContrato(c.contrato_numero) : ''} afectado`}
                   />
                 ) : null}

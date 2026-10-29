@@ -1,12 +1,19 @@
 'use client'
 
 import * as React from 'react'
-import Chip, { type ChipProps } from '@mui/material/Chip'
-import Tooltip from '@mui/material/Tooltip'
+import type { ChipProps } from '@mui/material/Chip'
+import { EstadoChip, type EstadoTono } from '@/components/atoms/EstadoChip'
 import { ETIQUETA_INDICADOR, ETIQUETA_SENAL, NIVEL_DE_SENAL } from '@/lib/facturas/senales'
 import type { IndicadorLinea, NivelSenal, SenalFactura } from '@/types/domain'
 
-/** Color del chip por nivel: error = Pérdida, aviso = Por debajo / Cobro mayor. */
+/** Tono del chip por nivel sobre EstadoChip: error = Pérdida, aviso = Por debajo / Cobro mayor. */
+export const TONO_NIVEL_SENAL: Record<NivelSenal, EstadoTono> = {
+  ok: 'success',
+  aviso: 'warning',
+  error: 'error',
+}
+
+/** Color del chip por nivel (conservado por compatibilidad). */
 export const COLOR_NIVEL_SENAL: Record<NivelSenal, NonNullable<ChipProps['color']>> = {
   ok: 'success',
   aviso: 'warning',
@@ -25,31 +32,23 @@ function esSenal(tipo: SenalFactura | IndicadorLinea): tipo is SenalFactura {
 }
 
 /**
- * Señal de posible error de una línea de factura (17): chip `soft` de 22 px,
+ * Señal de posible error de una línea de factura (17) sobre `EstadoChip`:
  * rojo para Pérdida, ámbar para Por debajo / Cobro mayor y neutro para los
  * indicadores. El tooltip explica la regla con las cifras. Informativa.
  */
 export function SenalFacturaChip({ tipo, tooltip }: SenalFacturaChipProps) {
   const senal = esSenal(tipo)
-  const chip = (
-    <Chip
-      size="small"
-      variant="soft"
-      color={senal ? COLOR_NIVEL_SENAL[NIVEL_DE_SENAL[tipo]] : 'default'}
-      label={senal ? ETIQUETA_SENAL[tipo] : ETIQUETA_INDICADOR[tipo]}
-      tabIndex={tooltip ? 0 : undefined}
-    />
-  )
-  return tooltip ? <Tooltip title={tooltip}>{chip}</Tooltip> : chip
+  const tono: EstadoTono = senal ? TONO_NIVEL_SENAL[NIVEL_DE_SENAL[tipo]] : 'neutral'
+  const label = senal ? ETIQUETA_SENAL[tipo] : ETIQUETA_INDICADOR[tipo]
+
+  return <EstadoChip tono={tono} label={label} tooltip={tooltip} />
 }
 
-/** Nivel de una factura (el peor de sus líneas) con el conteo de señales. */
+/** Nivel de una factura (el peor de sus líneas) con el conteo de señales sobre `EstadoChip`. */
 export function NivelSenalChip({ nivel, texto }: { nivel: NivelSenal; texto: string }) {
   return (
-    <Chip
-      size="small"
-      variant="soft"
-      color={COLOR_NIVEL_SENAL[nivel]}
+    <EstadoChip
+      tono={TONO_NIVEL_SENAL[nivel]}
       label={nivel === 'ok' ? 'Sin señales de error' : texto}
     />
   )

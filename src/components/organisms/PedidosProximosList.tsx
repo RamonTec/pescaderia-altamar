@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+import { EstadoChip, type EstadoTono } from '@/components/atoms/EstadoChip'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
@@ -13,10 +13,10 @@ import type { BloqueDashboard, DashboardOperativo, GrupoPedidoProximo } from '@/
 import { ETIQUETA_GRUPO_PEDIDO } from '@/lib/dashboard/etiquetas'
 import { formatFecha, formatKg, formatUsd } from '@/lib/format'
 
-const COLOR_GRUPO: Record<GrupoPedidoProximo, 'error' | 'primary' | 'default'> = {
+const TONO_GRUPO: Record<GrupoPedidoProximo, EstadoTono> = {
   atrasado: 'error',
-  hoy: 'primary',
-  manana: 'default',
+  hoy: 'warning',
+  manana: 'neutral',
 }
 
 /**
@@ -63,7 +63,7 @@ export function PedidosProximosList({ operativo }: { operativo: BloqueDashboard<
                 {formatUsd(p.usd_estimado)}
               </Typography>
             ) : null}
-            <Chip size="small" variant="soft" color={COLOR_GRUPO[p.grupo]} label={ETIQUETA_GRUPO_PEDIDO[p.grupo]} />
+            <EstadoChip tono={TONO_GRUPO[p.grupo]} label={ETIQUETA_GRUPO_PEDIDO[p.grupo]} />
           </ListItem>
         ))}
       </List>

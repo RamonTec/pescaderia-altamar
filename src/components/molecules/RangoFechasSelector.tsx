@@ -16,10 +16,7 @@ import LinearProgress from '@mui/material/LinearProgress'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import { esES } from '@mui/x-date-pickers/locales'
 import type { PresetRango, RangoFechas } from '@/types/domain'
 import {
   ETIQUETA_PRESET,
@@ -42,7 +39,6 @@ export interface RangoFechasSelectorProps {
 }
 
 const FORMATO = 'DD/MM/YYYY'
-const localeText = esES.components.MuiLocalizationProvider.defaultProps.localeText
 
 /**
  * Selector de rango de fechas (15-dashboard): chips de presets + "Personalizado"
@@ -145,7 +141,7 @@ export function RangoFechasSelector({
   const opcionesSelect: PresetRango[] = [...PRESETS_RANGO, 'personalizado']
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es" localeText={localeText}>
+    <>
       <Box sx={{ display: 'grid', gap: 1, minWidth: 0 }}>
         {/* sm+: chips */}
         <Box
@@ -240,6 +236,6 @@ export function RangoFechasSelector({
           </Button>
         </DialogActions>
       </Dialog>
-    </LocalizationProvider>
+    </>
   )
 }

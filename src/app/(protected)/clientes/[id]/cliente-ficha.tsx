@@ -26,7 +26,6 @@ import { EmptyState } from '@/components/molecules/EmptyState'
 import { FichaDato, FichaDatos, FichaSeccion } from '@/components/molecules/FichaSeccion'
 import { FichaHeader } from '@/components/molecules/FichaHeader'
 import type { RowAction } from '@/components/molecules/RowActionsMenu'
-import Chip from '@mui/material/Chip'
 import { StatusChips } from '@/components/molecules/StatusChips'
 import { AppDataGrid } from '@/components/organisms/AppDataGrid'
 import {
@@ -191,7 +190,7 @@ export function ClienteFicha({
               />
               {/* 18-iva-opcional: el cliente no lleva IVA por defecto. */}
               {cliente.aplica_iva === false ? (
-                <Chip label="Sin IVA" size="small" variant="soft" color="default" />
+                <EstadoChip label="Sin IVA" tono="neutral" />
               ) : null}
             </>
           }

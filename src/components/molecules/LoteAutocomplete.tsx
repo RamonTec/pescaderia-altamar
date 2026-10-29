@@ -3,9 +3,9 @@
 import * as React from 'react'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { diasEnCava, esAntiguo } from '@/lib/lotes'
 import { formatFecha, formatKg } from '@/lib/format'
 import type { Lote } from '@/types/domain'
@@ -75,7 +75,7 @@ export function LoteAutocomplete({
               </Typography>
             </Box>
             {esAntiguo(l, config) ? (
-              <Chip size="small" variant="soft" color="warning" label="Antiguo" />
+              <EstadoChip tono="warning" label="Antiguo" />
             ) : null}
             <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {formatKg(l.stock_kg)}

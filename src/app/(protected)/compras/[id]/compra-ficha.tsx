@@ -4,10 +4,8 @@ import * as React from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import Fade from '@mui/material/Fade'
 import Link from '@mui/material/Link'
-import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -99,14 +97,14 @@ export function CompraFicha({ detalle, proveedores, configTasas, editarAlCargar 
               <span>{ETIQUETA_MONEDA[compra.moneda]}</span>
               <EstadoChip label={estado.label} color={estado.color} />
               {correcciones.length > 0 ? (
-                <Chip size="small" variant="soft" color="info" label={`Editada · ${correcciones.length}`} />
+                <EstadoChip tono="neutral" label={`Editada · ${correcciones.length}`} />
               ) : null}
               {contrato?.desactualizado ? (
-                <Tooltip
-                  title={`El contrato ${numeroContrato(contrato.numero)} es anterior a una edición: anúlalo y genera otro desde Compras o Contratos`}
-                >
-                  <Chip size="small" variant="soft" color="warning" label="Contrato desactualizado" tabIndex={0} />
-                </Tooltip>
+                <EstadoChip
+                  tono="warning"
+                  label="Contrato desactualizado"
+                  tooltip={`El contrato ${numeroContrato(contrato.numero)} es anterior a una edición: anúlalo y genera otro desde Compras o Contratos`}
+                />
               ) : null}
               {anulada ? <span>Anulada: no se puede editar</span> : null}
             </>
@@ -160,7 +158,7 @@ export function CompraFicha({ detalle, proveedores, configTasas, editarAlCargar 
                       primary: `Contrato ${numeroContrato(contrato.numero)}`,
                       secondary: `${ESTADO_CONTRATO[contrato.estado] ?? contrato.estado} · ${formatFecha(contrato.created_at)} · Ver PDF`,
                       status: contrato.desactualizado ? (
-                        <Chip size="small" variant="soft" color="warning" label="Desactualizado" />
+                        <EstadoChip tono="warning" label="Desactualizado" />
                       ) : undefined,
                       href: `/contratos/${contrato.id}/pdf`,
                     },

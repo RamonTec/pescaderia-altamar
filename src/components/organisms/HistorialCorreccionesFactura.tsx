@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
@@ -77,20 +77,16 @@ export function HistorialCorreccionesFactura({ correcciones }: HistorialCorrecci
           {(c.tipo === 'linea' && c.movimientos.length > 0) || c.contrato_id ? (
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.75 }}>
               {(c.tipo === 'linea' ? c.movimientos : []).map((m, j) => (
-                <Chip
+                <EstadoChip
                   key={`${m.lote_id ?? 'sin-lote'}-${j}`}
-                  size="small"
-                  variant="soft"
-                  color={m.peso_kg > 0 ? 'success' : 'default'}
+                  tono={m.peso_kg > 0 ? 'success' : 'neutral'}
                   label={`${m.codigo ?? 'Sin lote'} ${m.peso_kg > 0 ? '+' : '−'}${formatKg(Math.abs(m.peso_kg))}`}
                   sx={NUM}
                 />
               ))}
               {c.contrato_id ? (
-                <Chip
-                  size="small"
-                  variant="soft"
-                  color="warning"
+                <EstadoChip
+                  tono="warning"
                   label={`Contrato ${c.contrato_numero != null ? numeroContrato(c.contrato_numero) : ''} afectado`}
                 />
               ) : null}

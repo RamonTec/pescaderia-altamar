@@ -8,7 +8,7 @@ import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Grid from '@mui/material/Grid'
 import Switch from '@mui/material/Switch'
@@ -240,7 +240,7 @@ export function CotizacionForm({
                             </Typography>
                           ) : null}
                         </Box>
-                        {c.bloqueado ? <Chip label="Bloqueado" size="small" variant="soft" color="error" /> : null}
+                        {c.bloqueado ? <EstadoChip label="Bloqueado" tono="error" /> : null}
                       </Box>
                     )}
                     renderInput={(params) => (
