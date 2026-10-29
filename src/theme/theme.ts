@@ -1,5 +1,6 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import { createTheme, type Theme, type Overlays } from '@mui/material/styles'
 import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
@@ -16,6 +17,14 @@ import { MOTION, SOMBRAS } from './tokens'
  * semánticos de MUI (filete, sidebar, fondos de marca).
  */
 declare module '@mui/material/styles' {
+  interface TypographyVariants {
+    label: CSSProperties
+    sectionTitle: CSSProperties
+  }
+  interface TypographyVariantsOptions {
+    label?: CSSProperties
+    sectionTitle?: CSSProperties
+  }
   interface TypeBackground {
     subtle: string
     elevated: string
@@ -122,6 +131,13 @@ declare module '@mui/material/Chip' {
 declare module '@mui/material/SvgIcon' {
   interface SvgIconPropsSizeOverrides {
     xlarge: true
+  }
+}
+
+declare module '@mui/material/Typography' {
+  interface TypographyPropsVariantOverrides {
+    label: true
+    sectionTitle: true
   }
 }
 
@@ -279,6 +295,18 @@ export const theme = createTheme(
     caption: { fontSize: '0.75rem', lineHeight: 1.4 },
     button: { fontSize: '0.875rem', fontWeight: 500, textTransform: 'none', letterSpacing: 0 },
     overline: { textTransform: 'none', letterSpacing: 0 },
+    label: {
+      fontFamily: 'var(--font-body), system-ui, sans-serif',
+      fontSize: '0.8125rem', // 13px (DS-1)
+      lineHeight: 1.4,
+      fontWeight: 500,
+    },
+    sectionTitle: {
+      fontFamily: 'var(--font-body), system-ui, sans-serif',
+      fontSize: '1rem', // 16px
+      lineHeight: 1.4,
+      fontWeight: 600,
+    },
   },
   // Radios por jerarquía (spec § Jerarquía de superficies y radios):
   // chip/menú/tooltip 4, botón/input/fab/tabla 6 (`shape`), panel/ficha 8
@@ -630,11 +658,9 @@ export const theme = createTheme(
     MuiTableCell: {
       styleOverrides: {
         head: ({ theme }) => ({
+          ...theme.typography.subtitle2,
           backgroundColor: theme.vars.palette.background.subtle,
           color: theme.vars.palette.text.secondary,
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          letterSpacing: '0.04em',
         }),
         root: { fontVariantNumeric: 'tabular-nums' },
       },
@@ -649,9 +675,7 @@ export const theme = createTheme(
           '--DataGrid-containerBackground': theme.vars.palette.background.subtle,
         }),
         columnHeaderTitle: ({ theme }) => ({
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          letterSpacing: '0.04em',
+          ...theme.typography.subtitle2,
           color: theme.vars.palette.text.secondary,
         }),
         columnHeader: ({ theme }) => ({
