@@ -305,13 +305,40 @@ export const theme = createTheme(
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
+      variants: [
+        {
+          props: { variant: 'text', color: 'primary' },
+          style: ({ theme }) => ({
+            color: theme.vars.palette.text.primary,
+            '&:hover': {
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
+          }),
+        },
+        {
+          props: { variant: 'outlined', color: 'primary' },
+          style: ({ theme }) => ({
+            color: theme.vars.palette.text.primary,
+            borderColor: theme.vars.palette.outlineBorder,
+            '&:hover': {
+              borderColor: theme.vars.palette.text.secondary,
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
+          }),
+        },
+      ],
     },
     MuiButtonBase: {
       styleOverrides: {
         root: ({ theme }) => ({
           '&.Mui-focusVisible': {
-            outline: `2px solid ${theme.vars.palette.primary.main}`,
-            outlineOffset: '2px',
+            outline: 'none',
+            boxShadow: `0 0 0 3px ${theme.vars.palette.focusRing}`,
+            ...theme.applyStyles('dark', {
+              boxShadow: 'none',
+              outline: `2px solid ${theme.vars.palette.focusRing}`,
+              outlineOffset: '2px',
+            }),
           },
         }),
       },
@@ -500,9 +527,77 @@ export const theme = createTheme(
     MuiTableContainer: {
       styleOverrides: { root: { borderRadius: 6 } },
     },
+    MuiTabs: {
+      styleOverrides: {
+        indicator: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.text.primary,
+        }),
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          textTransform: 'none',
+          '&.Mui-selected': {
+            color: theme.vars.palette.text.primary,
+          },
+        }),
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        switchBase: ({ theme }) => ({
+          '&.Mui-checked': {
+            color: theme.vars.palette.background.paper,
+            '& + .MuiSwitch-track': {
+              backgroundColor: theme.vars.palette.text.primary,
+              opacity: 1,
+            },
+          },
+        }),
+      },
+    },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-checked': {
+            color: theme.vars.palette.text.primary,
+          },
+        }),
+      },
+    },
+    MuiRadio: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-checked': {
+            color: theme.vars.palette.text.primary,
+          },
+        }),
+      },
+    },
+    MuiLink: {
+      defaultProps: {
+        underline: 'always',
+      },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.vars.palette.text.primary,
+        }),
+      },
+    },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: 4, fontWeight: 500 },
+        root: ({ theme }) => ({
+          borderRadius: 4,
+          fontWeight: 500,
+          '&.MuiChip-clickableColorPrimary': {
+            backgroundColor: theme.vars.palette.neutral.soft,
+            color: theme.vars.palette.neutral.onSoft,
+            '&:hover': {
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
+          },
+        }),
         sizeSmall: { height: 22 },
       },
       variants: [
@@ -511,6 +606,16 @@ export const theme = createTheme(
           style: ({ theme }) => ({
             backgroundColor: theme.vars.palette.action.selected,
             color: theme.vars.palette.text.secondary,
+          }),
+        },
+        {
+          props: { variant: 'filled', color: 'primary' },
+          style: ({ theme }) => ({
+            backgroundColor: theme.vars.palette.neutral.soft,
+            color: theme.vars.palette.neutral.onSoft,
+            '&:hover': {
+              backgroundColor: theme.vars.palette.background.subtle,
+            },
           }),
         },
         ...SOFT_COLORS.map((color) => ({
