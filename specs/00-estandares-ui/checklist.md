@@ -106,16 +106,16 @@
 
 ### Decisiones e inventario
 - [x] DS-1 a DS-8 respondidas por el usuario, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 93). _(2026-10-29: las ocho aprobadas tal como se propusieron.)_
-- [ ] Tabla «Unificación» de `spec.md` completa: cada componente con su destino y la tarea que lo resuelve (tarea 94).
+- [x] Tabla «Unificación» de `spec.md` completa: cada componente con su destino y la tarea que lo resuelve (tarea 94). _(2026-10-29: completada en spec.md con todos los componentes de src/components)._
 
 ### Fundamentos (4a)
-- [ ] `src/theme/tokens.ts` existe (movimiento, tiempos, espaciado, sombras) y `theme.transitions` lo usa. Ningún componente de la Fase 4 escribe ms, sombras ni hex sueltos.
-- [ ] Tokens de superficie en ambos esquemas como variables CSS: `background.elevated`, `background.field`, `rowDivider`, `dialogDivider`, `scrim`, `focusRing`, `highlight`, `outlineBorder`, `segmented.*`, `neutral` y `dot`. Valores DS-8 comentados.
-- [ ] En oscuro no hay capa de elevación de MUI: modal (encabezado, cuerpo y pie) y menús en `#1A2A45`, campos en `#0F1C31` con borde `#5E7194`. Mecanismo documentado en `theme.ts` y `spec.md`.
-- [ ] Latón solo en foco, acción principal en oscuro, decorativo de marca y acción del toast. Pestañas, segmentado, switch, checkbox, radio, enlaces y botones de texto en color de texto.
-- [ ] Variantes tipográficas `label` y `sectionTitle` disponibles y tipadas.
-- [ ] Tabla del theme: encabezado de 40 px a todo el ancho, celdas centradas, flecha de orden sin círculo.
-- [ ] `prefers-reduced-motion` deja todo quieto (regla global + componentes). Skeleton con pulso.
+- [x] `src/theme/tokens.ts` existe (movimiento, tiempos, espaciado, sombras) y `theme.transitions` lo usa. Ningún componente de la Fase 4 escribe ms, sombras ni hex sueltos (tarea 95).
+- [x] Tokens de superficie en ambos esquemas como variables CSS: `background.elevated`, `background.field`, `rowDivider`, `dialogDivider`, `scrim`, `focusRing`, `highlight`, `outlineBorder`, `segmented.*`, `neutral` y `dot`. Valores DS-8 comentados (tarea 96).
+- [x] En oscuro no hay capa de elevación de MUI: modal (encabezado, cuerpo y pie) y menús en `#1A2A45`, campos en `#0F1C31` con borde `#5E7194`. Mecanismo documentado en `theme.ts` y `spec.md` (tarea 97).
+- [x] Latón solo en foco, acción principal en oscuro, decorativo de marca y acción del toast. Pestañas, segmentado, switch, checkbox, radio, enlaces y botones de texto en color de texto (tarea 99).
+- [x] Variantes tipográficas `label` y `sectionTitle` disponibles y tipadas (tarea 100).
+- [x] Tabla del theme: encabezado de 40 px a todo el ancho, celdas centradas, flecha de orden sin círculo (tarea 101).
+- [x] `prefers-reduced-motion` deja todo quieto (regla global + componentes). Skeleton con pulso (tarea 102).
 
 ### Primitivos (4b)
 - [ ] `SegmentedControl` con contador, teclado y selección distinguible sin depender solo del color.
