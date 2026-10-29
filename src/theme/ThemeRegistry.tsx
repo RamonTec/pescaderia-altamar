@@ -6,8 +6,14 @@ import { CacheProvider } from '@emotion/react'
 import createCache from '@emotion/cache'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import 'dayjs/locale/es'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { esES } from '@mui/x-date-pickers/locales'
 import { theme } from './theme'
 import { themeStorageManager } from '@/lib/themeStorage'
+
+const datePickerLocaleText = esES.components.MuiLocalizationProvider.defaultProps.localeText
 
 const options = { key: 'mui', prepend: true }
 
@@ -80,7 +86,9 @@ export function ThemeRegistry({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <CssBaseline />
-        {children}
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es" localeText={datePickerLocaleText}>
+          {children}
+        </LocalizationProvider>
       </ThemeProvider>
     </CacheProvider>
   )
