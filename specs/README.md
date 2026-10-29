@@ -294,7 +294,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - Se agrega la **Fase 4** a `00-estandares-ui` (tareas 93–161), que **reemplaza a las Fases 3b, 3c y 3d**. Esas fases no se implementaron: quedan como historial y lo vigente de ellas se absorbe en la Fase 4.
   - **No se reabren** la paleta Puerto, P-UI1–P-UI10 ni la tipografía Fraunces + Instrument Sans.
   - **Sí cambia** la anatomía de listados, formularios, fichas y modales que la Fase 3 había dejado fija. Reglas en `00-estandares-ui/spec.md` § «Design system (Fase 4)», con el lienzo «Design system Altamar» como referencia.
-  - Quedan **ocho decisiones pendientes** (DS-1–DS-8: etiquetas fijas, mayúsculas de nombres, acción del toast, modal o página, formato de montos, decimales de tasas, tipo de skeleton y valores oscuros que el lienzo no define). Se ejecutan con la propuesta mientras sigan abiertas.
+  - Las **ocho decisiones** DS-1–DS-8 (etiquetas fijas, mayúsculas de nombres, acción del toast, modal o página, formato de montos, decimales de tasas, tipo de skeleton y valores oscuros que el lienzo no define) las aprobó el usuario el 2026-10-29 tal como se propusieron.
   - **Depende de la Fase 3a**, que está en `feat/rediseno-puerto`, sin mergear en `dev`.
   - No cambia datos, reglas de negocio ni esquema.
 

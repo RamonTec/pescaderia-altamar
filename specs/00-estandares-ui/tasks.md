@@ -347,7 +347,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 - **Reemplaza** a las Fases 3b, 3c y 3d (ver la tabla de correspondencia en la Fase 3b).
 - **Depende** de la Fase 3a, que está en la rama `feat/rediseno-puerto`, **todavía sin mergear en `dev`**. Las ramas de la Fase 4 se basan en `feat/rediseno-puerto` (indicarlo en el PR) hasta que se mergee.
 - La paleta Puerto, P-UI1–P-UI10 y la tipografía Fraunces + Instrument Sans **no cambian**.
-- Las decisiones DS-1 a DS-8 se ejecutan con la propuesta mientras sigan abiertas.
+- Las decisiones DS-1 a DS-8 las aprobó el usuario el 2026-10-29 tal como se propusieron.
 
 **Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. La API pública de los componentes existentes se mantiene compatible: se agregan props, no se rompen consumidores. Lo que se depreca se anota en el componente y se retira en la tarea 158.
 
@@ -372,8 +372,9 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
 ### Fase 4a — Decisiones, inventario, tokens y theme
 
-93. **Decisiones DS-1 a DS-8**: presentarlas al usuario con su propuesta (`spec.md` § «Decisiones pendientes de la Fase 4»).
+93. **Decisiones DS-1 a DS-8**: presentarlas al usuario con su propuesta (`spec.md` § «Decisiones de la Fase 4»).
    - Hecho cuando: cada fila tiene «aprobada», el valor elegido o «abierta, se ejecuta la propuesta». Si DS-1 se rechaza, la tarea 105 se ejecuta en su variante B. Si DS-4 pide páginas dedicadas, se replanifica la tarea 151 antes de ejecutarla.
+   - **Hecho 2026-10-29** (rama `docs/design-system`): el usuario aprobó las ocho propuestas sin cambios; tabla de `spec.md` actualizada.
 94. **Inventario de componentes**: recorrer `src/components/**` (~150 archivos) y `src/app/**/*-screen.tsx`, y llenar en `spec.md` una tabla «Unificación» bajo § «Catálogo e inventario». Columnas: componente, rol (primitivo / patrón / dominio), duplicado de…, destino (se queda / se apoya en X / se retira) y tarea de la Fase 4 que lo resuelve. Parte de los duplicados ya listados en la spec.
    - Hecho cuando: todo componente de `atoms`, `molecules` y `templates`, más los `organisms` genéricos, figura en la tabla. Los de dominio sin duplicado pueden agruparse en una fila.
 95. **`src/theme/tokens.ts`** (nuevo):

@@ -105,7 +105,7 @@
 ## Fase 4 — Design system (2026-10-29)
 
 ### Decisiones e inventario
-- [ ] DS-1 a DS-8 respondidas por el usuario, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 93).
+- [x] DS-1 a DS-8 respondidas por el usuario, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 93). _(2026-10-29: las ocho aprobadas tal como se propusieron.)_
 - [ ] Tabla «Unificación» de `spec.md` completa: cada componente con su destino y la tarea que lo resuelve (tarea 94).
 
 ### Fundamentos (4a)

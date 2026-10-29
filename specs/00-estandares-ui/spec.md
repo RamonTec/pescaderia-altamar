@@ -260,20 +260,20 @@ Hay un solo componente, `molecules/Fallback` (nuevo): ícono en un círculo de 4
 
 - **`/estandares` es el catálogo vivo**, con una sección por bloque (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks). Cada componente aparece en sus estados y en ambos modos lado a lado. Un componente compartido nuevo **no se da por hecho** hasta estar en el catálogo.
 
-### Decisiones pendientes de la Fase 4
+### Decisiones de la Fase 4
 
-Se avanza con la propuesta mientras el usuario no responda, igual que en la Fase 3. Si cambia alguna, se toca solo el theme o el componente indicado.
+El usuario aprobó las ocho propuestas tal como están el 2026-10-29. Si más adelante cambia alguna, se toca solo el theme o el componente indicado.
 
 | Id | Decisión | Propuesta | Estado |
 |---|---|---|---|
-| DS-1 | Etiquetas fijas arriba del campo en todos los formularios, en lugar de las flotantes de MUI | Sí, por theme (tarea 105) | pendiente |
-| DS-2 | Normalizar las mayúsculas de los nombres al mostrarlos (el lienzo los muestra en formato título) | No normalizar: se muestran como se cargaron, salvo que el cliente decida otra cosa | pendiente |
-| DS-3 | Acción del toast de éxito | "Ver" por defecto donde haya destino; "Deshacer" solo en acciones reversibles sin efectos secundarios | pendiente |
-| DS-4 | Modal o página para formularios largos | La tabla de «Formulario»: `lg` para líneas repetibles o > 2 secciones, sin páginas nuevas en el MVP | pendiente |
-| DS-5 | Montos USD en `en-US` (`$1,249.44`) junto a Bs en `es-VE` (`Bs. 0,00`) en la misma pantalla. Es la regla vigente de `lib/format.ts` | Se mantiene, no se cambia en la Fase 4 | pendiente de confirmar |
-| DS-6 | Decimales visibles de las tasas | 2 en tarjetas y listados (`formatTasaCorta`); 6 en el detalle y en el tooltip (`formatTasa`) | pendiente |
-| DS-7 | Animación del skeleton | Pulso (el `animation="pulse"` de MUI), no brillo | pendiente |
-| DS-8 | Valores del esquema oscuro que el lienzo no define: scrim, sombra de la elevación 1, borde `outlined`, fondos tenues de `warning`/`success`, `highlight` y fondo del toast | Los marcados *(DS-8)* en esta sección | pendiente |
+| DS-1 | Etiquetas fijas arriba del campo en todos los formularios, en lugar de las flotantes de MUI | Sí, por theme (tarea 105) | aprobada (2026-10-29) |
+| DS-2 | Normalizar las mayúsculas de los nombres al mostrarlos (el lienzo los muestra en formato título) | No normalizar: se muestran como se cargaron, salvo que el cliente decida otra cosa | aprobada (2026-10-29) |
+| DS-3 | Acción del toast de éxito | "Ver" por defecto donde haya destino; "Deshacer" solo en acciones reversibles sin efectos secundarios | aprobada (2026-10-29) |
+| DS-4 | Modal o página para formularios largos | La tabla de «Formulario»: `lg` para líneas repetibles o > 2 secciones, sin páginas nuevas en el MVP | aprobada (2026-10-29) |
+| DS-5 | Montos USD en `en-US` (`$1,249.44`) junto a Bs en `es-VE` (`Bs. 0,00`) en la misma pantalla. Es la regla vigente de `lib/format.ts` | Se mantiene, no se cambia en la Fase 4 | aprobada (2026-10-29) |
+| DS-6 | Decimales visibles de las tasas | 2 en tarjetas y listados (`formatTasaCorta`); 6 en el detalle y en el tooltip (`formatTasa`) | aprobada (2026-10-29) |
+| DS-7 | Animación del skeleton | Pulso (el `animation="pulse"` de MUI), no brillo | aprobada (2026-10-29) |
+| DS-8 | Valores del esquema oscuro que el lienzo no define: scrim, sombra de la elevación 1, borde `outlined`, fondos tenues de `warning`/`success`, `highlight` y fondo del toast | Los marcados *(DS-8)* en esta sección | aprobada (2026-10-29) |
 
 ### Fuera de alcance (Fase 4)
 
