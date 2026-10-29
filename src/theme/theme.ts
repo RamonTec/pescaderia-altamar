@@ -18,14 +18,18 @@ import { MOTION } from './tokens'
 declare module '@mui/material/styles' {
   interface TypeBackground {
     subtle: string
+    elevated: string
+    field: string
   }
   interface PaletteColor {
     soft?: string
     onSoft?: string
+    dot?: string
   }
   interface SimplePaletteColorOptions {
     soft?: string
     onSoft?: string
+    dot?: string
   }
   interface Palette {
     brand: BrandPalette
@@ -38,6 +42,20 @@ declare module '@mui/material/styles' {
       c6: string
     }
     inputBorder: string
+    rowDivider: string
+    dialogDivider: string
+    scrim: string
+    focusRing: string
+    highlight: string
+    outlineBorder: string
+    segmented: {
+      track: string
+      selected: string
+      selectedHover: string
+      selectedText: string
+      selectedShadow: string
+    }
+    neutral: PaletteColor
   }
   interface PaletteOptions {
     brand?: BrandPalette
@@ -50,6 +68,20 @@ declare module '@mui/material/styles' {
       c6: string
     }
     inputBorder?: string
+    rowDivider?: string
+    dialogDivider?: string
+    scrim?: string
+    focusRing?: string
+    highlight?: string
+    outlineBorder?: string
+    segmented?: {
+      track: string
+      selected: string
+      selectedHover: string
+      selectedText: string
+      selectedShadow: string
+    }
+    neutral?: SimplePaletteColorOptions
   }
 }
 
@@ -72,9 +104,18 @@ interface BrandPalette {
   brassText: string
 }
 
+declare module '@mui/material/Button' {
+  interface ButtonPropsColorOverrides {
+    neutral: true
+  }
+}
+
 declare module '@mui/material/Chip' {
   interface ChipPropsVariantOverrides {
     soft: true
+  }
+  interface ChipPropsColorOverrides {
+    neutral: true
   }
 }
 
@@ -84,7 +125,7 @@ declare module '@mui/material/SvgIcon' {
   }
 }
 
-const SOFT_COLORS = ['primary', 'secondary', 'success', 'warning', 'error', 'info'] as const
+const SOFT_COLORS = ['primary', 'secondary', 'success', 'warning', 'error', 'info', 'neutral'] as const
 
 const DISPLAY_FONT = 'var(--font-display), Georgia, serif'
 
@@ -101,16 +142,36 @@ export const theme = createTheme(
   colorSchemes: {
     light: {
       palette: {
-        primary: { main: '#0B1B33', contrastText: '#FFFFFF', soft: '#E6ECF5', onSoft: '#0B1B33' },
-        secondary: { main: '#7A5C2E', contrastText: '#FFFFFF', soft: '#F5EEE3', onSoft: '#7A5C2E' },
-        success: { main: '#2F5E9E', light: '#ABC7F1', contrastText: '#FFFFFF', soft: '#ABC7F1', onSoft: '#0B1B33' },
-        warning: { main: '#A15C07', contrastText: '#FFFFFF', soft: '#F8EEDD', onSoft: '#7E4705' },
-        error: { main: '#B3261E', contrastText: '#FFFFFF', soft: '#F8E5E3', onSoft: '#8E1F18' },
-        info: { main: '#44597A', contrastText: '#FFFFFF', soft: '#E1E8F2', onSoft: '#26374F' },
-        background: { default: '#F7F6F2', paper: '#FFFFFF', subtle: '#F0EEE7' },
+        primary: { main: '#0B1B33', contrastText: '#FFFFFF', soft: '#E6ECF5', onSoft: '#0B1B33', dot: '#0B1B33' },
+        secondary: { main: '#7A5C2E', contrastText: '#FFFFFF', soft: '#F5EEE3', onSoft: '#7A5C2E', dot: '#7A5C2E' },
+        success: { main: '#2F5E9E', light: '#ABC7F1', contrastText: '#FFFFFF', soft: '#ABC7F1', onSoft: '#0B1B33', dot: '#2F5E9E' },
+        warning: { main: '#A15C07', contrastText: '#FFFFFF', soft: '#F8EEDD', onSoft: '#7E4705', dot: '#A15C07' },
+        error: { main: '#B3261E', contrastText: '#FFFFFF', soft: '#F8E5E3', onSoft: '#8E1F18', dot: '#B3261E' },
+        info: { main: '#44597A', contrastText: '#FFFFFF', soft: '#E1E8F2', onSoft: '#26374F', dot: '#44597A' },
+        neutral: { main: '#4A5260', contrastText: '#FFFFFF', soft: '#EDEBE5', onSoft: '#4A5260', dot: '#8A909C' },
+        background: {
+          default: '#F7F6F2',
+          paper: '#FFFFFF',
+          subtle: '#F0EEE7',
+          elevated: '#FFFFFF',
+          field: '#FFFFFF',
+        },
         text: { primary: '#0B1B33', secondary: '#5B6474' },
         divider: '#E4E1D8',
         inputBorder: '#A9A397',
+        rowDivider: '#E4E1D8',
+        dialogDivider: '#E4E1D8',
+        scrim: 'rgba(11, 27, 51, 0.55)',
+        focusRing: 'rgba(201, 166, 107, 0.55)',
+        highlight: '#FBF4E6',
+        outlineBorder: '#CFCAB9',
+        segmented: {
+          track: '#F0EEE7',
+          selected: '#FFFFFF',
+          selectedHover: '#FFFFFF',
+          selectedText: '#0B1B33',
+          selectedShadow: '0 1px 2px rgba(11, 27, 51, 0.16), 0 0 0 1px rgba(11, 27, 51, 0.06)',
+        },
         chart: {
           c1: '#0B1B33',
           c2: '#2F5E9E',
@@ -125,16 +186,36 @@ export const theme = createTheme(
     },
     dark: {
       palette: {
-        primary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A' },
-        secondary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A' },
-        success: { main: '#ABC7F1', contrastText: '#0B1B33', soft: 'rgba(171, 199, 241, 0.16)', onSoft: '#ABC7F1' },
-        warning: { main: '#E9B460', contrastText: '#241A0B', soft: 'rgba(233, 180, 96, 0.16)', onSoft: '#E9B460' },
-        error: { main: '#EE8A83', contrastText: '#241A0B', soft: 'rgba(238, 138, 131, 0.16)', onSoft: '#EE8A83' },
-        info: { main: '#9FB4D3', contrastText: '#0A1424', soft: 'rgba(159, 180, 211, 0.16)', onSoft: '#9FB4D3' },
-        background: { default: '#0A1424', paper: '#121F35', subtle: '#17253D' },
+        primary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A', dot: '#D4B27A' },
+        secondary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A', dot: '#D4B27A' },
+        success: { main: '#ABC7F1', contrastText: '#0B1B33', soft: '#2A3A53', onSoft: '#ABC7F1', dot: '#ABC7F1' }, // DS-8: 16% opaco sobre #121F35 (#2A3A53)
+        warning: { main: '#E9B460', contrastText: '#241A0B', soft: '#34373C', onSoft: '#E9B460', dot: '#E9B460' }, // DS-8: 16% opaco sobre #121F35 (#34373C)
+        error: { main: '#EE8A83', contrastText: '#241A0B', soft: '#3D2228', onSoft: '#EE8A83', dot: '#EE8A83' }, // DS-8: #3D2228 opaco
+        info: { main: '#9FB4D3', contrastText: '#0A1424', soft: 'rgba(159, 180, 211, 0.16)', onSoft: '#9FB4D3', dot: '#9FB4D3' },
+        neutral: { main: '#A3ADBD', contrastText: '#0A1424', soft: '#22314B', onSoft: '#A3ADBD', dot: '#A3ADBD' },
+        background: {
+          default: '#0A1424',
+          paper: '#121F35',
+          subtle: '#17253D',
+          elevated: '#1A2A45',
+          field: '#0F1C31',
+        },
         text: { primary: '#EEF0F4', secondary: '#A3ADBD' },
         divider: '#22314B',
-        inputBorder: '#2C3B55',
+        inputBorder: '#5E7194', // >= 3:1 de contraste en oscuro
+        rowDivider: '#1D2B44',
+        dialogDivider: '#2C3B55',
+        scrim: 'rgba(0, 0, 0, 0.6)', // DS-8
+        focusRing: '#D4B27A',
+        highlight: 'rgba(212, 178, 122, 0.12)', // DS-8
+        outlineBorder: '#3A4B6A', // DS-8
+        segmented: {
+          track: '#0F1C31',
+          selected: '#2A3B5C',
+          selectedHover: '#2F4268',
+          selectedText: '#FFFFFF',
+          selectedShadow: 'none',
+        },
         chart: {
           c1: '#ABC7F1',
           c2: '#D4B27A',
