@@ -1,11 +1,11 @@
 'use client'
 
-import { createTheme, type Theme } from '@mui/material/styles'
+import { createTheme, type Theme, type Overlays } from '@mui/material/styles'
 import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
 import { MARCA_CLARO, MARCA_OSCURO } from './marca'
-import { MOTION } from './tokens'
+import { MOTION, SOMBRAS } from './tokens'
 
 /**
  * Identidad "Puerto" (Altamar Sea Food): azul medianoche (#0B1B33), blanco
@@ -226,6 +226,11 @@ export const theme = createTheme(
         },
         brand: { ...MARCA_OSCURO },
       },
+      // Mecanismo de anulación de la capa de elevación de MUI (tarea 97 / spec.md § Superficies por nivel):
+      // En MUI v9 (@mui/material 9.4.0), PaperRoot aplica `backgroundImage: 'var(--Paper-overlay)'`
+      // para variant="elevation", cuyo valor viene de theme.vars.overlays[elevation].
+      // Anulamos los 25 niveles para que no aclare los componentes elevados:
+      overlays: Array(25).fill('none') as unknown as Overlays,
     },
   },
   typography: {
@@ -330,13 +335,25 @@ export const theme = createTheme(
     },
     MuiPaper: {
       defaultProps: { elevation: 0 },
-      styleOverrides: { rounded: { borderRadius: 8 } },
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+        rounded: { borderRadius: 8 },
+      },
       variants: [
         {
           props: { variant: 'elevation', elevation: 0 },
           style: ({ theme }) => ({ border: `1px solid ${theme.vars.palette.divider}` }),
         },
       ],
+    },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.scrim,
+        }),
+      },
     },
     MuiAlert: {
       styleOverrides: { standard: { border: 0 }, filled: { border: 0 } },
@@ -349,21 +366,54 @@ export const theme = createTheme(
             borderRight: `1px solid ${theme.vars.palette.divider}`,
           },
         }),
+        modal: ({ theme }) => ({
+          '& .MuiDrawer-paper': {
+            backgroundColor: theme.vars.palette.background.elevated,
+            boxShadow: SOMBRAS.claro.elevacion2,
+            ...theme.applyStyles('dark', {
+              boxShadow: SOMBRAS.oscuro.elevacion2,
+            }),
+          },
+        }),
       },
     },
     MuiAutocomplete: {
       styleOverrides: {
-        paper: ({ theme }) => ({ border: 0, borderRadius: 6, boxShadow: theme.vars.shadows[8] }),
+        paper: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.elevated,
+          borderRadius: 6,
+          boxShadow: SOMBRAS.claro.elevacion1,
+          ...theme.applyStyles('dark', {
+            boxShadow: SOMBRAS.oscuro.elevacion1,
+            border: `1px solid ${theme.vars.palette.dialogDivider}`,
+          }),
+        }),
       },
     },
     MuiMenu: {
       styleOverrides: {
-        paper: { borderRadius: 6 },
+        paper: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.elevated,
+          borderRadius: 6,
+          boxShadow: SOMBRAS.claro.elevacion1,
+          ...theme.applyStyles('dark', {
+            boxShadow: SOMBRAS.oscuro.elevacion1,
+            border: `1px solid ${theme.vars.palette.dialogDivider}`,
+          }),
+        }),
       },
     },
     MuiPopover: {
       styleOverrides: {
-        paper: { borderRadius: 6 },
+        paper: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.elevated,
+          borderRadius: 6,
+          boxShadow: SOMBRAS.claro.elevacion1,
+          ...theme.applyStyles('dark', {
+            boxShadow: SOMBRAS.oscuro.elevacion1,
+            border: `1px solid ${theme.vars.palette.dialogDivider}`,
+          }),
+        }),
       },
     },
     MuiMenuItem: {
@@ -373,7 +423,18 @@ export const theme = createTheme(
       styleOverrides: { root: { borderRadius: 4 } },
     },
     MuiDialog: {
-      styleOverrides: { paper: { borderRadius: 8 }, paperFullScreen: { borderRadius: 0 } },
+      styleOverrides: {
+        paper: ({ theme }) => ({
+          borderRadius: 8,
+          backgroundColor: theme.vars.palette.background.elevated,
+          boxShadow: SOMBRAS.claro.elevacion2,
+          ...theme.applyStyles('dark', {
+            boxShadow: SOMBRAS.oscuro.elevacion2,
+            border: `1px solid ${theme.vars.palette.dialogDivider}`,
+          }),
+        }),
+        paperFullScreen: { borderRadius: 0, border: 0 },
+      },
     },
     MuiTooltip: {
       styleOverrides: { tooltip: { borderRadius: 4 } },
