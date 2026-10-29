@@ -753,6 +753,16 @@ export const theme = createTheme(
         },
       ],
     },
+    MuiSkeleton: {
+      defaultProps: {
+        animation: 'pulse', // DS-7
+      },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.subtle,
+        }),
+      },
+    },
   },
 },
 // Idioma: textos de DataGrid ("Filas por página", "1–25 de 132") y de los
