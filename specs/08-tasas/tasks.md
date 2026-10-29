@@ -56,3 +56,10 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
 - _(ej.: "07-lotes reescribe registrar_factura — conservar las columnas de tasa — <fecha>")_
 - **09-cuentas-por-cobrar (2026-10-07)**: agrega `facturas.fecha_vencimiento` y la pasa en `registrar_factura`. Si este módulo reescribe esa RPC después, **conservar** la columna.
 - **20-gastos (2026-10-22)**: la lectura de "Operaciones con tasa manual" (`src/app/(protected)/tasas/operaciones-tasa-manual.ts`) incluye los `gastos` confirmados con `tasa_origen = 'manual'` (tipo "Gasto", enlace a `/gastos`). Sin cambios de esquema en `tasas`. Lo implementa la tarea 18 de `20-gastos`.
+- **00-estandares-ui Fase 4, design system (tarea agregada el 2026-10-29)**: cambios de UI en `/tasas`, en la tarea 155 de `00-estandares-ui/tasks.md`:
+  - las tarjetas y listados muestran las tasas con `formatTasaCorta` (2 decimales), y los 6 decimales de `formatTasa` quedan para el tooltip y el detalle (DS-6, pendiente de confirmación);
+  - los filtros de fecha pasan de `type="date"` a `DateField` (`dd/mm/aaaa`);
+  - los `ToggleButtonGroup` pasan a `SegmentedControl`;
+  - la tabla llena el ancho.
+
+  `TasaSelector` pasa a `SegmentedControl` (tarea 153) y la tasa va como `FormSubgroup` en los formularios (tarea 151). No cambian el esquema, la obtención ni la resolución de tasas, y lo que se guarda sigue con 6 decimales.

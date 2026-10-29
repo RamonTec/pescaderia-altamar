@@ -107,3 +107,11 @@ Rama sugerida `feat/cotizaciones-pedido`; commit `feat(cotizaciones): convertir 
   - `DocumentoPublicoLayout`: filete de latón (tarea 74).
 
   No cambian datos, RPC ni el contenido del PDF. Verificar con `npx tsx scripts/probar-cotizaciones.ts --pdf`.
+- **00-estandares-ui Fase 4, design system (tarea agregada el 2026-10-29)**: la tarea 76 pasa a ser la **tarea 138** de `00-estandares-ui/tasks.md`, y `DocumentoPublicoLayout` la **135**, con el mismo contenido. Además:
+  - `CotizacionEstadoChip` se apoya en `EstadoChip` (tarea 104);
+  - `CotizacionNoDisponible` y `c/[token]/not-found.tsx` pasan a `molecules/Fallback`, conservando el WhatsApp y sin revelar datos (tarea 129);
+  - `CotizacionForm` + `CotizacionItemsFieldArray` pasan a `LineasEditor` en `AppDialog lg` (tarea 151, DS-4);
+  - `CompartirCotizacionDialog`/`EnlacePublicoCotizacion` usan `useGlobalLoader` si la generación del PDF bloquea más de 1 s (tarea 125);
+  - `CotizacionesTable` pasa al patrón único de filtros (tarea 149).
+
+  Sin cambios de datos, RPC ni seguridad del enlace.

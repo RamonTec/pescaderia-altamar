@@ -70,3 +70,9 @@ Regla de avance: después de cada tarea, `npm run lint` y `npx tsc --noEmit`.
   - Activar el IVA de una factura de contado la deja `abierta` y vencida, así que entra en los recordatorios.
   - Los créditos de notas emitidas cambian si cambia el IVA de su factura; el saldo `total − pagado − créditos` ya los toma.
 - **00-estandares-ui Fase 3, rediseño "Puerto" (tarea agregada el 2026-10-22)**: `lib/cartera/recordatorios/plantillas.ts` toma los colores del correo de las claves Puerto de `src/theme/marca.ts` (sin franjas), según la tarea 76 de `00-estandares-ui/tasks.md`. `EstadoCarteraChip` toma los chips `soft` nuevos del theme. En `COLOR_ESTADO_CARTERA`, `pendiente` pasa de `info` a `warning` (ámbar, decisión del cliente del 2026-10-22, tarea 67 de `00-estandares-ui`); afecta el chip, `CarteraResumenCards` y lo que lea ese mapeo. `por_vencer` sigue en `warning`: los dos estados se distinguen por la etiqueta. Sin cambios de lógica ni de texto.
+- **00-estandares-ui Fase 4, design system (tarea agregada el 2026-10-29)**: reemplaza la referencia anterior a la tarea 76, que ahora es la **tarea 138** de `00-estandares-ui/tasks.md` (correo de recordatorio con las claves Puerto). Además:
+  - `atoms/EstadoCarteraChip` se apoya en `EstadoChip`, con punto y Anulada en `neutral` (tarea 104);
+  - `CarteraResumenCards` pasa a `KpiCard` seleccionable y es el filtro de la tabla. `DocumentosCarteraTable` recibe `ocultarFiltroEstados` para no duplicar los estados en la ficha de cliente ni en `/cobros` (tarea 119);
+  - `DocumentosCarteraTable` en `/cobros` pasa al patrón único de filtros (tarea 149).
+
+  `COLOR_ESTADO_CARTERA`, `lib/cartera` y los textos no cambian.

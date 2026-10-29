@@ -14,9 +14,278 @@ Este módulo se ejecuta **antes de `01-auth`** (el login ya debe usar estos est�
 - **Tailwind** es dueño de: layout entre componentes (`flex`, `grid`, `gap`, márgenes entre bloques, anchos responsivos). **Nunca clases de color de Tailwind** (`text-red-500`, `bg-white`, etc.) — eso rompe el modo oscuro porque Tailwind no conoce los color schemes de MUI. Esto ya estaba implícito en `/SPEC.md` §3 ("Tailwind v4 (layout/spacing; preflight desactivado)"); aquí se hace explícito y obligatorio.
 - Si una pantalla necesita un color que no es ninguno de los `palette` de MUI, se agrega como token nuevo al theme (ver abajo), no como valor hardcodeado ni clase de Tailwind.
 
+## Design system (Fase 4, 2026-10-29)
+
+**Por qué**: la Fase 3a dejó la paleta y las fuentes de Puerto, pero el usuario no quedó conforme con el acabado. La auditoría con capturas del 2026-10-29 encontró problemas en tres frentes:
+- **Superficies**: el modal se ve en tres tonos en oscuro y los campos parecen huecos.
+- **Señales**: hay latón en todas partes, chips en cada fila y tres patrones de filtro distintos.
+- **Ritmo**: espaciado desparejo en formularios, filas de tabla de 65 px, títulos encimados, fechas `mm/dd/yyyy` y ninguna regla para el feedback después de una acción.
+
+La Fase 4 fija un design system con fundamentos, primitivos, patrones, carga, feedback y fallbacks, y `/estandares` pasa a ser su catálogo vivo. **Reemplaza a las Fases 3b, 3c y 3d**, que no se implementaron (ver `tasks.md`).
+
+**Referencia visual aprobada**: lienzo [Design system Altamar](https://claude.ai/artifact/74KKN8v4UZG8SKRncD3MZS) (privado del usuario), con los artboards 1 Fundamentos, 2 Listado, 3 Formulario en modal y 4 Carga/feedback/fallbacks. Los valores de esta sección salen de ahí. Los que el lienzo no define van marcados *(DS-8)* y se aplican con la propuesta mientras el usuario no diga otra cosa.
+
+**Qué se mantiene**:
+- la paleta Puerto y las decisiones P-UI1 a P-UI10;
+- la tipografía Fraunces + Instrument Sans y su escala (solo se agregan dos variantes);
+- las capas Tailwind/MUI, los íconos `Outlined`, el sentence case y `lib/format.ts`.
+
+**Precedencia**: esta sección **prevalece** sobre las siguientes cuando difieren. Las secciones viejas que la contradicen llevan una nota «Fase 4».
+
+**Dónde viven los tokens**:
+- `src/theme/theme.ts`: color, superficies, tipografía y overrides de componentes.
+- `src/theme/tokens.ts` (nuevo): movimiento, tiempos de carga, espaciado semántico y sombras por elevación.
+
+Ningún componente escribe hex, milisegundos ni sombras sueltas.
+
+### Principios
+
+1. **Una sola señal por nivel**: si se cumple a la vez, se muestra la del nivel más alto (navegación, página, sección o acción). Nunca un spinner y un skeleton juntos.
+2. **El color es para las excepciones**: vencida, bloqueado, error, aviso. Los valores normales ("Activo", "Controla stock", "Crudo") van como texto o se resuelven con el filtro.
+3. **Una sola acción principal por vista** (`contained`). Las demás son neutras.
+4. **El latón está restringido**: solo para foco, para la acción principal en oscuro, para el decorativo de marca (filete, punto del ítem activo, progreso de navegación, loader global) y para la acción del toast.
+5. **Cada nivel tiene su superficie**: se pinta con su token, sin la capa automática de MUI.
+6. **Se reusa un primitivo antes de componer uno nuevo.** Los duplicados del inventario se unifican (ver «Catálogo e inventario»).
+
+### Superficies por nivel
+
+| Nivel | Uso | Claro | Oscuro | Token |
+|---|---|---|---|---|
+| Fondo | página | `#F7F6F2` | `#0A1424` | `background.default` |
+| Superficie (elevación 0) | tablas, secciones de ficha, tarjetas | `#FFFFFF`, borde `#E4E1D8` | `#121F35`, borde `#22314B` | `background.paper` + `divider` |
+| Elevada (elevación 1 y 2) | modal, drawer temporal, menú, popover, listado de `Autocomplete` | `#FFFFFF` + sombra | `#1A2A45`, borde `#2C3B55` + sombra | `background.elevated` (nuevo) |
+| Campo | `OutlinedInput`, `Select`, `Autocomplete` | `#FFFFFF`, borde `#A9A397` | `#0F1C31`, borde `#5E7194` (≥ 3:1) | `background.field` (nuevo) + `inputBorder` |
+| Suave | encabezado de tabla, hover de fila, zonas suaves | `#F0EEE7` | `#17253D` | `background.subtle` |
+| Track de segmentado | fondo del `SegmentedControl` | `#F0EEE7` | `#0F1C31` | `segmented.track` (nuevo) |
+| Divisor de filas | entre filas de tabla y de lista | `#E4E1D8` | `#1D2B44` | `rowDivider` (nuevo) |
+| Divisor en modal | encabezado/cuerpo/pie del modal, secciones dentro de lo elevado | `#E4E1D8` | `#2C3B55` | `dialogDivider` (nuevo) |
+| Scrim | detrás del modal y del drawer temporal | `rgba(11,27,51,.55)` | `rgba(0,0,0,.6)` *(DS-8)* | `scrim` (nuevo) |
+
+**Mecanismo**: en el esquema oscuro, MUI aclara cada `Paper` con una capa blanca según su elevación (`--Paper-overlay`, que sale de `overlays` del esquema). Por eso el `Dialog` (elevación 24) se ve más claro que su pie y sus campos. La Fase 4 **anula esa capa**: el `Paper` no lleva `background-image` y el esquema oscuro no define overlays. La superficie elevada se pinta explícitamente con `background.elevated`. La tarea 97 elige el mecanismo concreto según la versión instalada y lo documenta en `theme.ts`.
+
+Regla del modal: el encabezado, el cuerpo y el pie usan **la misma superficie**, separados solo por un divisor `dialogDivider`. Ningún hijo de un modal pinta `background.paper` encima de lo elevado.
+
+### Color y jerarquía
+
+| Elemento | Claro | Oscuro |
+|---|---|---|
+| Acción principal (`contained`, una por vista) | `#0B1B33`, texto `#FFFFFF` | latón `#D4B27A`, texto `#241A0B` |
+| Acción secundaria (`outlined`) | borde `#CFCAB9` (`outlineBorder`), texto `text.primary` | borde `#3A4B6A` *(DS-8)*, texto `text.primary` |
+| Acción de texto ("Cancelar", "Agregar línea", "Ver") | `text.primary`; "Cancelar" en `text.secondary` | ídem |
+| Destructiva | `error`, solo dentro de `ConfirmDialog` y como ítem del menú `⋮` | ídem |
+| Selección: pestaña, segmentado, filtro, switch, checkbox, radio | `text.primary` y tokens de `segmented` | `text.primary` y tokens de `segmented` (**nunca latón**) |
+| Enlace en texto | `text.primary`, subrayado | ídem |
+| Foco visible | anillo de 3 px `rgba(201,166,107,.55)` (`focusRing`) | contorno de 2 px `#D4B27A`; en campos, borde `#D4B27A` |
+
+`secondary` (latón de texto) **deja de usarse en pantalla**: los enlaces, la vuelta de `FichaHeader` y los botones de texto pasan al color de texto. El token se conserva para compatibilidad, y el latón de texto en el PDF y el correo sale de `brand.brassText`.
+
+### Espaciado
+
+La escala es de base 4: 4, 8, 12, 16, 20, 24, 32, 40, 48 y 64. El `spacing` de MUI **sigue en 8 px**, así que en `sx` esos valores se escriben 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6 y 8. `tokens.ts` exporta los usos semánticos para no repetir números:
+
+| Uso | Valor |
+|---|---|
+| Márgenes de página | 16 (`xs`), 24 (`sm`–`md`), 64 (`lg+`) |
+| Entre bloques de página (encabezado, barra de herramientas, tabla, secciones de ficha) | 48 (32 en `xs`) |
+| Formulario: entre bloques campo + ayuda (vertical) | 24 |
+| Formulario: entre columnas | 16 |
+| Formulario: entre secciones | 40 |
+| Formulario: del título de sección al contenido | 16 |
+| Formulario: de la etiqueta al campo, y del campo a su ayuda | 6 |
+| Padding del modal | 24 (16 en `xs`) |
+
+### Radios y elevación
+
+- **Radios**:
+  - 4: chip, ítem de menú, tooltip.
+  - 6: controles (botón, campo, opción del segmentado, `Fab`, tabla, tarjeta KPI).
+  - 8: superficies, modales y el track del segmentado.
+  - 0: a pantalla completa.
+- **Elevación**: hay tres niveles, cada uno con sus sombras en `tokens.ts`.
+
+| Nivel | Qué | Claro | Oscuro |
+|---|---|---|---|
+| 0 | reposo: borde de 1 px, sin sombra | — | — |
+| 1 | menú, popover, listado de `Autocomplete`, toast | `0 12px 32px rgba(11,27,51,.14)` | `0 12px 32px rgba(0,0,0,.4)` *(DS-8)* |
+| 2 | modal y drawer temporal, con scrim | `0 24px 56px rgba(11,27,51,.22)` | `0 24px 56px rgba(0,0,0,.5)` |
+
+### Movimiento
+
+| Token | Duración | Para |
+|---|---|---|
+| `rapida` | 120 ms | hover, presión, cambio de estado de un control |
+| `media` | 200 ms | menús, toasts, acordeones, `Collapse` de filas |
+| `lenta` | 280 ms entrada / 180 ms salida | modales y drawers |
+
+- **Curvas**: entrada `cubic-bezier(.2,0,0,1)` y salida `cubic-bezier(.4,0,1,1)`. `theme.transitions` (`duration` y `easing`) se alimenta de `tokens.ts`, así que `transitions.create` ya las usa.
+- **Animaciones permitidas**:
+  - modal: fundido + 8 px hacia arriba;
+  - menú y popover: fundido + escala de .96 a 1 desde el ancla;
+  - toast: entra desde abajo y se va a los 5 s;
+  - fila nueva o editada: fondo latón tenue (`highlight`: `#FBF4E6` en claro, `rgba(212,178,122,.12)` en oscuro *(DS-8)*) que se desvanece en 2 s;
+  - botón: hover y presión en 120 ms;
+  - skeleton: pulso (DS-7).
+- **Nada rebota ni gira**, salvo el spinner.
+- Con `prefers-reduced-motion: reduce`, todo queda quieto: hay una regla global en `globals.css` y los componentes MUI ya lo respetan.
+
+### Tipografía (añadidos de la Fase 4)
+
+La escala de § Tipografía no cambia. Se agregan dos variantes (con aumento de tipos):
+
+| Variant | Tamaño / interlínea | Peso | Uso |
+|---|---|---|---|
+| `label` | 13 px / 1.4 | Instrument Sans 500 | etiqueta fija de campo (DS-1) y etiqueta de subgrupo |
+| `sectionTitle` | 16 px / 1.4 | Instrument Sans 600 | encabezado de sección de formulario (reemplaza el `h6` de `FormSection`) |
+
+`h6` sigue siendo el título del modal y de `ChartCard`. Las cifras grandes de tasas se muestran con 2 decimales (DS-6).
+
+### Primitivos
+
+Cada primitivo documenta en `/estandares` los estados que le aplican: default, hover, foco, deshabilitado, cargando, error y vacío, en claro y en oscuro.
+
+| Primitivo | Archivo | Reglas |
+|---|---|---|
+| Botón | MUI `Button` + `atoms/SubmitButton` (nuevo) | La jerarquía es la de «Color y jerarquía». `size` `medium` (36 px) por defecto y `small` solo en tablas y tarjetas densas. `SubmitButton`: `pending` + `pendingLabel` ("Guardando…") muestra el spinner al inicio con el verbo en curso, **conserva su ancho** e ignora un segundo clic |
+| Campo | `TextField`, `NumberField`, `PhoneField`, `RifCiField`, `Select`, `Autocomplete` | 40 px de alto. **Etiqueta fija arriba** (`label`, gap 6) en lugar de la flotante de MUI (DS-1). Se resuelve en el theme: la etiqueta siempre encogida, estática y sin muesca en el contorno, así que los consumidores no cambian. El requerido lleva asterisco y la ayuda o el error van en 12 px a 6 px bajo el campo. Un adorno (`$`, `kg`) ya no cambia la posición de la etiqueta |
+| Fecha | `atoms/DateField` (nuevo, sobre `DatePicker` de `@mui/x-date-pickers`, ya instalado) | `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`; muestra `dd/mm/aaaa`; ancho mínimo de 160 px; `LocalizationProvider` (dayjs `es`) global. **Prohibido `type="date"` nativo** |
+| Segmentado | `atoms/SegmentedControl` (nuevo) | Componente único para filtros de estado y opciones excluyentes. Track con padding 3 y radio 8; opción de 32 px y radio 6. Opción seleccionada: en claro, fondo `#FFFFFF` + sombra `0 1px 2px rgba(11,27,51,.16), 0 0 0 1px rgba(11,27,51,.06)` y texto `#0B1B33` 600; en oscuro, fondo `#2A3B5C` (hover `#2F4268`) y texto `#FFFFFF` 600. Las no seleccionadas van en `text.secondary` 500. Contador opcional en 12 px secundario. Navegación con flechas y siempre una opción elegida. **Reemplaza a los chips-filtro y a todo `ToggleButtonGroup`** |
+| Chip de estado | `atoms/EstadoChip` (nuevo; hoy vive en `appDataGridColumns`) | 22 px, radio 4, punto de 6 px y texto 12/600. Tonos `error`, `warning`, `success` y `neutral` (tabla de abajo). Los chips de dominio (`StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip`, `SenalFacturaChip`/`NivelSenalChip`) se apoyan en él |
+| Filtro adicional | `molecules/FilterMenuButton` (nuevo) | Botón-menú con el valor en la etiqueta ("Tipo: todos"), opción única o múltiple, "Limpiar". Para lo que no es estado |
+| Menú de fila | `molecules/RowActionsMenu` | Disparador `⋮` de 32 px. Las opciones destructivas van dentro del menú en `error` y siempre con `ConfirmDialog`. **No hay papeleras rojas sueltas** en filas ni documentos |
+| Toast | `NotificationProvider` + `useNotify` | Fondo `#0B1B33` (en oscuro, `brand.midnight` con borde `dialogDivider` *(DS-8)*), check `#ABC7F1` y acción en latón. Elevación 1, entra desde abajo y se va a los 5 s. La firma `notify.success(msg)` no cambia; se agrega `notify.success(msg, { action: { label, href \| onClick } })`. "Ver" va por defecto donde haya destino, y "Deshacer" solo en acciones reversibles (DS-3) |
+
+**Chips de estado**:
+
+| Tono | Estados | Claro: fondo / texto / punto | Oscuro: fondo / texto |
+|---|---|---|---|
+| `error` | Vencida, Bloqueado, Pérdida | `#F8E5E3` / `#8E1F18` / `#B3261E` | `#3D2228` / `#EE8A83` |
+| `warning` | Por vencer, Pendiente, Doc. incompleta | `#F8EEDD` / `#7E4705` / `#A15C07` | tenue opaco *(DS-8)* / `#E9B460` |
+| `success` | Pagada | `#ABC7F1` / `#0B1B33` / `#2F5E9E` | tenue opaco *(DS-8)* / `#ABC7F1` |
+| `neutral` | Inactivo, Anulada, Borrador, Rechazada | `#EDEBE5` / `#4A5260` / `#8A909C` | `#22314B` / `#A3ADBD` |
+
+Los estados normales (Activo, Controla stock, Crudo/Procesado, Enviada, Aceptada) **no llevan chip**: van como texto en su columna o se resuelven con el segmentado. Los fondos tenues de oscuro son opacos (el 16 % calculado sobre `background.paper`), para que no cambien sobre superficies distintas.
+
+### Patrones
+
+**Listado** (artboard 2):
+- **Encabezado** (`PageHeader`): título en Fraunces (`h4`), subtítulo y la acción principal a la derecha.
+- **Barra de herramientas**: búsqueda de 340 px (100 % en `xs`) + `SegmentedControl` de estado con contadores + filtros adicionales como `FilterMenuButton` + acciones de tabla a la derecha.
+- **Encabezado de tabla**: `background.subtle` **a todo el ancho**, 40 px, 12/600 con 0.04em y flecha de orden simple, sin círculo.
+- **Filas**: 56 px, todo centrado en vertical, con divisor `rowDivider`.
+- **Columnas**:
+  - **Siempre llenan el ancho**: al menos una columna de texto es flexible.
+  - El identificador secundario (código, RIF) va en 12 px **bajo el nombre, en la misma celda** (`colPrincipal`).
+  - Montos a la derecha con cifras tabulares, y el saldo > 0 en 600.
+  - Dato faltante: "—".
+- **Acciones de fila**: en `⋮` de 32 px.
+- **Paginación**: se oculta en el estado vacío ("0–0 de 0" nunca se ve).
+
+**Filtros**: hay **un solo patrón**:
+- el estado (≤ 5 opciones excluyentes) va en `SegmentedControl` con contador;
+- el resto de los filtros va en `FilterMenuButton`;
+- el texto va en la búsqueda.
+
+Los filtros viven en la URL (`?estado=`, como hoy). No se usan chips como filtro.
+
+**Formulario** (artboard 3):
+- **Secciones**: cada sección es un `FormSection` con encabezado `sectionTitle` y divisor inferior, a 16 px del contenido y con 40 px entre secciones. La ayuda de sección va en `body2` bajo el título, sin márgenes negativos.
+- **Grilla**: los campos van en `FormGrid` (1 columna en `xs`, 2 en `sm+`, 24 vertical y 16 entre columnas). Un campo sin pareja (notas, teléfono suelto) ocupa el ancho completo (`full`), así no quedan huérfanos.
+- **Subgrupos** ("Tasa", "Pago"): van como `FormSubgroup`, una etiqueta `label` y no un título de sección.
+- **Líneas repetibles** (`LineasEditor`):
+  - una fila de encabezados de columna (las celdas no repiten la etiqueta) y filas sin caja anidada;
+  - papelera de 36 px alineada al campo;
+  - "Agregar línea" como botón de texto **debajo** de las filas;
+  - totales a la derecha, bajo un divisor;
+  - `Collapse` al agregar y al quitar;
+  - en `xs`, cada línea es un bloque con sus etiquetas.
+- **Pie**: "Cancelar" (texto) + la acción principal. En pantalla completa (`xs`), el primario ocupa el ancho.
+- **Modal o página** (DS-4, propuesta):
+
+  | Formulario | Contenedor |
+  |---|---|
+  | 1 sección o ≤ 6 campos | `AppDialog sm` |
+  | 2 secciones sin líneas repetibles | `AppDialog md` |
+  | Con líneas repetibles o > 2 secciones (compra, pedido/POS, cotización, procesamiento, edición de compra, nota de crédito) | `AppDialog lg` (1120 px; pantalla completa por debajo de `md`) |
+
+  Las páginas dedicadas (`/compras/nueva`) quedan fuera del MVP, salvo que DS-4 diga otra cosa.
+
+**Ficha**:
+- `FichaHeader`: vuelta en `text.secondary`, nombre `h5` y `meta`.
+- **Secciones**: superficies de nivel 0 (`FichaSeccion`, radio 8) separadas por 48 px. Ningún bloque de color (`CreditoResumen` pasa a superficie normal).
+- **Indicadores**: los KPI que filtran una tabla **son** el filtro. `CarteraResumenCards` se vuelve seleccionable y la tabla oculta sus propios chips de estado, así no se duplican.
+- **Documentos**: van como lista de filas (ícono, nombre, "Ver", `⋮` con "Reemplazar" y "Eliminar"), sin cajas punteadas anidadas. La zona para soltar archivos aparece solo cuando no hay archivo.
+
+### Carga y feedback
+
+**Una sola señal por nivel**. El loader global aparece con un **retardo de 150 ms** y, una vez visible, dura **al menos 400 ms** (constantes en `tokens.ts`).
+
+| Nivel | Señal | Componente |
+|---|---|---|
+| Navegación | filete de latón de 3 px en el borde superior, sin bloquear | `NavigationProgress` |
+| Página | skeleton con la forma de la plantilla (tabla, ficha, dashboard o formulario), con pulso | `loading.tsx` → `PageLoader` (sobre `atoms/Skeletons`) |
+| Sección | skeleton por bloque | `Suspense` + el skeleton de esa sección |
+| Refresco de tabla | `loading` de `AppDataGrid` (la estructura no desaparece) | `AppDataGrid` |
+| Acción en curso | botón con spinner y verbo en curso, ancho conservado; campos y cierre del modal bloqueados; doble clic ignorado | `SubmitButton` + `AppDialog pending` + `useForm({ disabled })` |
+| Éxito | se cierra el modal, el ítem afectado se resalta 2 s y aparece un toast con el verbo ("Compra registrada") + "Ver" | `useNotify` + `highlightId` de `AppDataGrid` / `ListaResumen` |
+| Error de la acción | el modal sigue abierto con los datos intactos, `Alert` **arriba del formulario** con "Reintentar" y errores de campo bajo cada campo | `AppDialog error` + `onRetry` |
+| Operación larga (> 1 s y bloqueante: PDF, importación, cierre de lote) | overlay con mensaje y barra de latón | `BrandLoader` vía `useGlobalLoader().run` |
+
+### Fallbacks
+
+Hay un solo componente, `molecules/Fallback` (nuevo): ícono en un círculo de 44 px, título, texto (≤ 75ch) y acción. `EmptyState` y `ErrorState` pasan a ser envoltorios de compatibilidad.
+
+| Tipo | Dónde se resuelve | Acción |
+|---|---|---|
+| Vacío | overlay `noRowsOverlay` de `AppDataGrid` o la sección que lo necesite | la acción principal ("Registrar compra") |
+| Sin resultados | `noResultsOverlay` de `AppDataGrid` (búsqueda o filtros activos) | "Limpiar filtros" (búsqueda + segmentado + menús) |
+| Error de carga de ruta | `error.tsx` de la ruta → `organisms/RouteError` | "Reintentar" + "Tus datos están a salvo" |
+| Error de carga de una sección | `ChartCard error` o el componente de la sección | "Reintentar" |
+| No encontrado (404) | `not-found.tsx` de la ficha, más uno global en `src/app/not-found.tsx` | volver al listado / al inicio |
+| Sin permiso | `Fallback tipo="sin-permiso"`. Se usa `forbidden.tsx` solo si la versión de Next lo trae estable (verificar en `node_modules/next/dist/docs/`) | "Volver al inicio" |
+| Dato faltante en celda | `appDataGridColumns` y `lib/format.ts` | "—" |
+
+### Catálogo e inventario
+
+- **Inventario**: hay ~150 componentes en `src/components`. La tarea 94 llena la tabla «Unificación» con cada duplicado y su destino. Duplicados ya detectados:
+
+| Duplicado | Destino |
+|---|---|
+| Chips de filtro con contador (catálogos, proveedores, clientes, cartera) y `ToggleButtonGroup` de filtros (notas de crédito, pedidos, tasas) y de opciones (Contado/Crédito, USD/Bs, BCV/Paralela, Tipo de persona; 21 archivos) | `SegmentedControl` |
+| `EstadoChip` de columnas, `StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip`, `SenalFacturaChip`/`NivelSenalChip` | `EstadoChip` base |
+| `CarteraResumenCards` y `KpiCard` | `KpiCard` con variante seleccionable |
+| `EmptyState`, `ErrorState`, `CotizacionNoDisponible`, `PagePlaceholder` | `Fallback` |
+| `PageLoader`, `DashboardSkeletons`, `CarteraSeccionSkeleton` | `atoms/Skeletons` |
+| `CompraItemsFieldArray`, `PedidoItemsFieldArray`, `CotizacionItemsFieldArray`, `SalidasProcesoFieldArray` | `LineasEditor` (la lógica de cada dominio se queda en su archivo) |
+| `FichaSeccion`, `ChartCard` y `Paper` sueltos como sección | `FichaSeccion` / `ChartCard` (sin `Paper` suelto) |
+
+- **`/estandares` es el catálogo vivo**, con una sección por bloque (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks). Cada componente aparece en sus estados y en ambos modos lado a lado. Un componente compartido nuevo **no se da por hecho** hasta estar en el catálogo.
+
+### Decisiones de la Fase 4
+
+El usuario aprobó las ocho propuestas tal como están el 2026-10-29. Si más adelante cambia alguna, se toca solo el theme o el componente indicado.
+
+| Id | Decisión | Propuesta | Estado |
+|---|---|---|---|
+| DS-1 | Etiquetas fijas arriba del campo en todos los formularios, en lugar de las flotantes de MUI | Sí, por theme (tarea 105) | aprobada (2026-10-29) |
+| DS-2 | Normalizar las mayúsculas de los nombres al mostrarlos (el lienzo los muestra en formato título) | No normalizar: se muestran como se cargaron, salvo que el cliente decida otra cosa | aprobada (2026-10-29) |
+| DS-3 | Acción del toast de éxito | "Ver" por defecto donde haya destino; "Deshacer" solo en acciones reversibles sin efectos secundarios | aprobada (2026-10-29) |
+| DS-4 | Modal o página para formularios largos | La tabla de «Formulario»: `lg` para líneas repetibles o > 2 secciones, sin páginas nuevas en el MVP | aprobada (2026-10-29) |
+| DS-5 | Montos USD en `en-US` (`$1,249.44`) junto a Bs en `es-VE` (`Bs. 0,00`) en la misma pantalla. Es la regla vigente de `lib/format.ts` | Se mantiene, no se cambia en la Fase 4 | aprobada (2026-10-29) |
+| DS-6 | Decimales visibles de las tasas | 2 en tarjetas y listados (`formatTasaCorta`); 6 en el detalle y en el tooltip (`formatTasa`) | aprobada (2026-10-29) |
+| DS-7 | Animación del skeleton | Pulso (el `animation="pulse"` de MUI), no brillo | aprobada (2026-10-29) |
+| DS-8 | Valores del esquema oscuro que el lienzo no define: scrim, sombra de la elevación 1, borde `outlined`, fondos tenues de `warning`/`success`, `highlight` y fondo del toast | Los marcados *(DS-8)* en esta sección | aprobada (2026-10-29) |
+
+### Fuera de alcance (Fase 4)
+
+- Páginas dedicadas para formularios largos (depende de DS-4).
+- Cambiar el formato de montos (DS-5).
+- El logo real (pendiente (g)) y el PDF de contratos.
+- Cambiar el `spacing` base de MUI.
+- Librerías de animación de terceros.
+
 ## Identidad visual "Puerto" (elegida por el cliente el 2026-10-22)
 
-> **Reemplaza a "Peñero"** (ver "Historial" al final de esta sección). El usuario pidió explícitamente reabrir esa decisión: el cliente eligió "Puerto" para un acabado fresco, premium y confiable. Se implementa en la **Fase 3** de `tasks.md`; hasta que esa fase termine, el código sigue en Peñero.
+> **Reemplaza a "Peñero"** (ver "Historial" al final de esta sección). El usuario pidió explícitamente reabrir esa decisión: el cliente eligió "Puerto" para un acabado fresco, premium y confiable. Los tokens, las fuentes y el theme se implementaron en la **Fase 3a** de `tasks.md`. El resto (decorativo, componentes y revisión) lo absorbe la **Fase 4** (§ Design system), que reemplaza a las Fases 3b–3d. Hasta que termine la Fase 4, quedan restos de Peñero en el código (isotipo, ítem activo, `CreditoResumen`).
 
 **Referencia visual**: lienzo [Rediseño Altamar](https://claude.ai/artifact/Lz4AcGuda8miEXmi4oiwtU), artboard **"B · Puerto"** (privado del usuario). Si esta spec y el artboard difieren, se consulta al usuario. Los valores marcados *(P-UIn)* no salen del artboard; el cliente los aprobó el 2026-10-22 (ver "Decisiones de la Fase 3").
 
@@ -24,8 +293,8 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `primary` | `#0B1B33` (medianoche), texto `#FFFFFF` | `#D4B27A` (latón), texto `#241A0B` | acción principal, selección. En oscuro el botón principal es latón |
-| `secondary` (latón texto) | `#7A5C2E` | `#D4B27A` | enlaces y acento puntual; nunca compite con `primary` en la misma vista |
+| `primary` | `#0B1B33` (medianoche), texto `#FFFFFF` | `#D4B27A` (latón), texto `#241A0B` | acción principal. En oscuro el botón principal es latón. *Fase 4*: la selección (pestaña, segmentado, switch) ya no usa `primary`; va en `text.primary` |
+| `secondary` (latón texto) | `#7A5C2E` | `#D4B27A` | *Fase 4*: sin uso en pantalla (los enlaces van en color de texto); se conserva por compatibilidad |
 | `success` | relleno `#ABC7F1`; texto/ícono `#2F5E9E` *(P-UI1)* | `#ABC7F1` | estados "pagada", positivo |
 | `warning` | `#A15C07` | `#E9B460` | aviso, "por vencer" |
 | `error` | `#B3261E` | `#EE8A83` | error, vencida, destructivo |
@@ -34,7 +303,7 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 | `background.paper` | `#FFFFFF` | `#121F35` | superficies: tablas, tarjetas, diálogos, inputs |
 | `background.subtle` (token nuevo) | `#F0EEE7` | `#17253D` *(P-UI10)* | encabezado de tabla, fila en hover, zonas suaves |
 | `divider` | `#E4E1D8` | `#22314B` | separadores y bordes de superficie |
-| borde de input | `#E4E1D8` si da 3:1; si no, `#A9A397` *(P-UI7)* | `#2C3B55` | contorno de `OutlinedInput` |
+| borde de input | `#E4E1D8` si da 3:1; si no, `#A9A397` *(P-UI7)* | `#5E7194` (*Fase 4*; antes `#2C3B55`, casi invisible) | contorno de `OutlinedInput` |
 | `text.primary` / `text.secondary` | `#0B1B33` / `#5B6474` | `#EEF0F4` / `#A3ADBD` | |
 | `brand.midnight` / `brand.navy` | `#0B1B33` / `#1C2E4D` | `#0A1424` / `#1C2E4D` *(P-UI10)* | sidebar y panel de login / ítem activo, hover y selección en el sidebar |
 | `brand.onMidnight` / `brand.onMidnightMuted` | `#F7F6F2` / `#A3ADBD` | `#EEF0F4` / `#A3ADBD` | texto sobre medianoche |
@@ -44,6 +313,8 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 `brand` pasa de las claves de Peñero (`hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red`, `trim`) a las de Puerto. Las claves viejas conviven solo durante la Fase 3 y se borran al final.
 
 **Estados sin depender solo del color**: `success` ahora es azul, como `primary`. Todo estado se comunica con texto (etiqueta del chip) y, donde no haya texto, con ícono (`KpiCard` con `tone`, flechas de `/tasas`, `CarteraIndicador`). Un borde o un punto de color nunca es la única señal.
+
+> *Fase 4*: los chips de estado pasan a `atoms/EstadoChip`, con punto de 6 px, tono `neutral` y fondos opacos en oscuro. Solo se usan para excepciones. Ver § Design system › Primitivos. La tabla siguiente queda como base de `soft`/`onSoft`.
 
 **Chips de estado** (`Chip variant="soft"`, radio 4, 22 px). El theme agrega a cada color dos campos, `soft` (fondo) y `onSoft` (texto). Ya no se calcula con alfa:
 
@@ -74,8 +345,8 @@ Jerarquía de superficies y radios (radios contenidos, líneas finas):
 | Chip / etiqueta de estado, ítem de menú (sidebar y `Menu`), tooltip | 4 | 0 | según estado |
 | Botón, input, `Fab`, tarjeta KPI, tabla (`DataGrid`, `Table`) | 6 | 0 | 1 px (input: borde de input) |
 | Superficie / panel: `ChartCard`, sección de ficha, `CadenaTrazabilidad`, `Paper` genérico | 8 | 0 | 1 px `divider` |
-| Diálogo | 8 *(P-UI3)*; 0 a pantalla completa | sombra del theme | — |
-| Menú, popover, listado de `Autocomplete` (lo que flota) | 6 | sombra del theme | — |
+| Diálogo | 8 *(P-UI3)*; 0 a pantalla completa | 2 (*Fase 4*: sombra de `tokens.ts` + scrim, superficie `background.elevated`) | oscuro: `#2C3B55` |
+| Menú, popover, listado de `Autocomplete` (lo que flota) | 6 | 1 (*Fase 4*: sombra de `tokens.ts`, superficie `background.elevated`) | — |
 
 ### Historial: identidad "Peñero" (aprobada el 2026-10-06, reemplazada el 2026-10-22)
 
@@ -129,13 +400,19 @@ Breakpoints de MUI por defecto (`xs <600, sm <900, md <1200, lg <1536`). Anchos 
 - **Shell persistente**: `AppShell` vive en `src/app/(protected)/layout.tsx`, **no** dentro de cada `page.tsx` como hoy (14 páginas lo envuelven por su cuenta). Hoy cada navegación desmonta el menú, el `loading.tsx` reemplaza la pantalla entera (menú incluido, de ahí el parpadeo) y la sesión y el rol se vuelven a pedir desde el navegador en cada página. Con el shell en el layout, el menú queda fijo, solo cambia el contenido, y la sesión y el rol llegan del servidor una sola vez.
 - Navegación: `md+` menú lateral permanente de 248 px; `sm` menú lateral colapsado a riel de íconos de 72 px con tooltip; `xs` menú temporal (botón de menú en la barra superior).
 - **Acción principal en móvil**: en `xs` el botón primario del `PageHeader` ("Nueva venta", "Nuevo cliente") pasa a ser un `Fab` fijo abajo a la derecha (respetando `env(safe-area-inset-bottom)`); el resto de las acciones van a un menú `⋮` en el encabezado.
-- Contenido: ancho máximo de 1440 px, márgenes laterales de 16 px (`xs`), 24 px (`sm`–`md`) y 32 px (`lg+`). Espaciado vertical entre bloques: 24 px (`xs`) y 32 px (`md+`).
+- Contenido: ancho máximo de 1440 px, márgenes laterales de 16 px (`xs`), 24 px (`sm`–`md`) y 64 px (`lg+`; *Fase 4*, antes 32). Espaciado vertical entre bloques: 32 px (`xs`) y 48 px (`sm+`) (*Fase 4*, antes 24/32).
 - Áreas táctiles de ≥ 44 × 44 px en `xs` (`IconButton` `size="medium"`, filas de lista de ≥ 56 px).
 - Formularios: 1 columna en `xs`, 2 en `sm+`, nunca más de 2 columnas de inputs de texto.
 - Tablas: ver "Tablas y paginación" (tarjetas en `xs`).
 - Diálogos: ver "Modales" (pantalla completa en `xs`).
 
 ## Loaders y estados de carga
+
+> *Fase 4*: los niveles, los tiempos y el feedback posterior a la acción se rigen por § Design system › Carga y feedback. Cambios respecto de esta tabla:
+> - la barra de navegación tiene 3 px y va en el borde superior;
+> - la acción puntual usa `SubmitButton` (spinner + verbo en curso);
+> - el skeleton sale de `atoms/Skeletons`;
+> - se agregan el éxito (resaltado + toast) y el error (alerta arriba del formulario).
 
 Regla: **nunca una pantalla en blanco, nunca un spinner genérico centrado.** Cinco niveles, de mayor a menor alcance:
 
@@ -151,6 +428,7 @@ Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los 
 
 ## Botones y acciones en curso
 
+- *Fase 4*: el botón que envía un formulario es `atoms/SubmitButton` (`pending`, `pendingLabel`: spinner + "Guardando…", ancho conservado). Sigue apoyado en el `loading` de MUI. La jerarquía de color es la de § Design system › Color y jerarquía.
 - **Toda acción asíncrona usa `loading` de MUI** (`<Button loading={isPending}>`): el botón se deshabilita solo y muestra el indicador en el lugar del texto (`loadingPosition="start"` si tiene ícono). Se reemplazan los `startIcon={isPending ? <CircularProgress …/> : null}` actuales.
 - **Mientras una acción está en curso, se bloquea todo lo que podría competir con ella**: en un formulario o diálogo, `useForm({ disabled: isPending })` deshabilita todos los campos, el botón secundario ("Cancelar") queda `disabled`, y el diálogo no se cierra con Esc ni haciendo clic fuera. En una fila de tabla, el menú `⋮` de esa fila queda deshabilitado con su indicador; las demás filas siguen operables.
 - **Doble envío imposible**: además del `disabled`, el handler ignora llamadas mientras `isPending` (dos clics rápidos antes del re-render).
@@ -163,7 +441,13 @@ Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los 
 Todas las tablas usan **`organisms/AppDataGrid`**, un envoltorio de `DataGrid` con los defaults del sistema. Hoy las 8 tablas repiten su configuración, y el tamaño de página varía entre 10 y 25.
 
 - **Idioma**: `esES` de `@mui/x-data-grid/locales` aplicado **en el theme**, para todas las tablas ("Filas por página", "1–25 de 132", etc.).
-- **Anatomía**: barra superior (búsqueda rápida a la izquierda, filtros como chips, acciones de tabla a la derecha) → encabezado de 44 px sobre `background.subtle` (antes "hielo"), en `subtitle2` (600), `text.secondary`, sin separadores de columna → filas de 52 px con divisor de 1 px → pie de paginación.
+- **Anatomía** (*Fase 4*, reemplaza la anterior; detalle en § Design system › Patrones › Listado):
+  - barra superior: búsqueda de 340 px, `SegmentedControl` de estado con contadores, `FilterMenuButton` para los demás filtros y acciones a la derecha;
+  - encabezado de 40 px sobre `background.subtle` a todo el ancho, en `subtitle2`, sin separadores de columna y con flecha de orden simple;
+  - filas de 56 px centradas en vertical, con divisor `rowDivider`;
+  - pie de paginación, oculto si la tabla está vacía.
+  - Las columnas llenan el ancho, y el identificador secundario va bajo el nombre (`colPrincipal`).
+  - *Antes*: chips como filtro, encabezado de 44 px y filas de 52 px.
 - **Columnas**: texto alineado a la izquierda; **montos, kg y tasas a la derecha, con cifras tabulares**; fechas con `formatFecha`; estados con chips de 22 px; la columna de acciones es la última, con menú `⋮` (nunca más de un ícono suelto por fila). Si la fila abre una ficha, toda la fila es clicable (`cursor: pointer`, fondo `background.subtle` en Puerto, antes `action.hover`, con `transitions.create('background-color')`) y el menú detiene la propagación.
 - **Paginación**:
 
@@ -185,9 +469,15 @@ Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confi
 |---|---|---|
 | `xs` | 400 px | confirmaciones, bloqueo con motivo, un solo campo |
 | `sm` | 600 px | formularios de una entidad simple (producto, abono, nota de crédito) |
-| `md` | 900 px | formularios con secciones o pasos (cliente, proveedor, compra, venta) |
+| `md` | 900 px | formularios con dos secciones o con pasos (cliente, proveedor) |
+| `lg` (*Fase 4*, DS-4) | 1120 px; pantalla completa por debajo de `md` | formularios con líneas repetibles o con más de dos secciones (compra, pedido/POS, cotización, procesamiento, edición de compra, nota de crédito) |
 
 - **Anatomía**: encabezado (título `h6` = la acción, "Registrar abono"; subtítulo opcional en `body2` con el contexto, "Factura 0123 · Restaurante El Muelle"; botón cerrar `IconButton` con `aria-label="Cerrar"`) → contenido con scroll propio y divisores arriba y abajo solo cuando hay scroll → pie fijo (secundario a la izquierda, primario a la derecha).
+- *Fase 4*:
+  - una sola superficie `background.elevated` para encabezado, cuerpo y pie, separados por `dialogDivider`, con padding de 24;
+  - "Cancelar" como botón de texto;
+  - el error del servidor va como `Alert` **arriba del formulario**, con "Reintentar" cuando aplique, en lugar de arriba del pie;
+  - la entrada es un fundido + 8 px hacia arriba (280 ms; salida en 180 ms).
 - **`xs`**: los `sm`/`md` pasan a **pantalla completa** con entrada `Slide` desde abajo, el pie fijo respeta el área segura, y el botón primario ocupa el ancho. Los `xs` (confirmaciones) siguen centrados.
 - **Comportamiento**: foco al primer campo al abrir y de vuelta al disparador al cerrar. Con cambios sin guardar (`isDirty`), cerrar (X, Esc, clic fuera) pide confirmación ("¿Descartar cambios?"). Mientras hay una acción en curso, no se puede cerrar (ver "Botones y acciones en curso"). Los errores del servidor aparecen como `Alert` arriba del pie, además del error en cada campo.
 - **Nunca** un diálogo abre otro diálogo de formulario; la única excepción es `ConfirmDialog`. Si un flujo necesita más pantalla, va como pasos (`Stepper`) dentro del mismo `AppDialog md`.
@@ -195,12 +485,15 @@ Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confi
 
 ## Estados vacíos y de error
 
+> *Fase 4*: los dos componentes pasan a ser envoltorios de `molecules/Fallback`, y los `error.tsx` usan `organisms/RouteError`. Qué tipo de fallback se resuelve en `error.tsx`/`not-found.tsx` y cuál en componentes se define en § Design system › Fallbacks.
+
 - `components/molecules/EmptyState.tsx`: ícono + mensaje + (opcional) botón de acción ("Aún no hay clientes" + botón "Nuevo cliente"). Se usa en toda tabla/lista vacía — nunca una tabla vacía sin mensaje.
 - `components/molecules/ErrorState.tsx`: mensaje de error legible + botón "Reintentar" cuando aplique. Se usa en los `error.tsx` de Next.js (App Router) de cada ruta y en catches de fetch de datos dentro de un componente.
 
 ## Feedback de acciones (toasts)
 
 - `components/organisms/NotificationProvider.tsx` (o `lib/notify/` con un hook `useNotify()`): envuelve un `Snackbar` de MUI, expone `notify.success(msg)`, `notify.error(msg)`, `notify.info(msg)`. **Nunca `window.alert`/`window.confirm`** en ningún módulo.
+- *Fase 4*: el toast tiene el aspecto de § Design system › Primitivos y acepta `{ action }` ("Ver" o "Deshacer", DS-3). El éxito se acompaña del resaltado de 2 s del ítem afectado. Un error dentro de un modal no usa toast: va como `Alert` arriba del formulario.
 - Toda acción que escribe en la base de datos (crear, editar, eliminar/desactivar, registrar pago, generar contrato) termina en un `notify.success` o `notify.error` — es la única forma en que el usuario sabe que algo pasó, dado que no hay recarga completa de página (Server Actions + revalidación).
 
 ## Confirmaciones
@@ -211,6 +504,17 @@ Todos los diálogos usan **`organisms/AppDialog`** (o `ConfirmDialog` para confi
 ## Formularios y validación
 
 ### Estructura visual (aprobado el 2026-10-07)
+
+> *Fase 4*: reemplaza las medidas de esta subsección:
+> - `FormSection` usa `sectionTitle` (16/600) con divisor inferior, 16 px hasta el contenido y 40 px entre secciones;
+> - los campos van en `FormGrid` (24 vertical, 16 entre columnas, `full` para los campos sin pareja);
+> - los subgrupos van en `FormSubgroup`;
+> - las líneas repetibles van en `LineasEditor`;
+> - la etiqueta es fija arriba del campo (DS-1);
+> - las fechas usan `DateField`;
+> - las opciones excluyentes usan `SegmentedControl`.
+>
+> `size="small"` (40 px), las máscaras y la validación no cambian. Detalle en § Design system › Patrones › Formulario.
 
 **Divisiones de sección** — todo formulario con más de un tema (identificación, contacto, crédito, documentos…) agrupa sus campos en **`molecules/FormSection`**: título `h6` + `ayuda` opcional (`body2`, `text.secondary`) + divisor de 1 px (`divider`) encima de la sección salvo la primera + 24 px entre secciones y 16 px entre campos (`gap: { xs: 3, campos: 2 }` en unidades del theme). Prop `dense` (16 px de aire) para formularios cortos en `AppDialog xs`. No se escriben encabezados de sección a mano con `Typography` suelto: siempre `FormSection` (reemplaza al helper local `Seccion` que traía `ClienteFormFields`). El pie del formulario (botones) no es una sección: lo pone `AppDialog`.
 
@@ -237,6 +541,8 @@ La máscara **previene**, no valida: la fuente de verdad sigue siendo el esquema
 
 ## Transiciones y micro-interacciones
 
+> *Fase 4*: las duraciones y las curvas salen de `src/theme/tokens.ts`: rápida 120, media 200 y lenta 280/180 ms (§ Design system › Movimiento), y `theme.transitions` las toma de ahí. La lista de animaciones permitidas de esa sección reemplaza a la tabla siguiente donde difieran (por ejemplo, el modal entra con fundido + 8 px y no con `Grow`).
+
 No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, etc.) — se logra un acabado fino con lo que ya trae MUI (`Fade`, `Grow`, `Collapse`, `Slide`) más `theme.transitions` para transiciones CSS simples. Cero dependencias nuevas, cero costo de bundle.
 
 | Situación | Componente/técnica |
@@ -255,6 +561,7 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 ## Formato de números (dinero, peso, tasas)
 
 - `src/lib/format.ts` (nuevo, compartido por todos los módulos): `formatUsd(n)` → `$1,234.56`, `formatBs(n)` → `Bs. 45.123,45` (separador de miles `.`, decimal `,`, convención venezolana), `formatKg(n)` → `12,345 kg` (3 decimales), `formatTasa(n)` → `36,500000`. Todo módulo que muestre estos valores usa estas funciones — no `toFixed()` suelto ni formateo manual repetido.
+- *Fase 4*: las tasas en tarjetas y listados se muestran con `formatTasaCorta` (2 decimales), y con `formatTasa` (6) en el detalle o el tooltip (DS-6). La mezcla `en-US` (USD) y `es-VE` (Bs) se mantiene (DS-5, por confirmar).
 
 ## Componentes compartidos (catálogo — revisar antes de crear uno nuevo)
 
@@ -276,9 +583,20 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `DocumentosRequeridos` | `molecules` | Documentos exigidos por un proveedor según su tipo de persona (cédula, RIF, acta, cédulas de representantes), con ✓/⚠ según los presentes; `disabled` propaga a cada `DocumentoUpload` mientras el form dueño guarda (11-refactor-visual-proveedores) |
 | `RepresentantesLegalesFieldArray` | `molecules` | Lista editable de representantes legales (tipado genérico, filas con `Collapse`) |
 | `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast; `variant` (ej. `h5` para el código de un lote) y `copiedMessage` (07-lotes) |
-| `StatusChips` | `molecules` | Chips `soft` de 22 px: Activo (solo con `mostrarActivo`, en listados) / Inactivo, Bloqueado (tooltip con el motivo, convive con Activo) y Doc. incompleta (tooltip con faltantes). Sin chips que mostrar no renderiza nada |
-| `PeneroStripes` | `atoms` | Franjas de la borda (Peñero). **Se retira en la Fase 3**; lo reemplaza `FileteLaton` |
-| `FileteLaton` (Fase 3, *P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
+| `StatusChips` | `molecules` | Chips `soft` de 22 px: Activo (solo con `mostrarActivo`, en listados) / Inactivo, Bloqueado (tooltip con el motivo, convive con Activo) y Doc. incompleta (tooltip con faltantes). Sin chips que mostrar no renderiza nada. *Fase 4*: sobre `EstadoChip`; "Activo" deja de mostrarse (`mostrarActivo` queda sin efecto, deprecado) |
+| `PeneroStripes` | `atoms` | Franjas de la borda (Peñero). **Se retira en la Fase 4** (tarea 140); lo reemplaza `FileteLaton` |
+| `FileteLaton` (Fase 4, tarea 131; *P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
+| `SegmentedControl` (Fase 4) | `atoms` | Filtro de estado u opción excluyente: `value`, `onChange`, `options` (`value`, `label`, `count?`), `aria-label`, `fullWidth`, `disabled`. Reemplaza a los chips-filtro y a `ToggleButtonGroup` |
+| `EstadoChip` (Fase 4) | `atoms` | Chip de estado de 22 px con punto, `tono` `error`/`warning`/`success`/`neutral`, `label`, `tooltip?`. Base de los chips de dominio; `appDataGridColumns` lo reexporta |
+| `DateField` (Fase 4) | `atoms` | Fecha `dd/mm/aaaa` sobre `DatePicker`; `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`; mín. 160 px. Prohíbe `type="date"` |
+| `SubmitButton` (Fase 4) | `atoms` | Botón de envío: `pending`, `pendingLabel` ("Guardando…"), ancho conservado, ignora el doble clic |
+| `Skeletons` (Fase 4) | `atoms` | Primitivos de skeleton con la forma de las plantillas (`SkeletonTabla`, `SkeletonFicha`, `SkeletonKpis`, `SkeletonGrafico`, `SkeletonFormulario`); los usan `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección |
+| `FilterMenuButton` (Fase 4) | `molecules` | Filtro adicional como botón-menú ("Tipo: todos"), opción única o múltiple, "Limpiar" |
+| `FormGrid` + `FormSubgroup` (Fase 4) | `molecules` | Grilla de campos (1/2 columnas, 24/16 px, `full`) y subgrupo con etiqueta `label` dentro de una `FormSection` |
+| `LineasEditor` (Fase 4) | `molecules` | Disposición de líneas repetibles: fila de encabezados, filas sin caja, papelera de 36 px, "Agregar línea" debajo, slot de totales; la lógica (`useFieldArray`) la pone el consumidor |
+| `Fallback` (Fase 4) | `molecules` | Vacío / sin resultados / error / sin permiso / no encontrado: ícono en círculo de 44 px, título, texto, acción. `EmptyState` y `ErrorState` lo envuelven |
+| `RouteError` (Fase 4) | `organisms` | Contenido de todo `error.tsx`: `Fallback tipo="error"` + "Reintentar" (`reset`) + "Tus datos están a salvo" |
+| `src/theme/tokens.ts` (Fase 4) | `src/theme` | Movimiento (duraciones y curvas), tiempos de carga (150/400 ms, 100 ms de navegación, 5 s de toast, 2 s de resaltado), espaciado semántico y sombras por elevación |
 | `BrandMark` | `atoms` | Logo de Altamar (`variant: full / isotipo`, `size`, `orientation`); isotipo provisional en SVG hasta tener el archivo real (ícono de la app en `src/app/icon.svg`) |
 | `NavigationProgress` | `atoms` | Barra de progreso (Peñero: 3 px con las franjas; Puerto: 2 px, `FileteLaton sweep`); `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
 | `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global con logo: `show(msg, { untilNavigation })` devuelve `release`, `hide()`, `run(tarea, msg)`; 150 ms de retardo, 400 ms mínimo, contador |
@@ -332,7 +650,7 @@ Cada módulo que cree un componente genérico nuevo (no específico de su domini
 - Todo `IconButton` sin texto visible lleva `aria-label`.
 - Ningún `:focus` se remueve vía CSS; si se reemplaza el estilo default de foco, debe seguir siendo visible.
 - Formularios: `<label>` asociado a su input (MUI `TextField` ya lo hace si se usa `label`, no se debe omitir por diseño).
-- Puerto (2026-10-22): los pares de texto se verifican con herramienta y quedan anotados en el checklist de la Fase 3. Contornos de input, foco y series de gráfico, ≥ 3:1 contra su fondo (WCAG 1.4.11). El latón decorativo (`#C9A66B`) y el `success` de relleno (`#ABC7F1`) **nunca** van como texto sobre claro. El foco visible es un contorno de 2 px de `primary` (en oscuro, latón).
+- Puerto (2026-10-22): los pares de texto se verifican con herramienta y quedan anotados en el checklist de la Fase 3. Contornos de input, foco y series de gráfico, ≥ 3:1 contra su fondo (WCAG 1.4.11). El latón decorativo (`#C9A66B`) y el `success` de relleno (`#ABC7F1`) **nunca** van como texto sobre claro. El foco visible es un contorno de 2 px de `primary` (en oscuro, latón). *Fase 4*: en claro, anillo de 3 px `focusRing` (`rgba(201,166,107,.55)`); en oscuro, 2 px `#D4B27A`. Hay que verificar ≥ 3:1 en ambos, junto con el borde de campo `#5E7194` sobre `#0F1C31`, el segmentado seleccionado y el toast.
 
 ## Decisiones de la Fase 3 (Puerto)
 
@@ -354,5 +672,5 @@ El cliente aprobó el 2026-10-22 las diez propuestas tal como están (P-UI1 a P-
 ## Fuera de alcance (MVP)
 - Internacionalización (todo queda en español, moneda USD/Bs fijas).
 - Modo de alto contraste separado del modo oscuro estándar.
-- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. El mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) solo cambia `pendiente` → `warning` (ver chips de estado). La anatomía de pantallas no cambia: solo la piel.
+- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. El mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) solo cambia `pendiente` → `warning` (ver chips de estado). La anatomía de pantallas no cambia: solo la piel. *(La Fase 4 sí ajusta la anatomía de listados, formularios, fichas y feedback; lo que sale de su alcance figura en § Design system › Fuera de alcance.)*
 - Animaciones elaboradas (parallax, scroll-triggered, animaciones de página complejas) o cualquier librería de animación de terceros — las transiciones básicas ya quedan cubiertas en la sección "Transiciones y micro-interacciones" arriba.
