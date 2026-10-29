@@ -7,38 +7,68 @@ import type {} from '@mui/x-data-grid/themeAugmentation'
 import { MARCA_CLARO, MARCA_OSCURO } from './marca'
 
 /**
- * Identidad "Peñero" (Altamar Sea Food): casco azul petróleo, franjas de
- * borda ocre y roja, neutros fríos de hielo y acero. Ver
- * specs/00-estandares-ui/spec.md § Identidad visual.
+ * Identidad "Puerto" (Altamar Sea Food): azul medianoche (#0B1B33), blanco
+ * marfil (#F7F6F2), detalles en latón (#C9A66B / #D4B27A), títulos Fraunces,
+ * datos Instrument Sans. Ver specs/00-estandares-ui/spec.md § Identidad visual «Puerto».
  *
  * `brand` es un token propio: colores de identidad que no son roles
- * semánticos de MUI (franjas, panel de casco). El ocre nunca se usa para
- * texto (contraste insuficiente sobre claro).
+ * semánticos de MUI (filete, sidebar, fondos de marca).
  */
 declare module '@mui/material/styles' {
+  interface TypeBackground {
+    subtle: string
+  }
+  interface PaletteColor {
+    soft?: string
+    onSoft?: string
+  }
+  interface SimplePaletteColorOptions {
+    soft?: string
+    onSoft?: string
+  }
   interface Palette {
     brand: BrandPalette
+    chart: {
+      c1: string
+      c2: string
+      c3: string
+      c4: string
+      c5: string
+      c6: string
+    }
+    inputBorder: string
   }
   interface PaletteOptions {
     brand?: BrandPalette
+    chart?: {
+      c1: string
+      c2: string
+      c3: string
+      c4: string
+      c5: string
+      c6: string
+    }
+    inputBorder?: string
   }
 }
 
 interface BrandPalette {
-  /** Fondo del panel de identidad (casco del peñero) */
+  /** Casco (Peñero, compat). */
   hull: string
-  /** Franja inferior, casco bajo la línea de agua */
   hullDeep: string
-  /** Texto sobre `hull` */
   onHull: string
-  /** Texto secundario sobre `hull` */
   onHullMuted: string
-  /** Franja ocre de la borda — solo decorativo, nunca texto */
   ochre: string
-  /** Franja roja de la borda */
   red: string
-  /** Filete claro entre franjas */
   trim: string
+
+  /** Identidad Puerto */
+  midnight: string
+  navy: string
+  onMidnight: string
+  onMidnightMuted: string
+  brass: string
+  brassText: string
 }
 
 declare module '@mui/material/Chip' {
@@ -47,9 +77,15 @@ declare module '@mui/material/Chip' {
   }
 }
 
+declare module '@mui/material/SvgIcon' {
+  interface SvgIconPropsSizeOverrides {
+    xlarge: true
+  }
+}
+
 const SOFT_COLORS = ['primary', 'secondary', 'success', 'warning', 'error', 'info'] as const
 
-const DISPLAY_FONT = 'var(--font-display), "Arial Narrow", sans-serif'
+const DISPLAY_FONT = 'var(--font-display), Georgia, serif'
 
 /**
  * Theme con CSS variables y dos color schemes (light/dark).
@@ -64,28 +100,48 @@ export const theme = createTheme(
   colorSchemes: {
     light: {
       palette: {
-        primary: { main: MARCA_CLARO.hull, contrastText: '#FFFFFF' },
-        secondary: { main: MARCA_CLARO.red, contrastText: '#FFFFFF' },
-        success: { main: '#2F7D6A' },
-        warning: { main: '#B86E00' },
-        error: { main: '#C0282D' },
-        background: { default: '#F3F6F6', paper: '#FFFFFF' },
-        text: { primary: '#13262C', secondary: '#4A5D63' },
-        divider: 'rgba(19, 38, 44, 0.14)',
+        primary: { main: '#0B1B33', contrastText: '#FFFFFF', soft: '#E6ECF5', onSoft: '#0B1B33' },
+        secondary: { main: '#7A5C2E', contrastText: '#FFFFFF', soft: '#F5EEE3', onSoft: '#7A5C2E' },
+        success: { main: '#2F5E9E', light: '#ABC7F1', contrastText: '#FFFFFF', soft: '#ABC7F1', onSoft: '#0B1B33' },
+        warning: { main: '#A15C07', contrastText: '#FFFFFF', soft: '#F8EEDD', onSoft: '#7E4705' },
+        error: { main: '#B3261E', contrastText: '#FFFFFF', soft: '#F8E5E3', onSoft: '#8E1F18' },
+        info: { main: '#44597A', contrastText: '#FFFFFF', soft: '#E1E8F2', onSoft: '#26374F' },
+        background: { default: '#F7F6F2', paper: '#FFFFFF', subtle: '#F0EEE7' },
+        text: { primary: '#0B1B33', secondary: '#5B6474' },
+        divider: '#E4E1D8',
+        inputBorder: '#A9A397',
+        chart: {
+          c1: '#0B1B33',
+          c2: '#2F5E9E',
+          c3: '#7A5C2E',
+          c4: '#A15C07',
+          c5: '#5B6474',
+          c6: '#B3261E',
+        },
         // Hex de marca en `src/theme/marca.ts` (los usa también el PDF, 21).
         brand: { ...MARCA_CLARO },
       },
     },
     dark: {
       palette: {
-        primary: { main: '#7CC3D6', contrastText: '#0A2730' },
-        secondary: { main: '#E58A74', contrastText: '#2A0E08' },
-        success: { main: '#6CC2A9' },
-        warning: { main: '#F0C75A' },
-        error: { main: '#F08A84' },
-        background: { default: '#0F2229', paper: '#15303A' },
-        text: { primary: '#E4EDEF', secondary: '#9DB3B9' },
-        divider: 'rgba(228, 237, 239, 0.14)',
+        primary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A' },
+        secondary: { main: '#D4B27A', contrastText: '#241A0B', soft: 'rgba(212, 178, 122, 0.16)', onSoft: '#D4B27A' },
+        success: { main: '#ABC7F1', contrastText: '#0B1B33', soft: 'rgba(171, 199, 241, 0.16)', onSoft: '#ABC7F1' },
+        warning: { main: '#E9B460', contrastText: '#241A0B', soft: 'rgba(233, 180, 96, 0.16)', onSoft: '#E9B460' },
+        error: { main: '#EE8A83', contrastText: '#241A0B', soft: 'rgba(238, 138, 131, 0.16)', onSoft: '#EE8A83' },
+        info: { main: '#9FB4D3', contrastText: '#0A1424', soft: 'rgba(159, 180, 211, 0.16)', onSoft: '#9FB4D3' },
+        background: { default: '#0A1424', paper: '#121F35', subtle: '#17253D' },
+        text: { primary: '#EEF0F4', secondary: '#A3ADBD' },
+        divider: '#22314B',
+        inputBorder: '#2C3B55',
+        chart: {
+          c1: '#ABC7F1',
+          c2: '#D4B27A',
+          c3: '#EEF0F4',
+          c4: '#E9B460',
+          c5: '#A3ADBD',
+          c6: '#EE8A83',
+        },
         brand: { ...MARCA_OSCURO },
       },
     },
@@ -96,41 +152,82 @@ export const theme = createTheme(
     fontFamily: 'var(--font-body), system-ui, sans-serif',
     h1: { fontFamily: DISPLAY_FONT, fontWeight: 600 },
     h2: { fontFamily: DISPLAY_FONT, fontWeight: 600 },
-    h3: { fontFamily: DISPLAY_FONT, fontWeight: 600, lineHeight: 1.05 },
+    h3: {
+      fontFamily: DISPLAY_FONT,
+      fontWeight: 600,
+      fontSize: '3.25rem', // 52px
+      lineHeight: 1.05,
+      '@media (max-width:599.95px)': { fontSize: '2.625rem' /* 42px */ },
+    },
     h4: {
       fontFamily: DISPLAY_FONT,
       fontWeight: 600,
-      fontSize: '2.125rem',
-      lineHeight: 1.1,
-      // 28 px en xs (breakpoint sm = 600 px)
-      '@media (max-width:599.95px)': { fontSize: '1.75rem' },
+      fontSize: '1.625rem', // 26px
+      lineHeight: 1.2,
+      '@media (max-width:599.95px)': { fontSize: '1.5rem' /* 24px */ },
     },
-    h5: { fontFamily: DISPLAY_FONT, fontWeight: 600, fontSize: '1.625rem', lineHeight: 1.15 },
-    h6: { fontFamily: DISPLAY_FONT, fontWeight: 600, fontSize: '1.3rem', lineHeight: 1.2 },
+    h5: {
+      fontFamily: DISPLAY_FONT,
+      fontWeight: 500,
+      fontSize: '1.5rem', // 24px Fraunces 500 (P-UI5)
+      lineHeight: 1.2,
+      fontVariantNumeric: 'tabular-nums',
+    },
+    h6: {
+      fontFamily: 'var(--font-body), system-ui, sans-serif',
+      fontWeight: 600,
+      fontSize: '1.125rem', // 18px Instrument Sans 600
+      lineHeight: 1.35,
+    },
     subtitle1: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
-    body1: { fontSize: '1rem', lineHeight: 1.5 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.43 },
-    caption: { fontSize: '0.78125rem', lineHeight: 1.4 },
-    button: { fontSize: '0.90625rem', fontWeight: 500, textTransform: 'none', letterSpacing: 0 },
-    // Sentence case en todo: `overline` no se usa; si alguien lo usa, sin MAYÚSCULAS.
+    subtitle2: {
+      fontSize: '0.75rem', // 12px
+      lineHeight: 1.4,
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      textTransform: 'none',
+    },
+    body1: { fontSize: '1rem', lineHeight: 1.55 },
+    body2: { fontSize: '0.875rem', lineHeight: 1.5 },
+    caption: { fontSize: '0.75rem', lineHeight: 1.4 },
+    button: { fontSize: '0.875rem', fontWeight: 500, textTransform: 'none', letterSpacing: 0 },
     overline: { textTransform: 'none', letterSpacing: 0 },
   },
-  // Radios por jerarquía (spec § Identidad visual): chip 4, input/botón 6
-  // (`shape`), superficies 8 (`MuiPaper.rounded`), diálogo 12.
+  // Radios por jerarquía (spec § Jerarquía de superficies y radios):
+  // chip/menú/tooltip 4, botón/input/fab/tabla 6 (`shape`), panel/ficha 8
+  // (`MuiPaper.rounded`), diálogo 8 (0 en pantalla completa).
   shape: { borderRadius: 6 },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
     },
+    MuiButtonBase: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-focusVisible': {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: '2px',
+          },
+        }),
+      },
+    },
     MuiFab: {
-      styleOverrides: { root: { borderRadius: 12, textTransform: 'none' } },
+      styleOverrides: { root: { borderRadius: 6, textTransform: 'none' } },
     },
     MuiOutlinedInput: {
-      // Campo blanco sobre el fondo "hielo" para que se lea como superficie editable.
-      styleOverrides: { root: { backgroundColor: 'var(--mui-palette-background-paper)' } },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: 'var(--mui-palette-background-paper)',
+          borderRadius: 6,
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.vars.palette.inputBorder,
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.vars.palette.text.secondary,
+          },
+        }),
+      },
     },
-    // Superficies en reposo: sin sombra y con borde de 1 px. Lo que flota
-    // (menú, popover, diálogo, drawer temporal) pasa su propia elevación.
     MuiPaper: {
       defaultProps: { elevation: 0 },
       styleOverrides: { rounded: { borderRadius: 8 } },
@@ -141,13 +238,11 @@ export const theme = createTheme(
         },
       ],
     },
-    // Alert hereda de Paper con elevation 0: sin el borde de superficie.
     MuiAlert: {
       styleOverrides: { standard: { border: 0 }, filled: { border: 0 } },
     },
     MuiDrawer: {
       styleOverrides: {
-        // Menú lateral fijo: solo el borde derecho, no el de superficie.
         docked: ({ theme }) => ({
           '& .MuiDrawer-paper': {
             border: 0,
@@ -156,20 +251,36 @@ export const theme = createTheme(
         }),
       },
     },
-    // El listado de Autocomplete flota: sombra en vez del borde de superficie.
     MuiAutocomplete: {
       styleOverrides: {
-        paper: ({ theme }) => ({ border: 0, boxShadow: theme.vars.shadows[8] }),
+        paper: ({ theme }) => ({ border: 0, borderRadius: 6, boxShadow: theme.vars.shadows[8] }),
       },
     },
+    MuiMenu: {
+      styleOverrides: {
+        paper: { borderRadius: 6 },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        paper: { borderRadius: 6 },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: { root: { borderRadius: 4 } },
+    },
+    MuiListItemButton: {
+      styleOverrides: { root: { borderRadius: 4 } },
+    },
     MuiDialog: {
-      styleOverrides: { paper: { borderRadius: 12 }, paperFullScreen: { borderRadius: 0 } },
+      styleOverrides: { paper: { borderRadius: 8 }, paperFullScreen: { borderRadius: 0 } },
     },
     MuiTooltip: {
-      styleOverrides: { tooltip: { borderRadius: 8 } },
+      styleOverrides: { tooltip: { borderRadius: 4 } },
     },
-    // Chips como etiquetas de cava (rectas), no píldoras. `variant="soft"`:
-    // fondo tenue + texto oscuro del mismo color (estados en tablas).
+    MuiTableContainer: {
+      styleOverrides: { root: { borderRadius: 6 } },
+    },
     MuiChip: {
       styleOverrides: {
         root: { borderRadius: 4, fontWeight: 500 },
@@ -186,23 +297,20 @@ export const theme = createTheme(
         ...SOFT_COLORS.map((color) => ({
           props: { variant: 'soft' as const, color },
           style: ({ theme }: { theme: Theme }) => ({
-            backgroundColor: `rgba(${theme.vars?.palette[color].mainChannel} / 0.12)`,
-            color: theme.vars?.palette[color].dark,
-            ...theme.applyStyles('dark', {
-              backgroundColor: `rgba(${theme.vars?.palette[color].mainChannel} / 0.16)`,
-              color: theme.vars?.palette[color].light,
-            }),
+            backgroundColor: theme.vars?.palette[color].soft,
+            color: theme.vars?.palette[color].onSoft,
           }),
         })),
       ],
     },
-    // Encabezados de tabla sobre "hielo"; mismo tratamiento en Table y DataGrid.
     MuiTableCell: {
       styleOverrides: {
         head: ({ theme }) => ({
-          backgroundColor: theme.vars.palette.background.default,
+          backgroundColor: theme.vars.palette.background.subtle,
           color: theme.vars.palette.text.secondary,
           fontWeight: 600,
+          fontSize: '0.75rem',
+          letterSpacing: '0.04em',
         }),
         root: { fontVariantNumeric: 'tabular-nums' },
       },
@@ -212,16 +320,31 @@ export const theme = createTheme(
         root: ({ theme }) => ({
           backgroundColor: theme.vars.palette.background.paper,
           borderColor: theme.vars.palette.divider,
-          borderRadius: 8,
+          borderRadius: 6,
           fontVariantNumeric: 'tabular-nums',
-          '--DataGrid-containerBackground': theme.vars.palette.background.default,
+          '--DataGrid-containerBackground': theme.vars.palette.background.subtle,
         }),
         columnHeaderTitle: ({ theme }) => ({
           fontWeight: 600,
+          fontSize: '0.75rem',
+          letterSpacing: '0.04em',
           color: theme.vars.palette.text.secondary,
+        }),
+        columnHeader: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.background.subtle,
+          minHeight: 44,
+          maxHeight: 44,
         }),
         columnSeparator: { display: 'none' },
       },
+    },
+    MuiSvgIcon: {
+      variants: [
+        {
+          props: { fontSize: 'xlarge' },
+          style: { fontSize: '2.5rem' /* 40px */ },
+        },
+      ],
     },
   },
 },

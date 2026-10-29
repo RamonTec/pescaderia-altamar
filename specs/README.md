@@ -263,7 +263,7 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
 - **Rediseño "Puerto" (2026-10-22, pedido del usuario)**: el cliente eligió una identidad visual nueva, "Puerto", para lograr un acabado fresco, premium y confiable. **Se reabre y reemplaza la identidad "Peñero"**, cerrada el 2026-10-06 en `00-estandares-ui`. Puerto usa azul medianoche y blanco marfil (los colores de marca de Altamar Sea Food), detalles en latón, títulos en Fraunces, texto y datos en Instrument Sans, radios 4/6/8 y líneas finas. Se retiran Barlow, Barlow Condensed y las franjas de la borda (`PeneroStripes`). `success` pasa a `#ABC7F1`, por pedido del cliente.
   - No cambia datos, reglas de negocio ni la anatomía de pantallas.
   - Es la Fase 3 de `00-estandares-ui/tasks.md` (tareas 58–92).
-  - Quedan diez decisiones pendientes de aprobación (P-UI1 a P-UI10 en `00-estandares-ui/spec.md`). Se ejecutan con la propuesta y se ajustan si el cliente elige otra.
+  - Las diez decisiones P-UI1 a P-UI10 (`00-estandares-ui/spec.md`) las aprobó el cliente el 2026-10-22 tal como se propusieron.
   - Toca piezas de marca que usan otros módulos: el PDF de cotización (`21-cotizaciones`) y el correo de recordatorio (`09-cuentas-por-cobrar`). Anotado como tarea agregada en sus `tasks.md`.
   - El PDF de contratos (06) queda fuera.
   - Referencia visual: artboard "B · Puerto" del lienzo citado en la spec.

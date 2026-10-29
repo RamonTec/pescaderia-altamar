@@ -18,7 +18,7 @@ Este módulo se ejecuta **antes de `01-auth`** (el login ya debe usar estos est�
 
 > **Reemplaza a "Peñero"** (ver "Historial" al final de esta sección). El usuario pidió explícitamente reabrir esa decisión: el cliente eligió "Puerto" para un acabado fresco, premium y confiable. Se implementa en la **Fase 3** de `tasks.md`; hasta que esa fase termine, el código sigue en Peñero.
 
-**Referencia visual**: lienzo [Rediseño Altamar](https://claude.ai/artifact/Lz4AcGuda8miEXmi4oiwtU), artboard **"B · Puerto"** (privado del usuario). Si esta spec y el artboard difieren, se consulta al usuario. Los valores marcados *(propuesta)* no salen del artboard y son decisiones pendientes (ver "Decisiones pendientes de la Fase 3").
+**Referencia visual**: lienzo [Rediseño Altamar](https://claude.ai/artifact/Lz4AcGuda8miEXmi4oiwtU), artboard **"B · Puerto"** (privado del usuario). Si esta spec y el artboard difieren, se consulta al usuario. Los valores marcados *(P-UIn)* no salen del artboard; el cliente los aprobó el 2026-10-22 (ver "Decisiones de la Fase 3").
 
 Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: azul medianoche + blanco marfil, detalles en latón, títulos con serifa, datos en sans precisa, radios contenidos y líneas finas. Los tokens viven en `src/theme/theme.ts` (`palette.*`) y los hex de marca en `src/theme/marca.ts` (los lee también el PDF y el correo); **ninguna pantalla usa hex sueltos**.
 
@@ -26,17 +26,17 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 |---|---|---|---|
 | `primary` | `#0B1B33` (medianoche), texto `#FFFFFF` | `#D4B27A` (latón), texto `#241A0B` | acción principal, selección. En oscuro el botón principal es latón |
 | `secondary` (latón texto) | `#7A5C2E` | `#D4B27A` | enlaces y acento puntual; nunca compite con `primary` en la misma vista |
-| `success` | relleno `#ABC7F1`; texto/ícono `#2F5E9E` *(propuesta, P-UI1)* | `#ABC7F1` | estados "pagada", positivo |
+| `success` | relleno `#ABC7F1`; texto/ícono `#2F5E9E` *(P-UI1)* | `#ABC7F1` | estados "pagada", positivo |
 | `warning` | `#A15C07` | `#E9B460` | aviso, "por vencer" |
 | `error` | `#B3261E` | `#EE8A83` | error, vencida, destructivo |
-| `info` | `#44597A` *(propuesta, P-UI6)* | `#9FB4D3` *(propuesta, P-UI6)* | "pendiente", kg en gráficos |
+| `info` | `#44597A` *(P-UI6)* | `#9FB4D3` *(P-UI6)* | kg en gráficos, avisos informativos |
 | `background.default` (marfil) | `#F7F6F2` | `#0A1424` | fondo de la app |
 | `background.paper` | `#FFFFFF` | `#121F35` | superficies: tablas, tarjetas, diálogos, inputs |
-| `background.subtle` (token nuevo) | `#F0EEE7` | `#17253D` *(propuesta)* | encabezado de tabla, fila en hover, zonas suaves |
+| `background.subtle` (token nuevo) | `#F0EEE7` | `#17253D` *(P-UI10)* | encabezado de tabla, fila en hover, zonas suaves |
 | `divider` | `#E4E1D8` | `#22314B` | separadores y bordes de superficie |
-| borde de input | `#E4E1D8` si da 3:1; si no, `#A9A397` *(propuesta, P-UI7)* | `#2C3B55` | contorno de `OutlinedInput` |
+| borde de input | `#E4E1D8` si da 3:1; si no, `#A9A397` *(P-UI7)* | `#2C3B55` | contorno de `OutlinedInput` |
 | `text.primary` / `text.secondary` | `#0B1B33` / `#5B6474` | `#EEF0F4` / `#A3ADBD` | |
-| `brand.midnight` / `brand.navy` | `#0B1B33` / `#1C2E4D` | `#0A1424` / `#1C2E4D` *(propuesta)* | sidebar y panel de login / ítem activo, hover y selección en el sidebar |
+| `brand.midnight` / `brand.navy` | `#0B1B33` / `#1C2E4D` | `#0A1424` / `#1C2E4D` *(P-UI10)* | sidebar y panel de login / ítem activo, hover y selección en el sidebar |
 | `brand.onMidnight` / `brand.onMidnightMuted` | `#F7F6F2` / `#A3ADBD` | `#EEF0F4` / `#A3ADBD` | texto sobre medianoche |
 | `brand.brass` | `#C9A66B` | `#D4B27A` | **solo decorativo** (filete, punto del ítem activo, progreso): **nunca texto** |
 | `brand.brassText` | `#7A5C2E` | `#D4B27A` | latón de texto fuera de MUI (PDF, correo); en pantalla se usa `secondary` |
@@ -52,11 +52,11 @@ Marca: **Altamar Sea Food**, colores de marca azul oscuro y blanco. Dirección: 
 | `success` (Pagada) | `#ABC7F1` / `#0B1B33` | `rgba(#ABC7F1, .16)` / `#ABC7F1` |
 | `warning` | `#F8EEDD` / `#7E4705` | `rgba(#E9B460, .16)` / `#E9B460` |
 | `error` (Vencida) | `#F8E5E3` / `#8E1F18` | `rgba(#EE8A83, .16)` / `#EE8A83` |
-| `info`, `primary`, `secondary` | tenue del color / su tono oscuro *(propuesta)* | tenue / su tono claro |
+| `info`, `primary`, `secondary` | tenue del color / su tono oscuro *(aprobado 2026-10-22)* | tenue / su tono claro |
 
-El artboard llama "Pendiente" al chip ámbar. En la app el mapeo de estados de cartera de `09` **no cambia** (`por_vencer` → `warning`, `pendiente` → `info`): el chip ámbar del artboard corresponde a `warning`.
+Estado "Pendiente" en ámbar, como en el artboard (decisión del cliente, 2026-10-22). El mapeo de cartera de `09` (`COLOR_ESTADO_CARTERA`) cambia en un solo punto: `pendiente` pasa de `info` a `warning`. `por_vencer` sigue en `warning`, así que los dos estados comparten color y se distinguen por la etiqueta, igual que ya hace `CarteraIndicador` (ámbar para pendientes y por vencer).
 
-**Un solo gesto memorable: el latón.** El filete de latón (`atoms/FileteLaton`, reemplaza a `PeneroStripes`, *propuesta P-UI2*) es el **único** elemento decorativo. Aparece solo en:
+**Un solo gesto memorable: el latón.** El filete de latón (`atoms/FileteLaton`, reemplaza a `PeneroStripes`, *P-UI2*) es el **único** elemento decorativo. Aparece solo en:
 - el filete de 2 px bajo el logo del sidebar;
 - el punto del ítem activo del menú;
 - el panel de login y el encabezado de `DocumentoPublicoLayout`;
@@ -74,7 +74,7 @@ Jerarquía de superficies y radios (radios contenidos, líneas finas):
 | Chip / etiqueta de estado, ítem de menú (sidebar y `Menu`), tooltip | 4 | 0 | según estado |
 | Botón, input, `Fab`, tarjeta KPI, tabla (`DataGrid`, `Table`) | 6 | 0 | 1 px (input: borde de input) |
 | Superficie / panel: `ChartCard`, sección de ficha, `CadenaTrazabilidad`, `Paper` genérico | 8 | 0 | 1 px `divider` |
-| Diálogo | 8 *(propuesta, P-UI3)*; 0 a pantalla completa | sombra del theme | — |
+| Diálogo | 8 *(P-UI3)*; 0 a pantalla completa | sombra del theme | — |
 | Menú, popover, listado de `Autocomplete` (lo que flota) | 6 | sombra del theme | — |
 
 ### Historial: identidad "Peñero" (aprobada el 2026-10-06, reemplazada el 2026-10-22)
@@ -99,7 +99,7 @@ Familias de la identidad "Puerto" (2026-10-22). Reemplazan a **Barlow / Barlow C
 
 Las variables CSS conservan su nombre (`--font-display`, `--font-body`), así `theme.ts` y Tailwind (`--font-sans`) no cambian de contrato. Respaldo: `Georgia, serif` para display y `system-ui, sans-serif` para cuerpo.
 
-Escala (no se usan tamaños sueltos; si falta uno, se agrega primero a esta tabla). Sale de la muestra "B · Puerto"; `h5` no figura en ella y es *(propuesta, P-UI5)*:
+Escala (no se usan tamaños sueltos; si falta uno, se agrega primero a esta tabla). Sale de la muestra "B · Puerto"; `h5` no figura en ella y sale de P-UI5:
 
 | Variant | Tamaño / interlínea | Familia y peso | Uso |
 |---|---|---|---|
@@ -147,7 +147,7 @@ Regla: **nunca una pantalla en blanco, nunca un spinner genérico centrado.** Ci
 | 4. **Refresco de datos** | filtrar, paginar en servidor o recargar una tabla montada | `AppDataGrid` `loading` con `slotProps.loadingOverlay.variant: 'skeleton'` (o `'linear-progress'` si ya hay filas) | La estructura de la tabla nunca desaparece. |
 | 5. **Acción puntual** | guardar, confirmar, enviar | `Button` con la prop nativa **`loading`** de MUI | Ver "Botones y acciones en curso". |
 
-Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los íconos de Next). Mientras llega, `atoms/BrandMark` dibuja un isotipo provisional en SVG. En Peñero era la proa con las franjas de la borda; en Puerto, *propuesta P-UI4*, es una proa en `brand.midnight` (o `brand.onMidnight` sobre medianoche) con un filete de `brand.brass`, más el nombre "Altamar" en Fraunces 600 en la variante `full`. La interfaz es la misma (`size`, `variant: 'full' | 'isotipo'`). Cuando llegue el archivo (SVG, idealmente con versión monocroma), se reemplaza **solo dentro de `BrandMark`**, y se generan `favicon` e íconos de la app con él.
+Logo: **el repo todavía no tiene el logo de Altamar** (`public/` solo trae los íconos de Next). Mientras llega, `atoms/BrandMark` dibuja un isotipo provisional en SVG. En Peñero era la proa con las franjas de la borda; en Puerto, *P-UI4*, es una proa en `brand.midnight` (o `brand.onMidnight` sobre medianoche) con un filete de `brand.brass`, más el nombre "Altamar" en Fraunces 600 en la variante `full`. La interfaz es la misma (`size`, `variant: 'full' | 'isotipo'`). Cuando llegue el archivo (SVG, idealmente con versión monocroma), se reemplaza **solo dentro de `BrandMark`**, y se generan `favicon` e íconos de la app con él.
 
 ## Botones y acciones en curso
 
@@ -278,7 +278,7 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast; `variant` (ej. `h5` para el código de un lote) y `copiedMessage` (07-lotes) |
 | `StatusChips` | `molecules` | Chips `soft` de 22 px: Activo (solo con `mostrarActivo`, en listados) / Inactivo, Bloqueado (tooltip con el motivo, convive con Activo) y Doc. incompleta (tooltip con faltantes). Sin chips que mostrar no renderiza nada |
 | `PeneroStripes` | `atoms` | Franjas de la borda (Peñero). **Se retira en la Fase 3**; lo reemplaza `FileteLaton` |
-| `FileteLaton` (Fase 3, *propuesta P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
+| `FileteLaton` (Fase 3, *P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
 | `BrandMark` | `atoms` | Logo de Altamar (`variant: full / isotipo`, `size`, `orientation`); isotipo provisional en SVG hasta tener el archivo real (ícono de la app en `src/app/icon.svg`) |
 | `NavigationProgress` | `atoms` | Barra de progreso (Peñero: 3 px con las franjas; Puerto: 2 px, `FileteLaton sweep`); `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
 | `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global con logo: `show(msg, { untilNavigation })` devuelve `release`, `hide()`, `run(tarea, msg)`; 150 ms de retardo, 400 ms mínimo, contador |
@@ -320,7 +320,7 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `lib/pdf/marca.tsx` + `lib/pdf/fuentes.ts` | `src/lib/pdf` | PDF con la identidad (react-pdf): `EncabezadoMarca` (isotipo + nombre + datos del negocio + franjas; Puerto: filete de latón), `PiePagina` con «Página N de M», `registrarFuentesMarca()` (Barlow desde TTF en `lib/pdf/fuentes/`; Puerto: Fraunces + Instrument Sans; Helvetica si faltan). Para cualquier PDF nuevo (21) |
 | `src/theme/marca.ts` + `src/lib/marca/isotipo.ts` | `src/theme`, `src/lib/marca` | Hex de `palette.brand` (claro/oscuro) y geometría del isotipo: única fuente para lo que vive fuera de MUI (PDF, correo). `theme.ts` y `BrandMark` los leen (21, tarea agregada en 00) |
 
-Gráficas: `@mui/x-charts` (v9, alineada con `x-data-grid`; agregada en 15-dashboard, D1). Colores con `coloresGrafico(theme)` de `lib/dashboard/chartColors.ts` (variables CSS de `theme.palette`, nunca hex ni `brand.*` decorativo). En Puerto, la serie categórica sale de un token nuevo `palette.chart` (`c1`–`c6`, claro y oscuro, *propuesta P-UI9*). Cada color debe dar ≥ 3:1 contra `background.paper` (WCAG 1.4.11), y por eso no se usa `brand.brass` claro (`#C9A66B`). `success` y `primary` ya no se distinguen por tono, así que los gráficos no dependen solo del color para positivo/negativo: van con leyenda, etiqueta y `ChartLegendTable`; cada gráfico lleva `aria-label` y su `ChartLegendTable`. Las animaciones del paquete respetan `prefers-reduced-motion`.
+Gráficas: `@mui/x-charts` (v9, alineada con `x-data-grid`; agregada en 15-dashboard, D1). Colores con `coloresGrafico(theme)` de `lib/dashboard/chartColors.ts` (variables CSS de `theme.palette`, nunca hex ni `brand.*` decorativo). En Puerto, la serie categórica sale de un token nuevo `palette.chart` (`c1`–`c6`, claro y oscuro, *P-UI9*). Cada color debe dar ≥ 3:1 contra `background.paper` (WCAG 1.4.11), y por eso no se usa `brand.brass` claro (`#C9A66B`). `success` y `primary` ya no se distinguen por tono, así que los gráficos no dependen solo del color para positivo/negativo: van con leyenda, etiqueta y `ChartLegendTable`; cada gráfico lleva `aria-label` y su `ChartLegendTable`. Las animaciones del paquete respetan `prefers-reduced-motion`.
 
 Además de los anteriores: `lib/navigationOrigin.ts` (`recordarOrigen` / `consumirOrigen`: de qué listado se abrió una ficha, para `FichaHeader`), `lib/useConfirm.tsx` (`ConfirmProvider` + `useConfirm`), `lib/useNotify.ts` (re-export del hook), `lib/themeStorage.ts` (`StorageManager` de MUI que persiste el modo en cookie + localStorage), `lib/validationMessages.ts` (mensajes de validación compartidos), `lib/actionState.ts` (`ActionState` + `toActionError`), `lib/documentoStore.ts` (`DocumentoStore` para `DocumentoUpload`), `lib/bancosVe.ts` (catálogo de bancos y utilidades de cuenta), `lib/useGlobalLoader.tsx` (`GlobalLoaderProvider` en el layout raíz + `useGlobalLoader`), variante de theme `Chip variant="soft"` (estados) y la página de muestra `/estandares` (solo desarrollo y admin). Dominio de cartera (09): `lib/cartera/` (puro: `estado.ts`, `resumen.ts`, `recordatorios/plantillas.ts`, `recordatorios/telefono.ts`, canales Strategy en `recordatorios/canales/`).
 
@@ -334,25 +334,25 @@ Cada módulo que cree un componente genérico nuevo (no específico de su domini
 - Formularios: `<label>` asociado a su input (MUI `TextField` ya lo hace si se usa `label`, no se debe omitir por diseño).
 - Puerto (2026-10-22): los pares de texto se verifican con herramienta y quedan anotados en el checklist de la Fase 3. Contornos de input, foco y series de gráfico, ≥ 3:1 contra su fondo (WCAG 1.4.11). El latón decorativo (`#C9A66B`) y el `success` de relleno (`#ABC7F1`) **nunca** van como texto sobre claro. El foco visible es un contorno de 2 px de `primary` (en oscuro, latón).
 
-## Decisiones pendientes de la Fase 3 (Puerto)
+## Decisiones de la Fase 3 (Puerto)
 
-Las tareas de la Fase 3 usan la propuesta de cada una. Si el cliente elige otra cosa, se cambia solo el token o el componente indicado.
+El cliente aprobó el 2026-10-22 las diez propuestas tal como están (P-UI1 a P-UI10). Si más adelante cambia alguna, se toca solo el token o el componente indicado.
 
-| Id | Decisión | Propuesta |
+| Id | Decisión | Aprobado (2026-10-22) |
 |---|---|---|
 | P-UI1 | Texto e ícono de `success` sobre claro (`#ABC7F1` da ~1,7:1 sobre blanco) | `success.main` `#2F5E9E` (~6,5:1) para texto e ícono; `#ABC7F1` como `success.soft`/`light` (relleno, chip "Pagada"). En oscuro, `#ABC7F1` para todo |
 | P-UI2 | Reemplazo de `PeneroStripes` y de los loaders con franjas | `atoms/FileteLaton`: filete de latón estático (sidebar, login, documento público, PDF) y en barrido (navegación 2 px, loader global). El ítem activo del menú lleva un punto de latón |
 | P-UI3 | Radio de diálogos | 8, igual que las superficies; 0 a pantalla completa |
 | P-UI4 | Logo | Sigue el isotipo provisional, redibujado en Puerto (proa medianoche + filete de latón + "Altamar" en Fraunces). Se reemplaza al recibir el logo real (pendiente (g)) |
 | P-UI5 | Tamaño de `h5` (no está en la muestra) | 24 px Fraunces 500 |
-| P-UI6 | `info` (no está en la muestra; lo usan "pendiente" y kg en gráficos) | `#44597A` claro / `#9FB4D3` oscuro, pizarra azulada, distinto de `primary` y de `success` |
+| P-UI6 | `info` (no está en la muestra; lo usan los kg en gráficos; "pendiente" pasó a ámbar el 2026-10-22) | `#44597A` claro / `#9FB4D3` oscuro, pizarra azulada, distinto de `primary` y de `success` |
 | P-UI7 | Contorno de input (`#E4E1D8` da < 3:1 sobre blanco) | `#E4E1D8` para separadores; `#A9A397` para el contorno de `OutlinedInput` en claro |
 | P-UI8 | Cifras tabulares, si Instrument Sans o Fraunces no traen `tnum` | Consultar antes de sumar una tercera familia |
 | P-UI9 | Paleta categórica de gráficos | Claro: `#0B1B33`, `#2F5E9E`, `#7A5C2E`, `#A15C07`, `#5B6474`, `#B3261E`. Oscuro: `#ABC7F1`, `#D4B27A`, `#EEF0F4`, `#E9B460`, `#A3ADBD`, `#EE8A83`. Verificar 3:1 de cada una |
-| P-UI10 | Tonos oscuros sin valor en la muestra: `background.subtle`, sidebar y `brand.navy` | `#17253D`, `#0A1424` con borde `#22314B`, `#1C2E4D`. Confirmar contra el artboard |
+| P-UI10 | Tonos oscuros sin valor en la muestra: `background.subtle`, sidebar y `brand.navy` | `#17253D`, `#0A1424` con borde `#22314B`, `#1C2E4D` |
 
 ## Fuera de alcance (MVP)
 - Internacionalización (todo queda en español, moneda USD/Bs fijas).
 - Modo de alto contraste separado del modo oscuro estándar.
-- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. Tampoco se cambia el mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) ni la anatomía de pantallas: solo la piel.
+- Fase 3 (Puerto): el PDF de contratos (`lib/contratos/plantillas/`, en Helvetica y con sus propios grises) no se rediseña; el de cotizaciones sí, porque ya lee la marca compartida. El mapeo de estados a colores de `09` (`COLOR_ESTADO_CARTERA`) solo cambia `pendiente` → `warning` (ver chips de estado). La anatomía de pantallas no cambia: solo la piel.
 - Animaciones elaboradas (parallax, scroll-triggered, animaciones de página complejas) o cualquier librería de animación de terceros — las transiciones básicas ya quedan cubiertas en la sección "Transiciones y micro-interacciones" arriba.

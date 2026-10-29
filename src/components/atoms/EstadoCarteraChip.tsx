@@ -9,7 +9,7 @@ import type { EstadoCartera } from '@/lib/cartera/types'
 export const COLOR_ESTADO_CARTERA: Record<EstadoCartera, NonNullable<ChipProps['color']>> = {
   vencida: 'error',
   por_vencer: 'warning',
-  pendiente: 'info',
+  pendiente: 'warning',
   pagada: 'success',
   anulada: 'default',
 }

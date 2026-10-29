@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
+import { Fraunces, Instrument_Sans } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
@@ -8,13 +8,13 @@ import { NotificationProvider } from "@/components/organisms/NotificationProvide
 import { ConfirmProvider } from "@/lib/useConfirm";
 import { GlobalLoaderProvider } from "@/lib/useGlobalLoader";
 
-const barlow = Barlow({
+const instrumentSans = Instrument_Sans({
   variable: "--font-body",
   weight: ["400", "500", "600"],
   subsets: ["latin", "latin-ext"],
 });
 
-const barlowCondensed = Barlow_Condensed({
+const fraunces = Fraunces({
   variable: "--font-display",
   weight: ["500", "600"],
   subsets: ["latin", "latin-ext"],
@@ -38,7 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
-      className={`${barlow.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`${instrumentSans.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
       data-mui-color-scheme={colorScheme ?? undefined}
     >

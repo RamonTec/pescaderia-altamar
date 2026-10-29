@@ -37,7 +37,7 @@ import { registrarPagoAction } from '@/app/(protected)/cobros/actions'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
 
-const MONO = { fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums' }
+const NUM = { fontVariantNumeric: 'tabular-nums' as const }
 
 const METODO_LABEL: Record<MetodoPago, string> = {
   efectivo_usd: 'Efectivo USD',
@@ -325,7 +325,7 @@ function Dato({ label, value }: { label: string; value: string }) {
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant="body2" sx={MONO}>
+      <Typography variant="body2" sx={NUM}>
         {value}
       </Typography>
     </Box>
