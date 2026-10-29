@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -115,8 +115,8 @@ export function CategoriasGastoPanel({ categorias }: CategoriasGastoPanelProps) 
           <Box component="span" sx={{ display: 'inline-flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
             {sub ? <SubdirectoryArrowRightOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : null}
             <span>{c.nombre}</span>
-            {c.es_sistema ? <Chip size="small" variant="soft" color="info" label="Sistema" /> : null}
-            {!c.activo ? <Chip size="small" variant="soft" label="Inactiva" /> : null}
+            {c.es_sistema ? <EstadoChip tono="neutral" label="Sistema" /> : null}
+            {!c.activo ? <EstadoChip tono="neutral" label="Inactiva" /> : null}
           </Box>
         }
         secondary={

@@ -1,26 +1,44 @@
 'use client'
 
-import Chip, { type ChipProps } from '@mui/material/Chip'
+import * as React from 'react'
+import Typography from '@mui/material/Typography'
+import { EstadoChip, type EstadoTono } from '@/components/atoms/EstadoChip'
 import { ETIQUETA_ESTADO_COTIZACION } from '@/lib/cotizaciones/estado'
 import type { EstadoEfectivoCotizacion } from '@/types/domain'
 
-const COLOR: Record<EstadoEfectivoCotizacion, NonNullable<ChipProps['color']>> = {
-  borrador: 'default',
-  enviada: 'info',
-  vencida: 'warning',
-  aceptada: 'success',
-  rechazada: 'error',
-  anulada: 'default',
+const TONO: Record<Exclude<EstadoEfectivoCotizacion, 'enviada' | 'aceptada'>, EstadoTono> = {
+  borrador: 'neutral',
+  vencida: 'error',
+  rechazada: 'neutral',
+  anulada: 'neutral',
 }
 
-/** Estado de una cotización (21) como chip `soft` de 22 px; `vencida` es derivada. */
+/**
+ * Estado de una cotización (21) sobre `EstadoChip`:
+ *   - Borrador, Rechazada y Anulada: neutral
+ *   - Vencida: error
+ *   - Enviada y Aceptada: como texto sin chip (estados normales, spec § Primitivos)
+ */
 export function CotizacionEstadoChip({ estado }: { estado: EstadoEfectivoCotizacion }) {
+  if (estado === 'enviada' || estado === 'aceptada') {
+    return (
+      <Typography
+        component="span"
+        sx={{
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          color: 'text.secondary',
+          lineHeight: '22px',
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        {ETIQUETA_ESTADO_COTIZACION[estado]}
+      </Typography>
+    )
+  }
+
   return (
-    <Chip
-      size="small"
-      variant={estado === 'anulada' ? 'outlined' : 'soft'}
-      color={COLOR[estado]}
-      label={ETIQUETA_ESTADO_COTIZACION[estado]}
-    />
+    <EstadoChip tono={TONO[estado]} label={ETIQUETA_ESTADO_COTIZACION[estado]} />
   )
 }

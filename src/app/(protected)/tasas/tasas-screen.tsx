@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
@@ -16,7 +16,6 @@ import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined
 import ArrowUpwardOutlinedIcon from '@mui/icons-material/ArrowUpwardOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
-import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import type { GridColDef } from '@mui/x-data-grid'
 import {
   actualizarTasasAction,
@@ -99,10 +98,8 @@ function TarjetaTasa({ titulo, tasa, anterior }: TarjetaProps) {
         {formatTasa(valor)}
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-        <Chip
-          size="small"
-          variant="soft"
-          color={tasa.tasa.origen === 'manual' ? 'warning' : 'default'}
+        <EstadoChip
+          tono={tasa.tasa.origen === 'manual' ? 'warning' : 'neutral'}
           label={ORIGEN_LABEL[tasa.tasa.origen]}
         />
         <Typography variant="caption" color="text.secondary">
@@ -123,10 +120,8 @@ function TarjetaTasa({ titulo, tasa, anterior }: TarjetaProps) {
         </Box>
       ) : null}
       {tasa.arrastrada ? (
-        <Chip
-          size="small"
-          color="warning"
-          icon={<WarningAmberOutlinedIcon />}
+        <EstadoChip
+          tono="warning"
           label={`arrastrada del ${formatFecha(tasa.fecha_valor)}`}
         />
       ) : null}

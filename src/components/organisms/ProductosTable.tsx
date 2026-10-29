@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import Typography from '@mui/material/Typography'
 import type { GridColDef } from '@mui/x-data-grid'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
@@ -14,6 +14,7 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import FilterListOffOutlinedIcon from '@mui/icons-material/FilterListOffOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
+import { SegmentedControl } from '@/components/atoms/SegmentedControl'
 import type { EmptyStateProps } from '@/components/molecules/EmptyState'
 import {
   AppDataGrid,
@@ -151,10 +152,8 @@ export function ProductosTable({
         flex: 0.7,
         minWidth: 110,
         renderCell: ({ row }) => (
-          <Chip
-            size="small"
-            variant="soft"
-            color={row.tipo === 'crudo' ? 'secondary' : 'primary'}
+          <EstadoChip
+            tono="neutral"
             label={row.tipo === 'crudo' ? 'Crudo' : 'Procesado'}
           />
         ),
@@ -187,10 +186,8 @@ export function ProductosTable({
         flex: 0.8,
         minWidth: 110,
         renderCell: ({ row }) => (
-          <Chip
-            size="small"
-            variant="soft"
-            color={row.controla_stock ? 'success' : 'default'}
+          <EstadoChip
+            tono={row.controla_stock ? 'success' : 'neutral'}
             label={row.controla_stock ? 'Controla stock' : 'Sin stock'}
           />
         ),
@@ -202,10 +199,8 @@ export function ProductosTable({
         flex: 0.7,
         minWidth: 100,
         renderCell: ({ row }) => (
-          <Chip
-            size="small"
-            variant="soft"
-            color={row.activo ? 'success' : 'default'}
+          <EstadoChip
+            tono={row.activo ? 'success' : 'neutral'}
             label={row.activo ? 'Activo' : 'Inactivo'}
           />
         ),
@@ -267,23 +262,15 @@ export function ProductosTable({
       ]}
       initialSort={[{ field: 'nombre', sort: 'asc' }]}
       filters={
-        <Box role="group" aria-label="Filtrar productos" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {(['activos', 'todos'] as const).map((value) => {
-            const activo = value === filtro
-            return (
-              <Chip
-                key={value}
-                label={`${
-                  value === 'activos' ? 'Activos' : 'Todos'
-                } (${conteo[value]})`}
-                variant={activo ? 'soft' : 'outlined'}
-                color={activo ? 'primary' : 'default'}
-                aria-pressed={activo}
-                onClick={() => cambiarFiltro(value)}
-              />
-            )
-          })}
-        </Box>
+        <SegmentedControl
+          value={filtro}
+          onChange={cambiarFiltro}
+          aria-label="Filtrar productos"
+          options={[
+            { value: 'activos', label: 'Activos', count: conteo.activos },
+            { value: 'todos', label: 'Todos', count: conteo.todos },
+          ]}
+        />
       }
       mobileCard={(row) => ({
         primary: row.nombre,
@@ -291,13 +278,11 @@ export function ProductosTable({
         // En la tarjeta solo lo que informa algo: tipo / Inactivo.
         status: (
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            <Chip
-              size="small"
-              variant="soft"
-              color={row.tipo === 'crudo' ? 'secondary' : 'primary'}
+            <EstadoChip
+              tono="neutral"
               label={row.tipo === 'crudo' ? 'Crudo' : 'Procesado'}
             />
-            {row.activo ? null : <Chip size="small" variant="soft" color="default" label="Inactivo" />}
+            {row.activo ? null : <EstadoChip tono="neutral" label="Inactivo" />}
           </Box>
         ),
         ...(esAdmin

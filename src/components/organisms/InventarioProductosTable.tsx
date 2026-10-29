@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import Collapse from '@mui/material/Collapse'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
@@ -169,7 +169,7 @@ export function InventarioProductosTable({
                             {i.producto.controla_stock ? formatKg(i.stock_kg) : '—'}
                           </Typography>
                           {i.stock_bajo ? (
-                            <Chip size="small" variant="soft" color="warning" label="Stock bajo" />
+                            <EstadoChip tono="warning" label="Stock bajo" />
                           ) : null}
                         </Box>
                       </TableCell>
@@ -185,7 +185,7 @@ export function InventarioProductosTable({
                               {dias} {dias === 1 ? 'día' : 'días'}
                             </Typography>
                             {esAntiguo(masAntiguo, config) ? (
-                              <Chip size="small" variant="soft" color="warning" label="Antiguo" />
+                              <EstadoChip tono="warning" label="Antiguo" />
                             ) : null}
                           </Box>
                         ) : (

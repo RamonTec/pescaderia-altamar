@@ -2,8 +2,9 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Chip, { type ChipProps } from '@mui/material/Chip'
+import type { ChipProps } from '@mui/material/Chip'
 import type { GridColDef, GridValidRowModel } from '@mui/x-data-grid'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
 import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/format'
 
@@ -112,9 +113,7 @@ export function colEstado<R extends GridValidRowModel>(
   }
 }
 
-export function EstadoChip({ label, color }: { label: string; color: EstadoDef['color'] }) {
-  return <Chip size="small" variant="soft" color={color} label={label} />
-}
+export { EstadoChip } from '@/components/atoms/EstadoChip'
 
 /**
  * Columna de acciones: siempre la última, un solo menú `⋮` por fila.

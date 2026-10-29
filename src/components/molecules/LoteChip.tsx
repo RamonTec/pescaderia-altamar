@@ -4,8 +4,8 @@ import * as React from 'react'
 import Link from 'next/link'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
-import Tooltip from '@mui/material/Tooltip'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { formatKg } from '@/lib/format'
 
 export interface LoteChipProps {
@@ -27,8 +27,9 @@ export interface LoteChipProps {
 }
 
 /**
- * Etiqueta de cava de un lote (07-lotes): código + kg, y un chip "antiguo"
- * cuando el lote superó los días de alerta. Chip `soft` de 22 px (radio 4).
+ * Etiqueta de cava de un lote (07-lotes): código + kg como etiqueta de identidad
+ * en tono `neutral` sin punto, y un `EstadoChip` "antiguo" en tono `warning` cuando
+ * el lote superó los días de alerta.
  */
 export function LoteChip({
   codigo,
@@ -50,6 +51,7 @@ export function LoteChip({
           clickable
           size={size}
           variant="soft"
+          color="neutral"
           icon={<Inventory2OutlinedIcon />}
           label={texto}
           sx={{ fontVariantNumeric: 'tabular-nums', maxWidth: '100%' }}
@@ -58,6 +60,7 @@ export function LoteChip({
         <Chip
           size={size}
           variant="soft"
+          color="neutral"
           icon={<Inventory2OutlinedIcon />}
           label={texto}
           onClick={onClick}
@@ -65,9 +68,11 @@ export function LoteChip({
         />
       )}
       {antiguo ? (
-        <Tooltip title={dias != null ? `${dias} días en cava` : 'Supera los días de alerta'}>
-          <Chip size="small" variant="soft" color="warning" label="Antiguo" />
-        </Tooltip>
+        <EstadoChip
+          tono="warning"
+          label="Antiguo"
+          tooltip={dias != null ? `${dias} días en cava` : 'Supera los días de alerta'}
+        />
       ) : null}
     </Box>
   )

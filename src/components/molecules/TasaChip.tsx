@@ -3,8 +3,8 @@
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
-import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { formatFecha, formatTasa } from '@/lib/format'
 
 const FUENTE_LABEL = { bcv: 'BCV', paralela: 'Paralela' } as const
@@ -21,25 +21,28 @@ export interface TasaChipProps {
 }
 
 /**
- * Chip de una tasa referencial (08-tasas): valor, fuente y fecha valor.
- * Si la tasa está arrastrada de un día anterior (fin de semana/feriado),
- * lo indica con su propio chip de advertencia. Puro display, sin lógica.
+ * Chip de una tasa referencial (08-tasas): etiqueta de identidad en `neutral` sin punto
+ * con valor, fuente y fecha valor. Si la tasa está arrastrada de un día anterior
+ * (fin de semana/feriado), lo indica con su propio `EstadoChip` en tono `warning`.
  */
 export function TasaChip({ valor, fuente, fechaValor, arrastrada }: TasaChipProps) {
   return (
     <Box sx={{ display: 'inline-flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
       <Chip
         size="small"
-        variant="outlined"
+        variant="soft"
+        color="neutral"
         label={`${FUENTE_LABEL[fuente]} ${formatTasa(valor)}`}
       />
       <Typography variant="caption" color="text.secondary" component="span">
         valor {formatFecha(fechaValor)}
       </Typography>
       {arrastrada ? (
-        <Tooltip title={`Rige desde el ${formatFecha(fechaValor)}: no hay tasa publicada más reciente`}>
-          <Chip size="small" color="warning" label={`arrastrada del ${formatFecha(fechaValor)}`} />
-        </Tooltip>
+        <EstadoChip
+          tono="warning"
+          label={`arrastrada del ${formatFecha(fechaValor)}`}
+          tooltip={`Rige desde el ${formatFecha(fechaValor)}: no hay tasa publicada más reciente`}
+        />
       ) : null}
     </Box>
   )

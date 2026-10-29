@@ -1,9 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import Chip, { type ChipProps } from '@mui/material/Chip'
-import Tooltip from '@mui/material/Tooltip'
 import Box from '@mui/material/Box'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import type { EstadoDocumental } from '@/types/domain'
 
 export interface StatusChipsProps {
@@ -12,22 +11,17 @@ export interface StatusChipsProps {
   activo?: boolean
   documentacion?: EstadoDocumental
   /**
-   * Pinta "Activo" cuando la entidad está activa. En listados sí (la columna
-   * Estado nunca queda vacía); en tarjetas `xs` y fichas no, porque solo se
-   * muestran los chips que informan algo.
+   * @deprecated En el nuevo design system (Fase 4), los estados normales como
+   * "Activo" ya no se muestran como chip. Esta propiedad se conserva por compatibilidad
+   * pero queda sin efecto.
    */
   mostrarActivo?: boolean
 }
 
-function EstadoChip({ label, color }: { label: string; color: NonNullable<ChipProps['color']> }) {
-  // `size="small"` = 22 px y `variant="soft"`: tokens del theme (MuiChip).
-  return <Chip label={label} size="small" variant="soft" color={color} />
-}
-
 /**
- * Chips de estado de una entidad (cliente/proveedor), en `soft` de 22 px:
- *   - Activo (success, solo con `mostrarActivo`) / Inactivo (default)
- *   - Bloqueado (error, tooltip con el motivo); convive con Activo/Inactivo
+ * Chips de estado de una entidad (cliente/proveedor) sobre `EstadoChip`:
+ *   - Inactivo (neutral, solo si !activo; "Activo" ya no se muestra como chip)
+ *   - Bloqueado (error, tooltip con el motivo)
  *   - Doc. incompleta (warning, tooltip con faltantes)
  * Sin chips que mostrar no renderiza nada.
  */
@@ -36,31 +30,30 @@ export function StatusChips({
   motivoBloqueo,
   activo = true,
   documentacion,
-  mostrarActivo = false,
 }: StatusChipsProps) {
   const docIncompleta = documentacion != null && !documentacion.completa
-  const mostrarEstadoActivo = activo ? mostrarActivo : true
+  const mostrarInactivo = !activo
 
-  if (!mostrarEstadoActivo && !bloqueado && !docIncompleta) return null
+  if (!mostrarInactivo && !bloqueado && !docIncompleta) return null
 
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-      {mostrarEstadoActivo ? (
-        activo ? (
-          <EstadoChip label="Activo" color="success" />
-        ) : (
-          <EstadoChip label="Inactivo" color="default" />
-        )
+      {mostrarInactivo ? (
+        <EstadoChip tono="neutral" label="Inactivo" />
       ) : null}
       {bloqueado ? (
-        <Tooltip title={motivoBloqueo ? `Motivo: ${motivoBloqueo}` : 'Bloqueado'}>
-          <Chip label="Bloqueado" size="small" variant="soft" color="error" />
-        </Tooltip>
+        <EstadoChip
+          tono="error"
+          label="Bloqueado"
+          tooltip={motivoBloqueo ? `Motivo: ${motivoBloqueo}` : 'Bloqueado'}
+        />
       ) : null}
       {docIncompleta ? (
-        <Tooltip title={`Faltan: ${documentacion.faltantes.join(', ')}`}>
-          <Chip label="Doc. incompleta" size="small" variant="soft" color="warning" />
-        </Tooltip>
+        <EstadoChip
+          tono="warning"
+          label="Doc. incompleta"
+          tooltip={`Faltan: ${documentacion.faltantes.join(', ')}`}
+        />
       ) : null}
     </Box>
   )
