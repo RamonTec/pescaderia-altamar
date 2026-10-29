@@ -144,7 +144,7 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 
 **Alcance**: la piel (tokens, fuentes, radios, decorativo y componentes base) más la revisión de cada pantalla. No cambia datos, reglas ni la anatomía de tablas, diálogos y formularios. Las decisiones P-UI1 a P-UI10 (`spec.md` § "Decisiones de la Fase 3") las aprobó el cliente el 2026-10-22 tal como se propusieron. Si el cliente cambia alguna, se toca solo el token o el componente que indica la tarea. Rama sugerida: `feat/rediseno-puerto`.
 
-**Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. Para no romper consumidores a mitad de fase, los tokens nuevos conviven con los de Peñero hasta la tarea 88.
+**Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. Para no romper consumidores a mitad de fase, los tokens nuevos conviven con los de Peñero hasta la tarea 88 (*desde el 2026-10-29, la tarea 140 de la Fase 4*).
 
 ### Fase 3a — Tokens, fuentes y theme
 
@@ -201,7 +201,34 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
    - Hecho cuando: `rg 'penero-|geist' src` solo encuentra lo que todavía usan `PeneroStripes` y `BrandLoader`, que se limpia en las tareas 72 y 88.
    - **Ejecución 2026-10-22**: En `globals.css`, añadidos keyframes `puerto-sweep` y `puerto-fade-in`. Eliminado alias `--font-geist-mono`. En `src/components/organisms/RegistrarPagoDialog.tsx`, migrado el último `MONO` a `NUM = { fontVariantNumeric: 'tabular-nums' }`. Verificado que `rg 'geist' src` no arroja resultados.
 
-### Fase 3b — Decorativo y marca (P-UI2, P-UI4)
+### Fase 3b — Decorativo y marca (P-UI2, P-UI4) — _Reemplazada el 2026-10-29 por la Fase 4_
+
+> **Reemplazada el 2026-10-29 por la Fase 4** (pedido del usuario: no quedó conforme con el acabado de la Fase 3a y pidió un design system). Las Fases 3b, 3c y 3d no se implementaron. Se conservan como historial: **no se ejecutan**. Lo que sigue vigente pasó a la Fase 4:
+>
+> | Tarea 3b–3d | Pasa a |
+> |---|---|
+> | 70 `FileteLaton` | 131 |
+> | 71 `NavigationProgress` | 132 (3 px en el borde superior) |
+> | 72 `BrandLoader` | 133 |
+> | 73 isotipo Puerto | 134 |
+> | 74 `AuthLayout` / `DocumentoPublicoLayout` | 135 |
+> | 75 `CreditoResumen` | 137 (revisada: superficie normal, sin bloque de color) |
+> | 76 PDF y correo | 138 |
+> | 77 `AppShell` | 136 |
+> | 78 `PageHeader` | 113 |
+> | 79 `FichaHeader` | 118 |
+> | 80 `FormSection` | 114 |
+> | 81 `KpiCard` | 119 |
+> | 82 `ChartCard` y afines | 121 |
+> | 83 `AppDialog` / `ConfirmDialog` | 116 |
+> | 84 `AppDataGrid` | 111–112 |
+> | 85 gráficos | 139 |
+> | 86 y 90 barridos | 158 |
+> | 87 `/estandares` | 141–145 |
+> | 88 retirar Peñero | 140 |
+> | 89 contraste | 159 |
+> | 91 revisión visual | 160 |
+> | 92 cierre | 161 |
 
 70. **`src/components/atoms/FileteLaton.tsx`** (nuevo): `variant: 'rule' | 'sweep'`, `height` (2 por defecto), `width`, `track` (riel tenue en `sweep`); color `brand.brass`; `sweep` con `puerto-sweep` y quieto con `prefers-reduced-motion`. Duración y retardos como constantes exportadas, no ms sueltos (cierra el pendiente (c)).
    - Hecho cuando: `/estandares` muestra ambas variantes en claro y oscuro.
@@ -222,7 +249,9 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
    - `lib/cartera/recordatorios/plantillas.ts`: colores del correo desde las claves Puerto.
    - Hecho cuando: `npx tsx scripts/probar-cotizaciones.ts --pdf` genera el PDF con la marca nueva y la vista previa del correo de `RecordatorioDialog` ya no lleva franjas.
 
-### Fase 3c — Componentes base
+### Fase 3c — Componentes base — _Reemplazada el 2026-10-29 por la Fase 4_
+
+> Reemplazada el 2026-10-29 por la Fase 4 (ver la tabla de la Fase 3b). No se ejecuta.
 
 77. **`templates/AppShell.tsx`**:
    - sidebar `brand.midnight` en ambos esquemas;
@@ -270,7 +299,9 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 88. **Retirar Peñero** (después de las tareas 70–87, que dejan sin consumidores lo viejo): borrar `atoms/PeneroStripes.tsx` (`PeneroStripes` y `PeneroSweep`), las claves `hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red` y `trim` de `BrandPalette` y de `marca.ts`, y los keyframes sin uso.
    - Hecho cuando: `rg -i 'penero|hull|ochre|brand\.red|brand\.trim' src` no encuentra nada.
 
-### Fase 3d — Verificación
+### Fase 3d — Verificación — _Reemplazada el 2026-10-29 por la Fase 4_
+
+> Reemplazada el 2026-10-29 por la Fase 4 (ver la tabla de la Fase 3b). No se ejecuta.
 
 89. **Contraste AA** con herramienta (no a ojo), en claro y oscuro. Anotar cada par y su razón en el checklist. Como mínimo:
    - `text.primary` y `text.secondary` sobre `background.default`, `paper` y `subtle`;
@@ -308,6 +339,438 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
    - Hecho cuando: cada pantalla queda marcada en el checklist, y las diferencias con el artboard están corregidas o anotadas como pendiente con motivo.
 92. **Catálogo y cierre**: actualizar en `spec.md` la tabla de componentes (`FileteLaton` sin "propuesta"; `PeneroStripes`/`PeneroSweep` como retirados) y la tabla de decisiones P-UI con lo aprobado. Después, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
    - Hecho cuando: los tres comandos pasan y la spec describe lo que hay en el código.
+
+## Fase 4 — Design system (planificada el 2026-10-29)
+
+Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3a. Reglas y valores en `spec.md` § «Design system (Fase 4)». Referencia: el lienzo «Design system Altamar» citado ahí (artboards 1–4).
+
+- **Reemplaza** a las Fases 3b, 3c y 3d (ver la tabla de correspondencia en la Fase 3b).
+- **Depende** de la Fase 3a, que está en la rama `feat/rediseno-puerto`, **todavía sin mergear en `dev`**. Las ramas de la Fase 4 se basan en `feat/rediseno-puerto` (indicarlo en el PR) hasta que se mergee.
+- La paleta Puerto, P-UI1–P-UI10 y la tipografía Fraunces + Instrument Sans **no cambian**.
+- Las decisiones DS-1 a DS-8 se ejecutan con la propuesta mientras sigan abiertas.
+
+**Después de cada tarea: `npm run lint` y `npx tsc --noEmit` en verde** antes de seguir. La API pública de los componentes existentes se mantiene compatible: se agregan props, no se rompen consumidores. Lo que se depreca se anota en el componente y se retira en la tarea 158.
+
+**Ramas sugeridas** (una por bloque o grupo de bloques; regla 1 del flujo Git):
+- `feat/ds-fundamentos`: 4a + 4b;
+- `feat/ds-patrones`: 4c + 4d;
+- `feat/ds-marca`: 4e;
+- `feat/ds-catalogo`: 4f;
+- `feat/ds-migracion-<grupo>`: 4g, una por grupo de pantallas.
+
+**Orden y paralelismo**:
+
+| Bloque | Depende de | ¿En paralelo? |
+|---|---|---|
+| 4a — Decisiones, inventario, tokens y theme | 3a | Secuencial: casi todo toca `theme.ts`. 93 y 94 son solo documentales y pueden ir en paralelo con 95–102 |
+| 4b — Primitivos | 4a | 103, 104, 106–110 son archivos nuevos o distintos y van en paralelo. 105 toca `theme.ts`: no la hace otra rama a la vez |
+| 4c — Patrones | 4b | Hay tres grupos en paralelo: (111→112) en `AppDataGrid`; (114→115) en formularios; 116 en `AppDialog`. 113, 118, 119, 120 y 121 tocan archivos distintos y van en paralelo con esos grupos |
+| 4d — Carga, feedback y fallbacks | 4c (124 y 127 tocan `AppDataGrid` después de 112; 126 antes de 127) | 122→123 secuencial; 125, 126, 128, 129 y 130 en paralelo |
+| 4e — Marca y decorativo heredado | 4a | **En paralelo con 4b–4d**, porque toca otros archivos. Excepciones: 140 edita `theme.ts` y `marca.ts`, y va al final, cuando 105 esté hecha; 136 (`AppShell`) no corre a la vez que otra tarea sobre `AppShell` |
+| 4f — Catálogo vivo `/estandares` | 141 puede ir apenas termina 4a; 142–145, después del bloque que muestran | Ninguna tarea de 4a–4e edita `estandares-screen.tsx`: todo lo que se muestra entra en 4f. 142–145 van en paralelo entre sí (un archivo por sección, tras 141) |
+| 4g — Migración y verificación | 4b–4d (y 4e para 160) | 147–157 van en paralelo **por grupo de pantallas** (archivos disjuntos, ver cada tarea); 158→159→160→161, secuencial al final |
+
+### Fase 4a — Decisiones, inventario, tokens y theme
+
+93. **Decisiones DS-1 a DS-8**: presentarlas al usuario con su propuesta (`spec.md` § «Decisiones pendientes de la Fase 4»).
+   - Hecho cuando: cada fila tiene «aprobada», el valor elegido o «abierta, se ejecuta la propuesta». Si DS-1 se rechaza, la tarea 105 se ejecuta en su variante B. Si DS-4 pide páginas dedicadas, se replanifica la tarea 151 antes de ejecutarla.
+94. **Inventario de componentes**: recorrer `src/components/**` (~150 archivos) y `src/app/**/*-screen.tsx`, y llenar en `spec.md` una tabla «Unificación» bajo § «Catálogo e inventario». Columnas: componente, rol (primitivo / patrón / dominio), duplicado de…, destino (se queda / se apoya en X / se retira) y tarea de la Fase 4 que lo resuelve. Parte de los duplicados ya listados en la spec.
+   - Hecho cuando: todo componente de `atoms`, `molecules` y `templates`, más los `organisms` genéricos, figura en la tabla. Los de dominio sin duplicado pueden agruparse en una fila.
+95. **`src/theme/tokens.ts`** (nuevo):
+   - `MOTION`: duraciones `rapida` 120, `media` 200, `lenta` 280 y `salida` 180; curvas `entrada` y `salida`;
+   - `TIEMPOS`: `LOADER_RETARDO_MS` 150, `LOADER_MINIMO_MS` 400, `NAV_RETARDO_MS` 100, `TOAST_MS` 5000, `RESALTADO_MS` 2000;
+   - `ESPACIO`: los usos semánticos de la tabla «Espaciado», en unidades de `theme.spacing`;
+   - `SOMBRAS`: `elevacion1` y `elevacion2`, claro y oscuro.
+
+   En `theme.ts`, `transitions.duration` y `transitions.easing` se alimentan de `MOTION`, con el mapeo comentado (`shortest`/`shorter` → rápida, `short`/`standard` → media, `enteringScreen`/`complex` → lenta, `leavingScreen` → salida).
+   - Hecho cuando: `tokens.ts` compila sin `any`, `theme.transitions.duration.shortest === 120` y ningún componente nuevo de la Fase 4 escribe milisegundos.
+96. **`theme.ts` — tokens de superficie y color** (aumento de módulos, claro y oscuro, valores de `spec.md` § «Superficies por nivel» y «Color y jerarquía»):
+   - `background.elevated` y `background.field`;
+   - `inputBorder` oscuro → `#5E7194`;
+   - `rowDivider`, `dialogDivider`, `scrim`, `focusRing`, `highlight` y `outlineBorder`;
+   - `segmented` (`track`, `selected`, `selectedHover`, `selectedText`, `selectedShadow`);
+   - `neutral` como `PaletteColor` con `soft`/`onSoft`;
+   - `dot` en `PaletteColor`;
+   - fondos `soft` oscuros **opacos** para `warning`/`success`, calculando el 16 % sobre `#121F35` y anotando el hex resultante en un comentario. `error.soft` oscuro → `#3D2228`.
+
+   Los valores *(DS-8)* llevan un comentario `// DS-8`.
+   - Hecho cuando: cada token existe como variable CSS (`--mui-palette-background-elevated`, `--mui-palette-segmented-track`, etc.) en ambos esquemas, tipa sin `any`, y los hex nuevos viven solo en `theme.ts`.
+97. **Superficies elevadas sin la capa de MUI**. Leer en `node_modules/@mui/material/styles/` cómo se generan `overlays` y `--Paper-overlay` en la versión instalada, y anularlos: con `overlays` vacío o `'none'` en el esquema oscuro, o con `backgroundImage: 'none'` en `MuiPaper`. Documentar el mecanismo elegido en un comentario de `theme.ts` y en `spec.md` § «Superficies por nivel». Después:
+   - `MuiDialog` `paper`: `background.elevated`, `SOMBRAS.elevacion2` y borde `dialogDivider` en oscuro;
+   - `MuiBackdrop`: `scrim`;
+   - `MuiMenu`, `MuiPopover` y `MuiAutocomplete` `paper`: `background.elevated` + `elevacion1` (reemplaza `shadows[8]`);
+   - `MuiDrawer` temporal: `elevacion2`.
+   - Hecho cuando: en oscuro, con las herramientas del navegador, el `Paper` del modal no tiene `background-image`, y el encabezado, el cuerpo y el pie dan `#1A2A45`. Un menú abierto sobre la página da `#1A2A45`.
+98. **Campo en el theme** (`MuiOutlinedInput`, `MuiInputBase`, `MuiFormHelperText`):
+   - fondo `background.field`, borde `inputBorder`, hover `text.secondary`;
+   - foco: en claro, borde `primary` + anillo `focusRing` de 3 px; en oscuro, borde `#D4B27A` de 2 px;
+   - error con `error.main`;
+   - alto de 40 px en `size="small"`;
+   - ayuda de 12 px a 6 px del campo;
+   - adornos (`InputAdornment`) en `text.secondary`.
+
+   Se reemplaza `backgroundColor: 'var(--mui-palette-background-paper)'` (línea ~220).
+   - Hecho cuando: en oscuro, un campo dentro del modal se ve más oscuro que la superficie y con borde visible (≥ 3:1, se verifica en 159), y no «hueco».
+99. **Foco y jerarquía de color en el theme**:
+   - `MuiButtonBase` `.Mui-focusVisible` con `focusRing` (reemplaza el contorno de `primary`, líneas ~205–212);
+   - `MuiButton`: `variant="text"` y `variant="outlined"` con `color="primary"` pasan a `text.primary`, con borde `outlineBorder` en `outlined` (variants del theme, sin tocar consumidores); `contained` sin cambio;
+   - `MuiTabs`: indicador y pestaña seleccionada en `text.primary`;
+   - `MuiSwitch`, `MuiCheckbox` y `MuiRadio` seleccionados en `text.primary`, con el track del switch en `text.primary` al 100 % y el pulgar en `background.paper`;
+   - `MuiLink` en `text.primary` con subrayado;
+   - `MuiChip` clicable o `filled` con `color="primary"` en neutro.
+   - Hecho cuando: en oscuro, el único latón visible en `/clientes` y en un modal abierto es el botón principal y el foco. Comprobarlo con `rg "color=\"primary\"" src/components` sin cambiar nada de esos archivos.
+100. **Tipografía**: agregar las variantes `label` (13/1.4/500) y `sectionTitle` (16/1.4/600) en `typography`, con aumento de `TypographyVariants`, `TypographyVariantsOptions` y `TypographyPropsVariantOverrides`. El encabezado de `MuiTableCell` y `MuiDataGrid` pasa a leer `theme.typography.subtitle2` en lugar de repetir `0.75rem`/`0.04em` (líneas ~306–340).
+   - Hecho cuando: `<Typography variant="label">` y `variant="sectionTitle"` tipan y miden lo indicado, y `rg "0\\.04em" src/theme/theme.ts` solo encuentra `subtitle2`.
+101. **Tabla en el theme** (`MuiDataGrid`):
+   - encabezado de 40 px con el fondo `background.subtle` también en el relleno a la derecha (`.MuiDataGrid-filler`, `--DataGrid-containerBackground`, encabezado vacío);
+   - celdas con `display: flex; align-items: center`;
+   - divisor `rowDivider`;
+   - hover de fila `background.subtle`;
+   - sin fondo de fila seleccionada;
+   - icono de orden sin círculo (botón del encabezado transparente, `fontSize="small"`).
+   - Hecho cuando: en `/estandares` (sección existente de tablas) el encabezado llega al borde derecho y la flecha no tiene fondo blanco.
+102. **`src/app/globals.css` y skeleton**:
+   - keyframe `puerto-highlight` (fondo `var(--mui-palette-highlight)` → transparente);
+   - regla global de `prefers-reduced-motion: reduce` (animaciones y transiciones a 0,01 ms, una iteración);
+   - `MuiSkeleton` con `animation: 'pulse'` (DS-7) y color `background.subtle`;
+   - `MuiSnackbar` sin cambio (se hace en 108).
+
+   Los keyframes `penero-*` se quedan hasta la tarea 140.
+   - Hecho cuando: con «reducir movimiento» del sistema activado, el skeleton y la barra de navegación quedan quietos.
+
+### Fase 4b — Primitivos
+
+103. **`src/components/atoms/SegmentedControl.tsx`** (nuevo). Va sobre `ToggleButtonGroup exclusive`, con estilos de los tokens `segmented` (`spec.md` § «Primitivos»).
+   - Props: `value`, `onChange(value)`, `options: { value, label, count?, icon? }[]`, `aria-label` (obligatorio), `size` (`medium` 32 px por defecto), `fullWidth`, `disabled`.
+   - Siempre hay una opción elegida (ignora el `null` de deselección).
+   - Navegación con flechas.
+   - El contador va en `caption` y `text.secondary`, y se anuncia en el nombre accesible ("Activos, 12").
+   - En `xs` hace scroll horizontal dentro de su contenedor, sin desbordar la página.
+   - Hecho cuando: compila, en claro y oscuro la opción elegida se distingue sin depender solo del color (por peso y sombra) y el teclado funciona.
+104. **`src/components/atoms/EstadoChip.tsx`** (nuevo):
+   - `tono` (`error` \| `warning` \| `success` \| `neutral`), `label`, `tooltip?`;
+   - 22 px, radio 4, punto de 6 px (`dot`), texto 12/600, colores `soft`/`onSoft`.
+
+   `organisms/appDataGridColumns.tsx` reexporta `EstadoChip` (el actual pasa a ser este, con mapeo de su `color` a `tono`). Rebasar sobre él, sin cambiar sus props:
+   - `molecules/StatusChips.tsx`: "Activo" ya no se muestra y `mostrarActivo` queda deprecado sin efecto; Inactivo `neutral`, Bloqueado `error`, Doc. incompleta `warning`;
+   - `atoms/EstadoCarteraChip.tsx`: Anulada `neutral`;
+   - `molecules/CotizacionEstadoChip.tsx`: Borrador, Rechazada y Anulada `neutral`, Vencida `error`; Enviada y Aceptada como texto sin chip (estados normales, `spec.md` § «Primitivos»);
+   - `atoms/SenalFacturaChip.tsx` (`SenalFacturaChip`, `NivelSenalChip`).
+
+   `LoteChip` y `TasaChip` son etiquetas de identidad y no de estado: pasan a `neutral` sin punto.
+   - Hecho cuando: `rg "variant=\"soft\"" src/components src/app` solo encuentra `EstadoChip`, `LoteChip` y `TasaChip`.
+105. **Campo con etiqueta fija arriba (DS-1)**, en `theme.ts`:
+   - variante A (propuesta):
+     - `MuiInputLabel`: `defaultProps.shrink: true`, estática (`position: relative`, `transform: none`), en `label` y `text.primary`, con 6 px hasta el campo;
+     - `MuiOutlinedInput`: `defaultProps.notched: false` y sin `legend`;
+     - `MuiTextField` y `MuiFormControl` sin margen extra;
+     - el asterisco de requerido en `text.secondary`.
+
+     Verificar `NumberField`, `PhoneField`, `RifCiField`, `Select`, `Autocomplete`, `TasaSelector` y los adornos `$`/`kg`.
+   - variante B (si DS-1 se rechaza): se mantiene la etiqueta flotante, pero los campos con adorno quedan con la etiqueta siempre encogida, para que «Costo/kg» se comporte igual que el resto.
+   - Hecho cuando: en `/estandares` y en un `ClienteForm` abierto, todas las etiquetas quedan arriba y alineadas, «Costo/kg $» igual que las demás, y sin cambios en los archivos consumidores.
+106. **`src/components/atoms/DateField.tsx`** (nuevo), sobre `DatePicker` de `@mui/x-date-pickers` (ya en `package.json`):
+   - `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`, formato `DD/MM/YYYY`;
+   - `minDate`/`maxDate` en ISO, `error`, `helperText`, `size="small"` y ancho mínimo de 160 px;
+   - acepta `field` de `react-hook-form` vía `Controller`.
+
+   Mover el `LocalizationProvider` (dayjs, locale `es`) de `molecules/RangoFechasSelector.tsx` a un proveedor global en `src/theme/ThemeRegistry.tsx` (o `src/app/layout.tsx`), y quitarlo de `RangoFechasSelector`.
+   - Hecho cuando: el campo muestra `29/10/2026`, devuelve `'2026-10-29'` y `RangoFechasSelector` sigue funcionando.
+107. **`src/components/atoms/SubmitButton.tsx`** (nuevo): `Button` `contained` con `type="submit"` por defecto, `pending`, `pendingLabel` (por defecto "Guardando…") y `loading={pending}` + `loadingPosition="start"`. Mide su ancho en reposo y lo fija como `minWidth` mientras está `pending`, para que no salte. Si se le pasa `onClick`, ignora los clics mientras está `pending`.
+   - Hecho cuando: al pasar a `pending`, el botón no cambia de ancho y muestra spinner + "Guardando…".
+108. **Toast** (`organisms/NotificationProvider.tsx`, `lib/useNotify.ts`):
+   - `notify.success/error/info(msg, opciones?)` con `opciones.action` (`{ label, href } | { label, onClick }`); las 97 llamadas actuales con un solo string no cambian;
+   - contenido propio en lugar de `Alert filled`: fondo `brand.midnight`, texto `brand.onMidnight`, ícono de check `success.soft` (error: ícono `error` en su tono claro), acción en `brand.brass` como botón de texto, cerrar con `aria-label`;
+   - `elevacion1`, `Slide` desde abajo con `MOTION.media` y `TIEMPOS.TOAST_MS`;
+   - `role="status"` (éxito/info) o `role="alert"` (error);
+   - abajo a la derecha, y abajo al centro en `xs`, por encima del `Fab` del `PageHeader`;
+   - la cola actual se conserva.
+   - Hecho cuando: un toast con `action: { label: 'Ver', href }` navega y cierra, y el toast se ve igual en ambos modos.
+109. **`src/components/molecules/FilterMenuButton.tsx`** (nuevo):
+   - props `label` ("Tipo"), `value`, `onChange`, `options`, `multiple?` y `todosLabel` ("todos");
+   - el botón `outlined` muestra "Tipo: todos" o "Tipo: Crudo", y "Tipo: 2" si hay varias opciones elegidas;
+   - el menú tiene `elevacion1`, `Checkbox` o `Radio` según `multiple`, y "Limpiar".
+   - Hecho cuando: compila y funciona con teclado.
+110. **`molecules/RowActionsMenu.tsx`**:
+   - disparador `IconButton` de 32 px (44 px de área en `xs`);
+   - las opciones `destructive` van en `error.main` dentro del menú, separadas por un divisor;
+   - el menú tiene `elevacion1`;
+   - `pending` sin cambio.
+   - Hecho cuando: las tablas existentes muestran el `⋮` de 32 px sin cambios en los consumidores.
+
+### Fase 4c — Patrones
+
+111. **`AppDataGrid`, barra de herramientas** (`organisms/AppDataGrid.tsx`, ~líneas 463–500):
+   - búsqueda de 340 px (100 % en `xs`);
+   - prop nueva `estados?: { value, onChange, options }`, que renderiza un `SegmentedControl` a la derecha de la búsqueda;
+   - `filters` (sin cambio de tipo) pensado para `FilterMenuButton`;
+   - `actions` a la derecha;
+   - prop `onClearFilters?`, que usa el «Sin resultados» de la tarea 127.
+   - Hecho cuando: la tabla de `/estandares` con `estados` se ve como el artboard 2 y las tablas sin `estados` no cambian.
+112. **`AppDataGrid`, cuerpo y columnas** (`AppDataGrid.tsx`, `appDataGridColumns.tsx`):
+   - `rowHeight` 56 (línea ~546) y `columnHeaderHeight` 40;
+   - si ninguna columna tiene `flex`, la primera de texto recibe `flex: 1` y `minWidth`, así las columnas llenan el ancho;
+   - el pie de paginación se oculta con 0 filas;
+   - helper nuevo `colPrincipal({ field, headerName, secundario: (row) => string | null })`: nombre en `body2` 500 y secundario en `caption` `text.secondary`, en la misma celda;
+   - `colMonto` con `destacarPositivo` (600 si > 0);
+   - `valueFormatter` por defecto "—" para `null`/`''` en las columnas helper;
+   - `mobileCard` con la misma jerarquía.
+   - Hecho cuando: una tabla de una línea mide 56 px por fila, las columnas cubren el ancho a 1440 px y la tabla vacía no muestra «0–0 de 0».
+113. **`molecules/PageHeader.tsx`**: título `h4` y subtítulo `body2` `text.secondary` con 4 px entre ellos, la acción principal alineada al título y 48 px hasta el bloque siguiente (lo pone el contenedor de la página, ver 136). El `Fab` de `xs` hereda el radio 6 y `primary` (absorbe la tarea 78).
+   - Hecho cuando: los listados muestran título, subtítulo y acción como el artboard 2.
+114. **Formulario: `FormSection`, `FormGrid` y `FormSubgroup`**:
+   - `molecules/FormSection.tsx`:
+     - encabezado `sectionTitle` con divisor **inferior** y 16 px hasta el contenido;
+     - 40 px entre secciones (lo da el contenedor, así la primera no lleva margen);
+     - `ayuda` en `body2` bajo el título, **sin** el `mt: -1.25` actual (causa del encimado en Configuración);
+     - se mantiene la semántica `fieldset` y `legend`, pero el `legend` deja de ser hijo de la grilla (envolverlo o usar `role="group"` + `aria-labelledby`), para que no se monte sobre la ayuda;
+     - `dense` y `primera` siguen aceptándose (`primera` queda sin efecto visual).
+   - `molecules/FormGrid.tsx` (nuevo): 1 columna en `xs` y 2 en `sm+`, 24 vertical y 16 entre columnas; `FormGrid.Full` o la prop `full` en el hijo para ocupar el ancho completo.
+   - `molecules/FormSubgroup.tsx` (nuevo): etiqueta `label` + contenido, sin divisor.
+
+   Absorbe la tarea 80.
+   - Hecho cuando: en `ConfigNegocioForm`, el título «Configuración del negocio» no se monta sobre su descripción, y en `/estandares` los espaciados miden 16/24/40.
+115. **`molecules/LineasEditor.tsx`** (nuevo). Es solo disposición y **no** usa `useFieldArray` (eso lo pone el consumidor):
+   - props `columnas: { key, label, width, align? }[]`, `filas`, `renderCelda(fila, columna)`, `onAgregar`, `onQuitar(index)`, `agregarLabel` ("Agregar línea"), `disabled` y `totales?: ReactNode`;
+   - una fila de encabezados en `label`, y las celdas ocultan la etiqueta del campo (`aria-label` desde la columna);
+   - papelera `IconButton` de 36 px alineada al centro del campo, con `aria-label="Quitar línea N"`;
+   - "Agregar línea" como botón de texto debajo;
+   - totales a la derecha bajo un divisor;
+   - `Collapse` por fila;
+   - en `xs`, cada línea es un bloque con etiquetas visibles y la papelera arriba a la derecha.
+   - Hecho cuando: compila y una demo local con dos líneas no tiene cajas anidadas.
+116. **`organisms/AppDialog.tsx` + `molecules/ConfirmDialog.tsx`**:
+   - una sola superficie: quitar `bgcolor: 'background.paper'` del pie (líneas ~262 y ~279);
+   - encabezado, cuerpo y pie separados por `dialogDivider` (siempre en el pie y en el encabezado; los divisores por scroll se conservan como refuerzo);
+   - padding de 24 (16 en `xs`);
+   - tamaño nuevo `lg` (1120 px, pantalla completa por debajo de `md`);
+   - `error` pasa **arriba del contenido**, con la prop nueva `onRetry?` ("Reintentar" en la `Alert`);
+   - "Cancelar" como botón de texto en `text.secondary` (ya lo es);
+   - transición propia: fundido + `translateY(8px)` → 0 con `MOTION.lenta` y `MOTION.salida`, y `Slide` sin cambio en pantalla completa;
+   - `ConfirmDialog` con la misma superficie y padding.
+
+   Absorbe la tarea 83.
+   - Hecho cuando: en oscuro, el modal de «Nuevo producto» se ve en un solo tono, con los campos más oscuros que la superficie y el pie sin franja propia.
+117. **Regla modal o página (DS-4)**: con DS-4 respondida, anotar en `spec.md` § «Patrones › Formulario» la lista final de formularios por tamaño (`sm`/`md`/`lg`), revisando `rg "size=\"(xs|sm|md)\"" src/components/organisms`. Es solo documental; la aplicación va en 150–151.
+   - Hecho cuando: cada `AppDialog` del código tiene un tamaño asignado en la lista.
+118. **Ficha: `molecules/FichaHeader.tsx` + `molecules/FichaSeccion.tsx`**:
+   - la vuelta pasa de `secondary` a `text.secondary` con ícono `fontSize="small"`;
+   - nombre `h5` (`component="h1"`) y `meta` en `body2`/`caption`;
+   - `FichaSeccion` como superficie de nivel 0 (radio 8, borde `divider`, título `h6`, acción a la derecha);
+   - 48 px entre secciones.
+
+   Absorbe la tarea 79.
+   - Hecho cuando: las fichas existentes muestran el encabezado sin latón y sin cambios de props.
+119. **`molecules/KpiCard.tsx` + `molecules/CarteraResumenCards.tsx` + `organisms/DocumentosCarteraTable.tsx`**:
+   - `KpiCard`:
+     - título `subtitle2`, cifra `h5` y `tone` con ícono (absorbe la tarea 81);
+     - Skeleton con `sx={{ typography: 'h5' }}`;
+     - variante seleccionable nueva (`selected`, `onClick`, `aria-pressed`), con el borde de 2 px en `text.primary` cuando está seleccionada.
+   - `CarteraResumenCards` se apoya en esa variante.
+   - `DocumentosCarteraTable` recibe `ocultarFiltroEstados` y, si el filtro lo controlan las tarjetas, no muestra sus propios chips de estado.
+   - Hecho cuando: en la ficha de cliente y en `/cobros`, Vencidas/Por vencer/Pendientes/Pagadas aparecen una sola vez, y al tocar una tarjeta la tabla se filtra.
+120. **`molecules/DocumentoUpload.tsx` + `molecules/DocumentosRequeridos.tsx`**:
+   - cada documento cargado es una fila (ícono del tipo, nombre, fecha en `caption`, "Ver" como botón de texto, `⋮` con "Reemplazar" y "Eliminar" vía `ConfirmDialog`), sin caja punteada;
+   - la zona para soltar archivos solo aparece si no hay archivo;
+   - en `DocumentosRequeridos`, la lista va sin cajas anidadas y con el estado como `EstadoChip` (`warning` si falta);
+   - `disabled` y `loading` sin cambio.
+   - Hecho cuando: la ficha de cliente y la de proveedor muestran los documentos sin cajas anidadas ni papelera roja visible.
+121. **`molecules/ChartCard.tsx`, `ChartLegendTable.tsx`, `ListaResumen.tsx` y `CadenaTrazabilidad.tsx`**:
+   - radio 8, borde `divider`, título `h6` sans y montos tabulares;
+   - en `CadenaTrazabilidad`, `'& svg': { fontSize: 20 }` pasa a `fontSize="small"`;
+   - `ListaResumen` con filas de 56 px y `rowDivider`.
+
+   Absorbe la tarea 82.
+   - Hecho cuando: el dashboard y `/facturas/[id]` se ven con superficies del sistema.
+
+### Fase 4d — Carga, feedback y fallbacks
+
+122. **`src/components/atoms/Skeletons.tsx`** (nuevo):
+   - `SkeletonTabla` (barra con búsqueda de 340 + segmentado, encabezado de 40, filas de 56), `SkeletonFicha`, `SkeletonKpis`, `SkeletonGrafico` y `SkeletonFormulario` (etiqueta + campo de 40 y secciones);
+   - con pulso y medidas de `ESPACIO`.
+
+   Rehacer `atoms/PageLoader.tsx` con ellos (misma API `variant` + `children`): el texto visible «Cargando…» pasa a una región `role="status"` visualmente oculta, y el registro en `useNavigationPending` se conserva. `organisms/DashboardSkeletons.tsx` y `CarteraSeccionSkeleton` reusan los primitivos.
+   - Hecho cuando: cada variante de `PageLoader` coincide en medidas con su plantilla real (encabezado de tabla de 40 y filas de 56).
+123. **Auditar los 23 `loading.tsx`** (`rg --files -g 'loading.tsx' src/app`): cada uno usa la variante de su plantilla (listado → `table`; `[id]` → `ficha`, con `children` si la ficha tiene secciones con `Suspense`; `(dashboard)` → `dashboard`; `(auth)` → el suyo). En las pantallas con `Suspense` por sección, el `fallback` es el skeleton de esa sección y no un `PageLoader`.
+   - Hecho cuando: la tabla de los 23 archivos con su variante queda anotada en esta tarea y ninguno muestra un spinner.
+124. **Resaltado de ítem afectado**:
+   - `lib/useResaltado.ts` (nuevo): `resaltar(id)` → `idResaltado` durante `TIEMPOS.RESALTADO_MS`;
+   - prop `highlightId` en `AppDataGrid` (`getRowClassName` + `puerto-highlight`) y en `ListaResumen`;
+   - tras crear, la fila nueva se muestra en la página actual si está en ella, y si no, no se fuerza la navegación.
+   - Hecho cuando: en `/estandares`, «simular alta» resalta la fila 2 s y, con movimiento reducido, solo cambia el fondo sin animar.
+125. **Operaciones largas → `useGlobalLoader`**. Auditar las acciones de más de 1 s que bloquean: PDF de contrato (`GenerarContratoDialog`), PDF y compartir de cotización (`CompartirCotizacionDialog`, `EnlacePublicoCotizacion`), cierre o pérdida de lote (`useLoteAcciones`) y las importaciones, si existen. Las que hoy solo muestran `Button loading` y bloquean más de 1 s pasan a `useGlobalLoader().run(tarea, 'Generando contrato…')`. `lib/useGlobalLoader.tsx` toma `TIEMPOS.LOADER_RETARDO_MS` y `LOADER_MINIMO_MS` en lugar de sus constantes locales.
+   - Hecho cuando: la lista de acciones auditadas, con su decisión, queda anotada en esta tarea.
+126. **`src/components/molecules/Fallback.tsx`** (nuevo):
+   - `tipo` (`vacio` \| `sin-resultados` \| `error` \| `sin-permiso` \| `no-encontrado`), con ícono por defecto según el tipo (`Outlined`);
+   - el ícono va en un círculo de 44 px sobre `background.subtle`;
+   - `titulo`, `texto` (≤ 75ch), `accion` y `compact`.
+
+   `EmptyState` y `ErrorState` pasan a envolverlo (mismas props; `ErrorState` agrega «Tus datos están a salvo» y «Reintentar»).
+   - Hecho cuando: los consumidores actuales de `EmptyState`/`ErrorState` compilan sin cambios.
+127. **Overlays de `AppDataGrid`**:
+   - `noRowsOverlay`: `Fallback vacio` con la acción de `emptyState`;
+   - `noResultsOverlay`: `Fallback sin-resultados` («Sin resultados para «…»» o «Ningún registro con estos filtros») + «Limpiar filtros», que limpia la búsqueda y llama `onClearFilters`;
+   - error: `Fallback error` con `onRetry`;
+   - la paginación se oculta en los tres.
+   - Hecho cuando: en `/estandares` se ven los tres estados sin «0–0 de 0».
+128. **`src/components/organisms/RouteError.tsx`** (nuevo, `'use client'`): `mensaje`, `reset` y `digest?` (si existe, lo muestra en `caption` como «Código: …»). Los 21 `error.tsx` pasan a `<RouteError mensaje="No se pudieron cargar los clientes." reset={reset} digest={error.digest} />`.
+   - Hecho cuando: `rg -l "ErrorState" src/app --glob 'error.tsx'` queda vacío y cada `error.tsx` tiene 3–10 líneas.
+129. **404 y sin permiso**:
+   - `src/app/not-found.tsx` global (no existe) y `src/app/(protected)/not-found.tsx`, ambos con `Fallback no-encontrado` + «Volver al inicio»;
+   - los 7 `not-found.tsx` de ficha pasan a `Fallback no-encontrado` con su acción (texto actual conservado);
+   - sin permiso: leer `node_modules/next/dist/docs/` sobre `forbidden()`/`forbidden.tsx`. Si es estable sin flag, usarlo en las rutas solo admin (`requireAdmin`); si no, `Fallback sin-permiso` desde la página;
+   - `c/[token]/not-found.tsx` y `CotizacionNoDisponible` pasan a `Fallback` conservando el WhatsApp.
+   - Hecho cuando: una URL inexistente dentro y fuera de la app muestra el fallback dentro del shell y fuera de él, respectivamente, y la decisión sobre `forbidden` queda anotada aquí.
+130. **Dato faltante**: `lib/format.ts` agrega `conGuion(v: string | number | null | undefined, fmt?)` → «—» si está vacío. Las columnas helper de `appDataGridColumns` lo usan, y `formatFecha`/`formatHace` ya devuelven «—».
+   - Hecho cuando: `colMonto`, `colKg`, `colTasa` y `colFecha` muestran «—» con `null`.
+
+### Fase 4e — Marca y decorativo heredado de 3b
+
+131. **`src/components/atoms/FileteLaton.tsx`** (nuevo; era la 70):
+   - `variant: 'rule' | 'sweep'`, `height` (2 por defecto), `width` y `track`;
+   - color `brand.brass`;
+   - `sweep` con `puerto-sweep` y duración de `MOTION`/constante exportada, quieto con `prefers-reduced-motion` (cierra el pendiente (c)).
+   - Hecho cuando: compila; se muestra en 142.
+132. **`atoms/NavigationProgress.tsx`** (era la 71): `PeneroSweep height={3}` → `FileteLaton variant="sweep" height={3}` en el **borde superior** de la ventana (`position: fixed; top: 0`, por encima de la barra superior y del drawer). El retardo pasa a `TIEMPOS.NAV_RETARDO_MS`, y el registro de fuentes no cambia.
+   - Hecho cuando: navegar entre secciones muestra la línea de latón arriba, sin mover el layout.
+133. **`organisms/BrandLoader.tsx`** (era la 72):
+   - isotipo + «Altamar Sea Food» en `h3` + `FileteLaton sweep` de 3 px y mensaje en `body2`;
+   - fondo `scrim` sobre la página, o `background.default` a pantalla completa;
+   - sin el vaivén `penero-bob`;
+   - conserva el retardo, el mínimo y el contador (desde `TIEMPOS`, en `useGlobalLoader`), `role="status"` y la versión quieta.
+   - Hecho cuando: «Entrando» (login) y «Cerrando sesión» muestran el loader nuevo.
+134. **`atoms/BrandMark.tsx` + `src/lib/marca/isotipo.ts` + `src/app/icon.svg`** (era la 73): isotipo provisional Puerto (P-UI4) con proa en `brand.midnight` (o `brand.onMidnight` sobre medianoche) y filete `brand.brass`. La variante `full` lleva «Altamar» en Fraunces 600, y `size`/`orientation` no cambian. `icon.svg` se regenera con los hex claros de `marca.ts`.
+   - Hecho cuando: el menú, el loader, el login y la pestaña del navegador no muestran franjas ocre ni rojas.
+135. **`templates/AuthLayout.tsx` y `templates/DocumentoPublicoLayout.tsx`** (era la 74): panel `brand.midnight` con texto `onMidnight`/`onMidnightMuted`, logo y `FileteLaton rule` en lugar de `PeneroStripes`; en la página pública, el filete va bajo el encabezado.
+   - Hecho cuando: `/login`, `/recuperar`, `/actualizar-password` y `/c/[token]` (vigente y respaldo) no usan franjas.
+136. **`templates/AppShell.tsx`** (era la 77):
+   - sidebar `brand.midnight` en ambos esquemas;
+   - nombre en Fraunces y `FileteLaton rule` de 2 px bajo el logo;
+   - el ítem activo lleva fondo `brand.navy`, un **punto de latón de 6 px** en lugar de `ActiveStripes` (líneas ~177–200) y texto `onMidnight`; los inactivos van en `onMidnightMuted` y, en hover, `navy` al 60 %;
+   - el riel `sm` y el drawer `xs` llevan el mismo tratamiento;
+   - barra superior `background.paper` con borde `divider`;
+   - contenido con márgenes de 16/24/**64** (`lg+`) y 48 px entre bloques (`ESPACIO`);
+   - foco visible sobre medianoche.
+   - Hecho cuando: `rg "brand\\.(ochre|red|trim)" src/components/templates/AppShell.tsx` queda vacío y los tres breakpoints se ven bien.
+137. **`molecules/CreditoResumen.tsx`** (era la 75, **revisada**):
+   - pasa a superficie de nivel 0 (`background.paper`, borde `divider`, radio 8) en lugar del bloque `brand.hull`, porque la Fase 4 no admite bloques de color ni latón fuera de lo permitido;
+   - la cifra disponible en `h5`;
+   - la barra de uso va en `text.primary` sobre `background.subtle`, y pasa a `error.main` + ícono `ErrorOutlineOutlined` + texto «Límite superado» al superar el límite;
+   - textos en `text.secondary`.
+   - Hecho cuando: la ficha de cliente muestra el bloque sin `brand.*` y con el estado de exceso comunicado por texto.
+138. **PDF y correo con la marca nueva** (era la 76; tarea agregada en `21-cotizaciones` y `09-cuentas-por-cobrar`):
+   - `lib/pdf/fuentes.ts` y `lib/pdf/fuentes/LEEME.md`: Fraunces 600 e Instrument Sans 400/600 en TTF estáticos (OFL), con Helvetica de respaldo;
+   - `lib/pdf/marca.tsx`: filete de latón en lugar de franjas;
+   - `lib/cotizaciones/pdf/CotizacionPdf.tsx`: `MARCA_CLARO.hull` → `MARCA_CLARO.midnight`;
+   - `lib/cartera/recordatorios/plantillas.ts`: colores del correo desde las claves Puerto.
+   - Hecho cuando: `npx tsx scripts/probar-cotizaciones.ts --pdf` genera el PDF con la marca nueva y la vista previa de `RecordatorioDialog` no lleva franjas.
+139. **Gráficos** (era la 85, P-UI9): `lib/dashboard/chartColors.ts` toma `categorias` de `palette.chart`, quita la referencia a `brand.*` y revisa que `usd`/`kg`/`positivo` no coincidan en tono. En `organisms/BarLineChart.tsx`, el `labelStyle` `fontSize: 12` pasa a `theme.typography.caption`.
+   - Hecho cuando: las series del dashboard se distinguen en claro y oscuro.
+140. **Retirar Peñero** (era la 88; al final de 4e, con 105 hecha):
+   - borrar `atoms/PeneroStripes.tsx`;
+   - borrar las claves `hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red` y `trim` de `BrandPalette` (`theme.ts`) y de `MarcaPaleta` (`marca.ts`);
+   - borrar los keyframes `penero-*` de `globals.css`;
+   - borrar el comentario «Barlow» de `KpiCard`.
+   - Hecho cuando: `rg -i "penero|hull|ochre|brand\\.red|brand\\.trim|barlow" src` no encuentra nada.
+
+### Fase 4f — Catálogo vivo `/estandares`
+
+141. **Estructura**: partir `src/app/(protected)/estandares/estandares-screen.tsx` (~700 líneas) en `estandares/secciones/` (`Fundamentos.tsx`, `Primitivos.tsx`, `Patrones.tsx`, `CargaFeedback.tsx`, `Fallbacks.tsx`, y lo que quede de `Dashboard`) más un índice con anclas. Agregar «Ambos modos» (claro y oscuro lado a lado), aplicando `data-mui-color-scheme` a un contenedor. Antes, verificar que las variables de MUI se resuelven por ese atributo anidado; si no, usar el toggle global y anotarlo. La ruta sigue solo para desarrollo y admin.
+   - Hecho cuando: la página carga con el índice y el contenido actual sin perder nada.
+142. **Fundamentos**: superficies por nivel (con el modal de muestra en oscuro), color y jerarquía (incluido «dónde va el latón»), tipografía (escala + `label` y `sectionTitle`), espaciado, radios, elevación, movimiento (demo de cada animación permitida, con el aviso de movimiento reducido) y `FileteLaton`.
+   - Hecho cuando: cada tabla de `spec.md` § «Design system» tiene su muestra.
+143. **Primitivos en todos sus estados** (default, hover, foco, deshabilitado, cargando, error, vacío, según aplique): botones (principal, secundario, texto, destructivo, `SubmitButton`), campos (texto, `NumberField` con adorno, `PhoneField`, `RifCiField`, `Select`, `Autocomplete`, `DateField`, con error y ayuda), `SegmentedControl` (con contadores), `EstadoChip` (los 4 tonos), `FilterMenuButton`, `RowActionsMenu` y toast (éxito con «Ver», error, con «Deshacer»).
+   - Hecho cuando: la matriz se ve en ambos modos.
+144. **Patrones**: listado completo como el artboard 2 (con `estados`, `FilterMenuButton`, `colPrincipal`, montos, `⋮`), formulario en modal como el artboard 3 (`FormSection`, `FormGrid` con `full`, `FormSubgroup`, `LineasEditor` con totales, `SubmitButton`, error con «Reintentar»), los tamaños `xs`/`sm`/`md`/`lg` y la ficha (`FichaHeader`, `FichaSeccion`, KPI seleccionables, documentos).
+   - Hecho cuando: los tres artboards se reconocen en la página.
+145. **Carga, feedback y fallbacks** (artboard 4): simuladores de navegación, `PageLoader` en cada variante (montado dentro de un contenedor, sin encender la barra global, o anotado si no se puede), skeleton de sección, acción en curso, éxito (cierra, resalta y toast), error, operación larga (`useGlobalLoader`) y los cinco `Fallback` más «—».
+   - Hecho cuando: cada fila de las tablas «Carga y feedback» y «Fallbacks» tiene su demo.
+146. **Catálogo en la spec**: actualizar en `spec.md` la tabla «Componentes compartidos» con lo construido en 4b–4e (quitar «(Fase 4)» de lo ya hecho y marcar `PeneroStripes`/`PeneroSweep` como retirados) y la tabla «Unificación» de 94 con su estado.
+   - Hecho cuando: la spec describe lo que hay en el código.
+
+### Fase 4g — Migración pantalla por pantalla y verificación
+
+Cada tarea de 147 a 157 toca solo los archivos que nombra. Si dos tareas necesitan el mismo archivo compartido, la segunda espera. Al cerrar cada una, revisar sus pantallas en claro/oscuro y a 375/1440 px.
+
+147. **Listados de maestros**:
+   - archivos: `ClientesTable`/`clientes-screen`, `ProveedoresTable`/`proveedores-screen` y `ProductosTable`/`catalogos-screen`;
+   - los chips-filtro con contador pasan a `estados` (`SegmentedControl` con contadores, `?estado=` sin cambio);
+   - los chips «Activo», «Controla stock» y «Crudo» salen de las filas: el tipo va como texto en su columna y «Controla stock» como columna de texto «Sí/No», o se elimina si el filtro lo cubre;
+   - identificadores con `colPrincipal` (código o RIF bajo el nombre).
+
+   Corrige la desalineación de Catálogos.
+   - Hecho cuando: los tres listados siguen el artboard 2 y no muestran chips de estados normales.
+148. **Listados de operaciones**:
+   - archivos: `ComprasTable`, `ProcesamientosTable`, `LotesTable`/`inventario-screen`, `InventarioProductosTable`, `PedidosTable` (`ToggleButtonGroup` → `estados`) y `NotasCreditoTable` (ídem);
+   - filtros extra con `FilterMenuButton`;
+   - montos con `colMonto`.
+   - Hecho cuando: ninguno de estos archivos importa `ToggleButtonGroup` ni usa `Chip` como filtro.
+149. **Listados de administración**:
+   - archivos: `DocumentosCarteraTable` en `/cobros`, `ContratosTable`, `CotizacionesTable`, `GastosTable`, `GastosRecurrentesTable`, `EmpleadosTable` y `/usuarios`;
+   - mismo tratamiento que 147–148.
+   - Hecho cuando: igual que 148.
+150. **Formularios cortos y medios**:
+   - archivos: `ClienteForm` + `ClienteFormFields`, `ProveedorForm` + `ProveedorIdentificacionFields` + `MetodosPagoFieldArray` + `RepresentantesLegalesFieldArray`, `ProductoForm`, `ConfigNegocioForm`, `EmpleadoForm`, `GastoForm`, `GastoRecurrenteForm`, `CategoriaGastoForm`, `PerfilForm`, `CrearUsuarioForm`, `BloqueoDialog`, `PerdidaLoteDialog`, `AnularGastoDialog`, `AnularCotizacionDialog`, `ResponderCotizacionDialog`, `CambiarIvaFacturaDialog`, `CorregirLineaFacturaDialog`, `TasaManualDialog`, `RegistrarPagoDialog` y `PagoProveedorDialog`;
+   - van con `FormSection` + `FormGrid` (sin huérfanos: «Teléfono de contacto» y «Notas» en `full`) + `FormSubgroup`, `SubmitButton` con verbo y tamaño según 117;
+   - «Tipo de persona», «Contado/Crédito» y «USD/Bs» → `SegmentedControl`.
+   - Hecho cuando: ningún archivo de la lista importa `ToggleButtonGroup` y el espaciado de «Nuevo producto» mide 16/24/40.
+151. **Formularios largos con líneas**:
+   - archivos: `CompraForm` + `CompraItemsFieldArray`, `EditarCompraDialog`, `PedidoForm` + `PedidoItemsFieldArray`, `EntregaPedidoDialog`, `CotizacionForm` + `CotizacionItemsFieldArray`, `ProcesamientoForm` + `SalidasProcesoFieldArray`, `NotaCreditoForm` y `ConvertirPedidoDialog`;
+   - las líneas van en `LineasEditor` (sin caja anidada, papelera alineada, «Agregar línea» debajo, totales a la derecha);
+   - `AppDialog size="lg"` según DS-4;
+   - la tasa como `FormSubgroup` dentro de `TasaSelector`, sin estilo de sección.
+
+   Cambia la UI de formularios de `04`, `05`, `07`, `13`, `16`, `19` y `21` sin tocar su lógica.
+   - Hecho cuando: «Nueva compra» se ve como el artboard 3 y el título de sección no choca con la primera etiqueta.
+152. **Fechas**: los 19 `type="date"` de 14 archivos (`rg -n 'type="date"' src`) pasan a `DateField`, incluidos los filtros de `/tasas` (ancho mínimo de 160 px). La validación `zod` sigue recibiendo `YYYY-MM-DD`.
+   - Hecho cuando: `rg 'type="date"' src` queda vacío. Si 150 y 151 ya tocaron esos archivos, esta tarea va después de ellas en el mismo archivo.
+153. **Opciones excluyentes restantes**: `TasaSelector` (BCV/Paralela/Manual) y `FlujoCajaChart` pasan a `SegmentedControl`, junto con todo `ToggleButtonGroup` que quede fuera de 147–151 y 155.
+   - Hecho cuando: `rg -l "ToggleButtonGroup" src` solo encuentra `atoms/SegmentedControl.tsx`.
+154. **Fichas**:
+   - archivos: `cliente-ficha` (KPI de cartera como filtro con `ocultarFiltroEstados`, documentos con 120, `CreditoResumen` con 137), `proveedor-ficha`, `compra-ficha`, `factura-ficha`, `lote-ficha`, la ficha de empleado y la de cotización;
+   - todas con `FichaSeccion`, 48 px entre bloques y sin chips de estados normales.
+   - Hecho cuando: ninguna ficha duplica los indicadores ni muestra papeleras rojas sueltas.
+155. **`/tasas`** (`tasas-screen.tsx`, `TasaChip`, `TasaIndicador`; tarea agregada en `08-tasas`):
+   - tarjetas con `formatTasaCorta` (2 decimales) en `h5`, y el valor de 6 decimales en el tooltip y en el detalle (DS-6);
+   - filtros con `DateField` y `SegmentedControl`;
+   - la tabla llena el ancho y su encabezado no se corta.
+   - Hecho cuando: no hay cifras de 6 decimales en tipografía display.
+156. **Dashboard** (`(dashboard)`, `KpisDiaRow`, paneles y `organisms/*Chart*`): `KpiCard` con `tone` + ícono, `ChartCard` con estados de `Fallback`, `ListaResumen` y skeletons de sección (122).
+   - Hecho cuando: el dashboard no tiene tamaños sueltos y distingue los estados sin depender del color.
+157. **Feedback después de la acción** en las acciones de alta y edición de los listados (`use*Acciones.tsx` y los formularios de 150–151):
+   - toast con el verbo + «Ver» donde exista ficha;
+   - `resaltar(id)` en la tabla de origen;
+   - «Deshacer» solo donde exista la acción inversa sin efectos secundarios (propuesta: activar/desactivar producto, empleado y categoría), anotando la lista final aquí (DS-3).
+   - Hecho cuando: registrar un cliente, una compra y un producto cierra el modal, resalta la fila y muestra el toast.
+158. **Barridos** (absorbe las tareas 86 y 90). Resultado esperado: vacío, salvo las excepciones anotadas.
+   - hex fuera de `src/theme/`, `src/app/icon.svg` y los PDF;
+   - `Barlow` y `penero`;
+   - `brand.(hull|ochre|red|trim)`;
+   - `fontSize` suelto (el comando de la tarea 86);
+   - clases de color de Tailwind;
+   - `type="date"`;
+   - `ToggleButtonGroup` fuera de `SegmentedControl`;
+   - `variant="soft"` fuera de `EstadoChip`/`LoteChip`/`TasaChip`;
+   - `color="secondary"`;
+   - `bgcolor: 'background.paper'` dentro de `AppDialog` y de lo elevado;
+   - `brand.brass` fuera de `FileteLaton`, `AppShell`, `NotificationProvider` y `BrandLoader`;
+   - milisegundos sueltos en `sx`/`setTimeout` de UI;
+   - `mostrarActivo` y props deprecadas sin consumidores (retirarlas).
+   - Hecho cuando: cada barrido queda anotado en el checklist con su resultado.
+159. **Contraste AA** con herramienta (absorbe la 89), en claro y oscuro. Pares:
+   - los de la tarea 89;
+   - `inputBorder` sobre `background.field` y sobre `elevated` (≥ 3:1);
+   - foco `focusRing` sobre `paper` y `#D4B27A` sobre `elevated`;
+   - texto del segmentado seleccionado y no seleccionado sobre su fondo;
+   - `onSoft` sobre `soft` de los 4 tonos;
+   - el punto de cada chip (≥ 3:1);
+   - texto, check y acción del toast;
+   - `highlight` sin bajar el contraste del texto de la fila.
+   - Hecho cuando: todos los pares quedan anotados en el checklist con su razón, con texto ≥ 4.5:1 y no textual ≥ 3:1, o con el token ajustado.
+160. **Revisión visual** (absorbe la 91): todas las pantallas de la lista de la tarea 91, en claro y oscuro y a 375/768/1024/1440 px, contra los artboards 1–4 del lienzo «Design system Altamar». Incluye los diálogos principales, el loader global, la barra de navegación, los toasts y los fallbacks.
+   - Hecho cuando: cada pantalla queda marcada en el checklist, con las diferencias corregidas o anotadas con motivo.
+161. **Cierre** (absorbe la 92): `spec.md` al día (tareas 146, 117 y DS-1–DS-8 con su estado final), y después `npm run lint`, `npx tsc --noEmit` y `npm run build`.
+   - Hecho cuando: los tres comandos pasan.
 
 ## Componentes agregados después de la primera pasada
 - _(los módulos 01-05 anotan aquí cualquier componente genérico nuevo que creen, con fecha y motivo, y lo agregan también a la tabla de `spec.md`)_

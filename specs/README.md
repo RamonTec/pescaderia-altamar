@@ -76,6 +76,18 @@ Este README lo escribió el agente planificador; los agentes de ejecución (incl
     Conviene no tener otras ramas de UI abiertas a la vez: toca el theme y
     casi todos los componentes base)
 
+00-estandares-ui · Fase 4 (design system, 2026-10-29) → depende de 00 Fase 3a
+   (rama feat/rediseno-puerto, todavía SIN mergear en dev: las ramas de la
+    Fase 4 se basan en ella hasta que se mergee). Reemplaza a las Fases 3b–3d.
+   Toca la marca de 09 y 21 y la UI de /tasas (08), además de los formularios
+   y listados de 04, 05, 07, 13, 16, 19, 20 y 21 (solo UI, sin lógica ni esquema).
+   (fundamentos: superficies por nivel, jerarquía de color y latón restringido,
+    espaciado, radios, elevación, movimiento; primitivos: SegmentedControl,
+    EstadoChip, DateField, SubmitButton, toast; patrones de listado, formulario
+    y ficha; carga, feedback y fallbacks; catálogo vivo /estandares; migración
+    pantalla por pantalla. Bloques 4a→4b→4c→4d; 4e en paralelo desde 4a; 4f al
+    final; 4g por grupos de pantallas. No tener otras ramas de UI abiertas a la vez)
+
 10-refactor-visual-clientes → depende de 00-estandares-ui Fase 2a y 02-clientes (hechos)
    (Fase 2b de 00 aplicada a clientes, como piloto: listado en AppDataGrid,
     ficha con FichaHeader y carga en servidor, BloqueoDialog en AppDialog;
@@ -267,6 +279,31 @@ No se empieza un módulo sin que el anterior en la cadena esté en estado `done`
   - Toca piezas de marca que usan otros módulos: el PDF de cotización (`21-cotizaciones`) y el correo de recordatorio (`09-cuentas-por-cobrar`). Anotado como tarea agregada en sus `tasks.md`.
   - El PDF de contratos (06) queda fuera.
   - Referencia visual: artboard "B · Puerto" del lienzo citado en la spec.
+
+- **Design system (2026-10-29, pedido del usuario)**: el usuario no quedó conforme con el acabado de la Fase 3a de Puerto y pidió un design system claro: componentes reutilizables, normas de diseño, tipografía, loaders, skeletons, fallbacks y animaciones. La auditoría con capturas del mismo día encontró varios problemas:
+  - modal en tres tonos en oscuro, por la capa de elevación de MUI;
+  - latón sobreusado;
+  - tres patrones de filtro distintos y chips en exceso;
+  - tablas desalineadas;
+  - espaciado desparejo en formularios;
+  - fechas `mm/dd/yyyy`;
+  - restos de Peñero;
+  - ningún patrón de feedback posterior a una acción.
+
+  Qué se decidió:
+  - Se agrega la **Fase 4** a `00-estandares-ui` (tareas 93–161), que **reemplaza a las Fases 3b, 3c y 3d**. Esas fases no se implementaron: quedan como historial y lo vigente de ellas se absorbe en la Fase 4.
+  - **No se reabren** la paleta Puerto, P-UI1–P-UI10 ni la tipografía Fraunces + Instrument Sans.
+  - **Sí cambia** la anatomía de listados, formularios, fichas y modales que la Fase 3 había dejado fija. Reglas en `00-estandares-ui/spec.md` § «Design system (Fase 4)», con el lienzo «Design system Altamar» como referencia.
+  - Quedan **ocho decisiones pendientes** (DS-1–DS-8: etiquetas fijas, mayúsculas de nombres, acción del toast, modal o página, formato de montos, decimales de tasas, tipo de skeleton y valores oscuros que el lienzo no define). Se ejecutan con la propuesta mientras sigan abiertas.
+  - **Depende de la Fase 3a**, que está en `feat/rediseno-puerto`, sin mergear en `dev`.
+  - No cambia datos, reglas de negocio ni esquema.
+
+  Tareas agregadas:
+  - `09-cuentas-por-cobrar`: correo de recordatorio, chips de cartera y tarjetas de resumen como filtro;
+  - `21-cotizaciones`: PDF, página pública y fallbacks;
+  - `08-tasas`: decimales visibles y filtros de `/tasas`.
+
+  Los formularios y listados de 04, 05, 07, 13, 16, 19 y 20 cambian solo de UI dentro de las tareas 147–157 de 00, sin tocar su lógica.
 
 ## Cómo debe trabajar el agente ejecutor en cada módulo
 

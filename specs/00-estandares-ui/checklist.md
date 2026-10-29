@@ -78,27 +78,93 @@
 - [x] Radios por jerarquía: 4 en chips, ítems de menú y tooltip; 6 en botones, inputs, `Fab`, KPI y tablas; 8 en superficies; diálogo según P-UI3. Bordes de 1 px y cero sombras en reposo.
 - [x] Chips `soft` en claro: Pagada `#ABC7F1`/`#0B1B33`, Por vencer `#F8EEDD`/`#7E4705`, Vencida `#F8E5E3`/`#8E1F18`; en oscuro, legibles. Ningún estado depende solo del color. _(EstadoCarteraChip.pendiente pasado a warning.)_
 - [ ] `fontSize="xlarge"` (40 px) disponible; cero `fontSize` numéricos sueltos en la UI (tarea 86). _(fontSize="xlarge" disponible en MuiSvgIcon; el barrido de fontSize sueltos en UI se completa en la tarea 86, Fase 3c.)_
-- [ ] Sin alias `--font-geist-mono` ni keyframes `penero-*` en `globals.css`. _(Alias --font-geist-mono eliminado y keyframes puerto-* creados; keyframes penero-* conservados temporalmente hasta tareas 72/88 para PeneroStripes y BrandLoader.)_
+- [ ] Sin alias `--font-geist-mono` ni keyframes `penero-*` en `globals.css`. _(Alias --font-geist-mono eliminado y keyframes puerto-* creados; keyframes penero-* conservados temporalmente hasta tareas 72/88 para PeneroStripes y BrandLoader. Desde el 2026-10-29 los retira la tarea 140 de la Fase 4.)_
 
-### Decorativo y marca
+> **Reemplazadas el 2026-10-29 por la Fase 4**: las secciones «Decorativo y marca», «Componentes base» y «Accesibilidad y verificación» de la Fase 3 corresponden a las Fases 3b–3d, que no se implementaron. Se conservan como historial y **no se marcan**: se verifican en la sección «Fase 4» de este checklist. El motivo es que el usuario no quedó conforme con el acabado de la Fase 3a y pidió un design system (ver `tasks.md`, tabla de la Fase 3b).
+
+### Decorativo y marca _(reemplazada el 2026-10-29 por la Fase 4)_
 - [ ] `FileteLaton` es el único decorativo y aparece solo en: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación y loader global.
 - [ ] `NavigationProgress` (2 px de latón) y `BrandLoader` (filete en barrido, sin vaivén) conservan el retardo, el mínimo, `role="status"` y la versión quieta con `prefers-reduced-motion`; duraciones como constantes (cierra el pendiente (c)).
 - [ ] `BrandMark`, `src/lib/marca/isotipo.ts` y `src/app/icon.svg` con el isotipo provisional Puerto (el logo real sigue en el pendiente (g)).
 - [ ] `PeneroStripes.tsx` borrado; `rg -i 'penero|hull|ochre|brand\.red|brand\.trim' src` vacío.
 - [ ] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia (fuera de alcance).
 
-### Componentes base
+### Componentes base _(reemplazada el 2026-10-29 por la Fase 4)_
 - [ ] `AppShell`: sidebar medianoche, nombre en Fraunces, filete de 2 px, ítem activo marino con punto de latón, igual en `md+`, riel `sm` y temporal `xs`; foco visible sobre medianoche.
 - [ ] `PageHeader` (`h4` Fraunces), `FichaHeader` (`h5`), `FormSection` (`h6` sans), `AppDialog`/`ConfirmDialog`, `AppDataGrid` (encabezado `subtle` en `subtitle2`, radio 6, tarjetas `xs`), `KpiCard` (con ícono por `tone`), `ChartCard`, `ChartLegendTable`, `ListaResumen`, `CadenaTrazabilidad` y `CreditoResumen` con el acabado Puerto y sin cambiar sus props públicas.
 - [ ] Gráficos con `palette.chart`; cada serie con ≥ 3:1 contra `background.paper`, y positivo/negativo no solo por color.
 - [ ] `/estandares` muestra paleta, escala, filete, chips, KPI, radios y botones de Puerto en claro y oscuro.
 
-### Accesibilidad y verificación
+### Accesibilidad y verificación _(reemplazada el 2026-10-29 por la Fase 4)_
 - [ ] Contraste AA verificado con herramienta en claro y oscuro (tarea 89): pares anotados aquí con su razón; texto ≥ 4.5:1, texto grande y no textual ≥ 3:1. Latón decorativo y `#ABC7F1` nunca como texto sobre claro.
 - [ ] Barridos de la tarea 90 vacíos (hex sueltos, Barlow, penero, claves `brand` viejas, `fontSize` sueltos, color de Tailwind), anotados aquí.
 - [ ] Revisión visual de todas las pantallas de la tarea 91 en claro y oscuro y en 375/768/1024/1440 px, contra el artboard "B · Puerto". Diferencias corregidas o anotadas con motivo.
 - [ ] Tabla de componentes de `spec.md` al día (`FileteLaton`; `PeneroStripes`/`PeneroSweep` retirados).
 - [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores, corridos tras cada tarea y al cierre.
+
+## Fase 4 — Design system (2026-10-29)
+
+### Decisiones e inventario
+- [ ] DS-1 a DS-8 respondidas por el usuario, o ejecutadas con la propuesta y marcadas así en la tabla de `spec.md` (tarea 93).
+- [ ] Tabla «Unificación» de `spec.md` completa: cada componente con su destino y la tarea que lo resuelve (tarea 94).
+
+### Fundamentos (4a)
+- [ ] `src/theme/tokens.ts` existe (movimiento, tiempos, espaciado, sombras) y `theme.transitions` lo usa. Ningún componente de la Fase 4 escribe ms, sombras ni hex sueltos.
+- [ ] Tokens de superficie en ambos esquemas como variables CSS: `background.elevated`, `background.field`, `rowDivider`, `dialogDivider`, `scrim`, `focusRing`, `highlight`, `outlineBorder`, `segmented.*`, `neutral` y `dot`. Valores DS-8 comentados.
+- [ ] En oscuro no hay capa de elevación de MUI: modal (encabezado, cuerpo y pie) y menús en `#1A2A45`, campos en `#0F1C31` con borde `#5E7194`. Mecanismo documentado en `theme.ts` y `spec.md`.
+- [ ] Latón solo en foco, acción principal en oscuro, decorativo de marca y acción del toast. Pestañas, segmentado, switch, checkbox, radio, enlaces y botones de texto en color de texto.
+- [ ] Variantes tipográficas `label` y `sectionTitle` disponibles y tipadas.
+- [ ] Tabla del theme: encabezado de 40 px a todo el ancho, celdas centradas, flecha de orden sin círculo.
+- [ ] `prefers-reduced-motion` deja todo quieto (regla global + componentes). Skeleton con pulso.
+
+### Primitivos (4b)
+- [ ] `SegmentedControl` con contador, teclado y selección distinguible sin depender solo del color.
+- [ ] `EstadoChip` (4 tonos con punto) es la base de `StatusChips`, `EstadoCarteraChip`, `CotizacionEstadoChip` y `SenalFacturaChip`/`NivelSenalChip`. «Activo» ya no se muestra.
+- [ ] Etiquetas de campo según DS-1 (fijas arriba, o variante B anotada), sin cambios en los consumidores. Los adornos no desalinean la etiqueta.
+- [ ] `DateField` en `dd/mm/aaaa` con valor ISO; `LocalizationProvider` global.
+- [ ] `SubmitButton` conserva el ancho, muestra el verbo en curso e ignora el doble clic.
+- [ ] Toast nuevo (aspecto del lienzo, `action`, `role` correcto), compatible con las llamadas existentes.
+- [ ] `FilterMenuButton` y `RowActionsMenu` (32 px, destructivas dentro del menú) operables con teclado.
+
+### Patrones (4c)
+- [ ] `AppDataGrid`: búsqueda de 340 px, `estados`, filas de 56 px, columnas que llenan el ancho, `colPrincipal`, paginación oculta en vacío.
+- [ ] `FormSection` (`sectionTitle` + divisor, 16/40) sin títulos encimados; `FormGrid` sin huérfanos; `FormSubgroup` para subgrupos.
+- [ ] `LineasEditor`: encabezados de columna, sin caja anidada, papelera de 36 px alineada, «Agregar línea» debajo, totales a la derecha.
+- [ ] `AppDialog` en una sola superficie, padding de 24, `lg`, error arriba del formulario con «Reintentar», transición fundido + 8 px.
+- [ ] Regla modal o página (DS-4) con la lista de formularios por tamaño en `spec.md`.
+- [ ] `FichaHeader`/`FichaSeccion` sin latón; `KpiCard` seleccionable; cartera sin indicadores duplicados; documentos sin cajas anidadas ni papelera roja suelta.
+
+### Carga, feedback y fallbacks (4d)
+- [ ] Una sola señal por nivel; loader global con 150 ms de retardo y 400 ms de mínimo (constantes de `tokens.ts`).
+- [ ] `atoms/Skeletons` alimenta `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección. Los 23 `loading.tsx` auditados (tabla en la tarea 123).
+- [ ] Éxito: el modal cierra, el ítem se resalta 2 s y aparece el toast con el verbo + «Ver». «Deshacer» solo en reversibles (lista en la tarea 157).
+- [ ] Error de acción: el modal sigue abierto con los datos intactos y la alerta arriba con «Reintentar».
+- [ ] Operaciones largas auditadas y en `useGlobalLoader` (lista en la tarea 125).
+- [ ] `Fallback` único; `EmptyState`/`ErrorState` como envoltorios; 21 `error.tsx` con `RouteError`; `not-found.tsx` global y de `(protected)`; decisión sobre `forbidden` anotada; «—» en celdas vacías.
+
+### Marca y decorativo (4e)
+- [ ] `FileteLaton` es el único decorativo: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación (3 px, arriba) y loader global. Duraciones como constantes (cierra el pendiente (c)).
+- [ ] `BrandLoader` sin vaivén; `NavigationProgress` y `BrandLoader` conservan el retardo, el mínimo, `role="status"` y la versión quieta.
+- [ ] `BrandMark`, `isotipo.ts` e `icon.svg` con el isotipo provisional Puerto (el logo real sigue en el pendiente (g)).
+- [ ] `AppShell` sin `ActiveStripes`, con márgenes 16/24/64 y 48 px entre bloques. `CreditoResumen` como superficie normal con el exceso comunicado por texto.
+- [ ] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia.
+- [ ] `PeneroStripes.tsx` borrado; `rg -i "penero|hull|ochre|brand\.red|brand\.trim|barlow" src` vacío.
+
+### Catálogo vivo (4f)
+- [ ] `/estandares` partido en secciones (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks), con índice y vista en ambos modos.
+- [ ] Cada primitivo en todos sus estados y cada patrón de los artboards 2–4 presente en el catálogo.
+- [ ] Tabla «Componentes compartidos» de `spec.md` al día (tarea 146).
+
+### Migración y verificación (4g)
+- [ ] Listados (tareas 147–149) con el patrón único de filtros y sin chips de estados normales.
+- [ ] Formularios (tareas 150–151) con `FormSection`/`FormGrid`/`LineasEditor`/`SubmitButton` y tamaño de modal según DS-4.
+- [ ] Sin `type="date"` (tarea 152) ni `ToggleButtonGroup` fuera de `SegmentedControl` (tarea 153).
+- [ ] Fichas (tarea 154), `/tasas` con 2 decimales en las tarjetas (tarea 155) y dashboard (tarea 156) migrados.
+- [ ] Feedback después de la acción aplicado (tarea 157).
+- [ ] Barridos de la tarea 158 anotados aquí con su resultado.
+- [ ] Contraste AA de la tarea 159: pares anotados aquí con su razón.
+- [ ] Revisión visual de la tarea 160: cada pantalla marcada en claro/oscuro y en 375/768/1024/1440 px contra los artboards 1–4.
+- [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` sin errores, corridos tras cada tarea y al cierre (tarea 161).
 
 ## Pendientes / deuda técnica
 - [ ] Persistencia del modo via cookie: la cookie `mui-mode` se escribe desde el cliente (en `themeStorage.ts`); el `layout.tsx` la lee y fija `data-mui-color-scheme` en `<html>`. No se usa Server Action — el primer render server-side no conoce la preferencia y depende de `InitColorSchemeScript` (igual que el flujo recomendado por MUI). Diferido: no hay Server Action dedicada para setear la cookie antes del primer render.
