@@ -127,13 +127,14 @@
 - [x] `FilterMenuButton` y `RowActionsMenu` (32 px, destructivas dentro del menú) operables con teclado.
 
 ### Patrones (4c)
-- [ ] `AppDataGrid`: búsqueda de 340 px, `estados`, filas de 56 px, columnas que llenan el ancho, `colPrincipal`, paginación oculta en vacío.
-- [ ] `FormSection` (`sectionTitle` + divisor, 16/40) sin títulos encimados; `FormGrid` sin huérfanos; `FormSubgroup` para subgrupos.
-- [ ] `LineasEditor`: encabezados de columna, sin caja anidada, papelera de 36 px alineada, «Agregar línea» debajo, totales a la derecha.
-- [ ] `AppDialog` en una sola superficie, padding de 24, `lg`, error arriba del formulario con «Reintentar», transición fundido + 8 px.
-- [ ] Regla modal o página (DS-4) con la lista de formularios por tamaño en `spec.md`.
-- [ ] `FichaHeader`/`FichaSeccion` sin latón; `KpiCard` seleccionable; cartera sin indicadores duplicados; documentos sin cajas anidadas ni papelera roja suelta.
+- [x] `AppDataGrid`: búsqueda de 340 px, `estados`, filas de 56 px, columnas que llenan el ancho, `colPrincipal`, paginación oculta en vacío.
+- [x] `FormSection` (`sectionTitle` + divisor, 16/40) sin títulos encimados; `FormGrid` sin huérfanos; `FormSubgroup` para subgrupos.
+- [x] `LineasEditor`: encabezados de columna, sin caja anidada, papelera de 36 px alineada, «Agregar línea» debajo, totales a la derecha.
+- [x] `AppDialog` en una sola superficie, padding de 24, `lg`, error arriba del formulario con «Reintentar», transición fundido + 8 px.
+- [x] Regla modal o página (DS-4) con la lista de formularios por tamaño en `spec.md`.
+- [x] `FichaHeader`/`FichaSeccion` sin latón; `KpiCard` seleccionable; cartera sin indicadores duplicados; documentos sin cajas anidadas ni papelera roja suelta.
 
+_4c hecha el 2026-10-30 (`feat/ds-patrones`, tareas 111–121): lint y tsc en verde. La revisión visual en claro y oscuro queda para la tarea 160 y para el PR, porque las pantallas piden sesión; la tabla con `estados`, el formulario con `FormGrid` y `LineasEditor` se ven en `/estandares` al hacer la 4f (143–144). Los 40 px entre secciones de formulario y los 48 px entre secciones de ficha se aplican al migrar los contenedores (150, 151 y 154)._
 ### Carga, feedback y fallbacks (4d)
 - [ ] Una sola señal por nivel; loader global con 150 ms de retardo y 400 ms de mínimo (constantes de `tokens.ts`).
 - [ ] `atoms/Skeletons` alimenta `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección. Los 23 `loading.tsx` auditados (tabla en la tarea 123).

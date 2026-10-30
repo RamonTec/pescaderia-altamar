@@ -345,7 +345,7 @@ El cliente eligió la identidad "Puerto" (fresco, premium, confiable), que **ree
 Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3a. Reglas y valores en `spec.md` § «Design system (Fase 4)». Referencia: el lienzo «Design system Altamar» citado ahí (artboards 1–4).
 
 - **Reemplaza** a las Fases 3b, 3c y 3d (ver la tabla de correspondencia en la Fase 3b).
-- **Depende** de la Fase 3a, que está en la rama `feat/rediseno-puerto`, **todavía sin mergear en `dev`**. Las ramas de la Fase 4 se basan en `feat/rediseno-puerto` (indicarlo en el PR) hasta que se mergee.
+- **Depende** de la Fase 3a, mergeada en `dev` el 2026-10-29 (#20). Las ramas de la Fase 4 salen de `dev`.
 - La paleta Puerto, P-UI1–P-UI10 y la tipografía Fraunces + Instrument Sans **no cambian**.
 - Las decisiones DS-1 a DS-8 las aprobó el usuario el 2026-10-29 tal como se propusieron.
 
@@ -525,6 +525,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - `actions` a la derecha;
    - prop `onClearFilters?`, que usa el «Sin resultados» de la tarea 127.
    - Hecho cuando: la tabla de `/estandares` con `estados` se ve como el artboard 2 y las tablas sin `estados` no cambian.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): tabla de `/estandares` con `estados`: no se mostró aún porque `estandares-screen.tsx` es de la 4f (144). `onClearFilters` se pasa solo con algún filtro activo; entonces la tabla vacía muestra «Sin resultados» con «Limpiar filtros».
 112. **`AppDataGrid`, cuerpo y columnas** (`AppDataGrid.tsx`, `appDataGridColumns.tsx`):
    - `rowHeight` 56 (línea ~546) y `columnHeaderHeight` 40;
    - si ninguna columna tiene `flex`, la primera de texto recibe `flex: 1` y `minWidth`, así las columnas llenan el ancho;
@@ -534,8 +535,10 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - `valueFormatter` por defecto "—" para `null`/`''` en las columnas helper;
    - `mobileCard` con la misma jerarquía.
    - Hecho cuando: una tabla de una línea mide 56 px por fila, las columnas cubren el ancho a 1440 px y la tabla vacía no muestra «0–0 de 0».
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): la primera columna sin `type` (o `string`) que no sea la de acciones pasa a `flex: 1` con su ancho como mínimo. `colEstado` muestra «—» sin valor.
 113. **`molecules/PageHeader.tsx`**: título `h4` y subtítulo `body2` `text.secondary` con 4 px entre ellos, la acción principal alineada al título y 48 px hasta el bloque siguiente (lo pone el contenedor de la página, ver 136). El `Fab` de `xs` hereda el radio 6 y `primary` (absorbe la tarea 78).
    - Hecho cuando: los listados muestran título, subtítulo y acción como el artboard 2.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): la acción se alinea arriba con el título (`flex-start`) y el encabezado deja 48 px (32 en `xs`) con `ESPACIO.bloquesPagina` mientras la 136 no lleve ese espacio al contenedor. El `Fab` ya tenía radio 6 y `primary` en el theme.
 114. **Formulario: `FormSection`, `FormGrid` y `FormSubgroup`**:
    - `molecules/FormSection.tsx`:
      - encabezado `sectionTitle` con divisor **inferior** y 16 px hasta el contenido;
@@ -548,6 +551,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Absorbe la tarea 80.
    - Hecho cuando: en `ConfigNegocioForm`, el título «Configuración del negocio» no se monta sobre su descripción, y en `/estandares` los espaciados miden 16/24/40.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): `FormSection` pasa a `role="group"` + `aria-labelledby` con `h3`; dentro de un modal el divisor usa `dialogDivider`. Los 40 px entre secciones los pone cada contenedor de formulario: se aplican al migrar (150–151); hoy los contenedores siguen con su `gap` propio. `FormGrid.Full` para el ancho completo (no se agregó una prop `full` al hijo: los campos MUI no la aceptan en sus tipos).
 115. **`molecules/LineasEditor.tsx`** (nuevo). Es solo disposición y **no** usa `useFieldArray` (eso lo pone el consumidor):
    - props `columnas: { key, label, width, align? }[]`, `filas`, `renderCelda(fila, columna)`, `onAgregar`, `onQuitar(index)`, `agregarLabel` ("Agregar línea"), `disabled` y `totales?: ReactNode`;
    - una fila de encabezados en `label`, y las celdas ocultan la etiqueta del campo (`aria-label` desde la columna);
@@ -557,6 +561,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - `Collapse` por fila;
    - en `xs`, cada línea es un bloque con etiquetas visibles y la papelera arriba a la derecha.
    - Hecho cuando: compila y una demo local con dos líneas no tiene cajas anidadas.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): la etiqueta de cada campo queda oculta a la vista en `sm+` (sigue siendo su nombre accesible), en vez de un `aria-label` aparte. `renderCelda` recibe además el índice. La demo con dos líneas va en `/estandares` (144).
 116. **`organisms/AppDialog.tsx` + `molecules/ConfirmDialog.tsx`**:
    - una sola superficie: quitar `bgcolor: 'background.paper'` del pie (líneas ~262 y ~279);
    - encabezado, cuerpo y pie separados por `dialogDivider` (siempre en el pie y en el encabezado; los divisores por scroll se conservan como refuerzo);
@@ -569,8 +574,10 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Absorbe la tarea 83.
    - Hecho cuando: en oscuro, el modal de «Nuevo producto» se ve en un solo tono, con los campos más oscuros que la superficie y el pie sin franja propia.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): la transición quedó en el theme (`MuiDialog`: `keyframes` de 8 px + `Fade`, 280/180 ms; sin animación en pantalla completa), así también la toma `ConfirmDialog`. Con scroll, una sombra interior de 1 px bajo el encabezado refuerza el divisor. `ConfirmDialog` no se cierra mientras `loading`.
 117. **Regla modal o página (DS-4)**: con DS-4 respondida, anotar en `spec.md` § «Patrones › Formulario» la lista final de formularios por tamaño (`sm`/`md`/`lg`), revisando `rg "size=\"(xs|sm|md)\"" src/components/organisms`. Es solo documental; la aplicación va en 150–151.
    - Hecho cuando: cada `AppDialog` del código tiene un tamaño asignado en la lista.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): lista en `spec.md` § «Patrones › Formulario». `ProveedorForm` queda en `md` como excepción (asistente por pasos).
 118. **Ficha: `molecules/FichaHeader.tsx` + `molecules/FichaSeccion.tsx`**:
    - la vuelta pasa de `secondary` a `text.secondary` con ícono `fontSize="small"`;
    - nombre `h5` (`component="h1"`) y `meta` en `body2`/`caption`;
@@ -579,6 +586,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Absorbe la tarea 79.
    - Hecho cuando: las fichas existentes muestran el encabezado sin latón y sin cambios de props.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): los 48 px entre secciones los pone el contenedor de la ficha; se aplican en la migración de fichas (154).
 119. **`molecules/KpiCard.tsx` + `molecules/CarteraResumenCards.tsx` + `organisms/DocumentosCarteraTable.tsx`**:
    - `KpiCard`:
      - título `subtitle2`, cifra `h5` y `tone` con ícono (absorbe la tarea 81);
@@ -587,12 +595,14 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - `CarteraResumenCards` se apoya en esa variante.
    - `DocumentosCarteraTable` recibe `ocultarFiltroEstados` y, si el filtro lo controlan las tarjetas, no muestra sus propios chips de estado.
    - Hecho cuando: en la ficha de cliente y en `/cobros`, Vencidas/Por vencer/Pendientes/Pagadas aparecen una sola vez, y al tocar una tarjeta la tabla se filtra.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): `DocumentosCarteraTable` con `ocultarFiltroEstados` en `/cobros` y en la ficha de cliente; «Ver anuladas» sigue como chip hasta la migración de listados (148).
 120. **`molecules/DocumentoUpload.tsx` + `molecules/DocumentosRequeridos.tsx`**:
    - cada documento cargado es una fila (ícono del tipo, nombre, fecha en `caption`, "Ver" como botón de texto, `⋮` con "Reemplazar" y "Eliminar" vía `ConfirmDialog`), sin caja punteada;
    - la zona para soltar archivos solo aparece si no hay archivo;
    - en `DocumentosRequeridos`, la lista va sin cajas anidadas y con el estado como `EstadoChip` (`warning` si falta);
    - `disabled` y `loading` sin cambio.
    - Hecho cuando: la ficha de cliente y la de proveedor muestran los documentos sin cajas anidadas ni papelera roja visible.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): `DocumentoItem` no trae fecha: la línea secundaria muestra el tamaño del archivo. El estado solo se muestra cuando falta («Falta», `warning`): el documento cargado no lleva chip (principio 2).
 121. **`molecules/ChartCard.tsx`, `ChartLegendTable.tsx`, `ListaResumen.tsx` y `CadenaTrazabilidad.tsx`**:
    - radio 8, borde `divider`, título `h6` sans y montos tabulares;
    - en `CadenaTrazabilidad`, `'& svg': { fontSize: 20 }` pasa a `fontSize="small"`;
@@ -600,6 +610,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Absorbe la tarea 82.
    - Hecho cuando: el dashboard y `/facturas/[id]` se ven con superficies del sistema.
+   - **Hecho 2026-10-30** (rama `feat/ds-patrones`): los íconos de `FacturaTrazabilidadLineas` pasan `fontSize="small"`.
 
 ### Fase 4d — Carga, feedback y fallbacks
 
