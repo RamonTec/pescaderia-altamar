@@ -16,16 +16,21 @@ import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import { useConfirm } from '@/lib/useConfirm'
 
 /**
- * Todo diálogo de formulario (spec § Modales). `ConfirmDialog` sigue siendo
- * el de confirmar.
+ * Todo diálogo de formulario (spec § Modales y § Design system › Patrones ›
+ * Formulario). `ConfirmDialog` sigue siendo el de confirmar.
  *
  * - Tamaños: `xs` 400 px (confirmaciones, un campo), `sm` 600 px (entidad
- *   simple), `md` 900 px (secciones o pasos).
+ *   simple), `md` 900 px (secciones o pasos), `lg` 1120 px (líneas
+ *   repetibles o más de dos secciones).
+ * - Una sola superficie (`background.elevated`, la pinta el theme): ningún
+ *   hijo pinta `background.paper`. Encabezado, cuerpo y pie separados por
+ *   `dialogDivider`; padding de 24 (16 en `xs`).
  * - Anatomía: encabezado (título `h6` = la acción, subtítulo con el contexto,
- *   cerrar) → contenido con scroll propio (divisores solo si hay scroll) →
- *   `Alert` de error → pie fijo (secundario a la izquierda, primario a la
+ *   cerrar) → `Alert` de error con "Reintentar" opcional → contenido con
+ *   scroll propio → pie fijo (secundario a la izquierda, primario a la
  *   derecha).
- * - En `xs`, `sm`/`md` pasan a pantalla completa con `Slide` desde abajo; el
+ * - Entra con fundido + 8 px hacia arriba (theme). En `xs`, `sm`/`md` pasan a
+ *   pantalla completa con `Slide` desde abajo, y `lg` por debajo de `md`; el
  *   pie respeta el área segura y el primario ocupa el ancho.
  * - Cierre protegido: con `pending` no se cierra (X, Esc, clic fuera, Cancelar);
  *   con `dirty` pide "¿Descartar cambios?".
@@ -33,9 +38,11 @@ import { useConfirm } from '@/lib/useConfirm'
  * - Con `onSubmit`, el diálogo entero es un `<form>`: el primario es
  *   `type="submit"`.
  */
-export type AppDialogSize = 'xs' | 'sm' | 'md'
+export type AppDialogSize = 'xs' | 'sm' | 'md' | 'lg'
 
-const WIDTHS: Record<AppDialogSize, number> = { xs: 400, sm: 600, md: 900 }
+const WIDTHS: Record<AppDialogSize, number> = { xs: 400, sm: 600, md: 900, lg: 1120 }
+
+const PADDING_X = { xs: 2, sm: 3 } as const
 
 export interface AppDialogProps {
   open: boolean
@@ -56,8 +63,10 @@ export interface AppDialogProps {
   pending?: boolean
   /** Cambios sin guardar: cerrar pide confirmación. */
   dirty?: boolean
-  /** Error del servidor, arriba del pie. */
+  /** Error del servidor, arriba del contenido. */
   error?: string | null
+  /** Si se pasa, la alerta de error ofrece "Reintentar". */
+  onRetry?: () => void
   /**
    * Pie custom (tarea 12, 11-refactor-visual-proveedores): reemplaza el pie
    * estándar completo (Cancelar + secundarias + primaria) cuando un diálogo
@@ -96,6 +105,7 @@ export function AppDialog({
   pending = false,
   dirty = false,
   error,
+  onRetry,
   footer,
   onSubmit,
   autoFocusFirstField = true,
@@ -103,14 +113,15 @@ export function AppDialog({
 }: AppDialogProps) {
   const theme = useTheme()
   const isXs = useMediaQuery(theme.breakpoints.down('sm'))
-  const fullScreen = isXs && size !== 'xs'
+  const isMdDown = useMediaQuery(theme.breakpoints.down('md'))
+  const fullScreen = (isXs && size !== 'xs') || (isMdDown && size === 'lg')
   const confirm = useConfirm()
   const titleId = React.useId()
   const subtitleId = React.useId()
   const contentRef = React.useRef<HTMLDivElement | null>(null)
   const [scrollable, setScrollable] = React.useState(false)
 
-  // Divisores arriba y abajo solo cuando el contenido tiene scroll.
+  // Con scroll, una sombra interior bajo el encabezado refuerza el divisor.
   // Ref de callback y no `useEffect([open])`: el `Portal` del Dialog monta el
   // contenido un render después de `open`, así que en el efecto la ref
   // todavía era `null` y el observer nunca se conectaba.
@@ -198,13 +209,13 @@ export function AppDialog({
             display: 'flex',
             alignItems: fullScreen ? 'center' : 'flex-start',
             gap: 1.5,
-            px: fullScreen ? 1 : 3,
-            pt: fullScreen ? 0 : 2.75,
-            pb: fullScreen ? 0 : 2.25,
+            px: fullScreen ? 1 : PADDING_X,
+            pt: fullScreen ? 0 : 2.5,
+            pb: fullScreen ? 0 : 2,
             minHeight: fullScreen ? 60 : undefined,
             flexShrink: 0,
-            borderBottom: fullScreen ? 1 : 0,
-            borderColor: 'divider',
+            borderBottom: 1,
+            borderColor: 'dialogDivider',
           }}
         >
           {fullScreen ? closeButton : null}
@@ -221,30 +232,36 @@ export function AppDialog({
           {fullScreen ? null : closeButton}
         </Box>
 
-        {/* Contenido con scroll propio */}
-        <Box
-          ref={observeContent}
-          sx={{
-            flex: '1 1 auto',
-            overflowY: 'auto',
-            px: { xs: 2, sm: 3 },
-            py: 3,
-            borderTop: 1,
-            borderBottom: 1,
-            borderColor: scrollable && !fullScreen ? 'divider' : 'transparent',
-          }}
-        >
-          <Box>{children}</Box>
-        </Box>
-
-        {/* Error del servidor, arriba del pie */}
-        <Collapse in={!!error} unmountOnExit>
-          <Box sx={{ px: { xs: 2, sm: 3 }, pb: 1 }}>
-            <Alert severity="error" sx={{ maxWidth: '75ch' }}>
+        {/* Error del servidor, arriba del contenido */}
+        <Collapse in={!!error} unmountOnExit sx={{ flexShrink: 0 }}>
+          <Box sx={{ px: PADDING_X, pt: 2 }}>
+            <Alert
+              severity="error"
+              action={
+                onRetry ? (
+                  <Button color="inherit" size="small" onClick={onRetry} disabled={pending}>
+                    Reintentar
+                  </Button>
+                ) : undefined
+              }
+            >
               {error}
             </Alert>
           </Box>
         </Collapse>
+
+        {/* Contenido con scroll propio */}
+        <Box
+          ref={observeContent}
+          sx={(t) => ({
+            flex: '1 1 auto',
+            overflowY: 'auto',
+            p: PADDING_X,
+            boxShadow: scrollable ? `inset 0 1px 0 ${(t.vars ?? t).palette.dialogDivider}` : 'none',
+          })}
+        >
+          <Box>{children}</Box>
+        </Box>
 
         {/* Pie fijo */}
         {footer ? (
@@ -254,12 +271,11 @@ export function AppDialog({
               display: 'flex',
               alignItems: 'center',
               gap: 1.5,
-              px: { xs: 2, sm: 3 },
+              px: PADDING_X,
               pt: 2,
               pb: fullScreen ? 'calc(16px + env(safe-area-inset-bottom))' : 2,
-              borderTop: fullScreen ? 1 : 0,
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
+              borderTop: 1,
+              borderColor: 'dialogDivider',
             }}
           >
             {footer}
@@ -271,12 +287,11 @@ export function AppDialog({
               display: 'flex',
               alignItems: 'center',
               gap: 1.5,
-              px: { xs: 2, sm: 3 },
+              px: PADDING_X,
               pt: 2,
               pb: fullScreen ? 'calc(16px + env(safe-area-inset-bottom))' : 2,
-              borderTop: fullScreen ? 1 : 0,
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
+              borderTop: 1,
+              borderColor: 'dialogDivider',
             }}
           >
             {showCancel ? (
