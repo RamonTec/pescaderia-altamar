@@ -6,12 +6,18 @@ import Fade from '@mui/material/Fade'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import { BrandMark } from '@/components/atoms/BrandMark'
-import { PeneroSweep } from '@/components/atoms/PeneroStripes'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
+import { NOMBRE_MARCA } from '@/theme/marca'
 
 export interface BrandLoaderProps {
   open: boolean
-  /** Qué está pasando, en `body2` ("Generando contrato"). */
+  /** Qué está pasando, en `body2` ("Generando contrato…"). */
   message?: string
+  /**
+   * `scrim` (por defecto): sobre la página, que se intuye detrás (operación
+   * larga). `pagina`: tapa todo con `background.default` (entrar, salir).
+   */
+  fondo?: 'scrim' | 'pagina'
   /**
    * `fixed` (por defecto): cubre toda la pantalla. `contained`: ocupa su
    * contenedor (página de muestra).
@@ -20,13 +26,15 @@ export interface BrandLoaderProps {
 }
 
 /**
- * Loader global con logo (nivel 1, ver spec § Loaders). Normalmente no se
- * usa directo: lo controla `useGlobalLoader()` (retardo de 150 ms, mínimo de
- * 400 ms, contador). Con `prefers-reduced-motion`: logo estático y franjas
- * quietas.
+ * Loader global (spec § Carga y feedback › Operación larga): isotipo,
+ * «Altamar Sea Food» en `h3`, filete de latón que barre y el mensaje.
+ * Normalmente no se usa directo: lo controla `useGlobalLoader()` (retardo,
+ * mínimo y contador desde `TIEMPOS`). Con `prefers-reduced-motion` el filete
+ * queda quieto.
  */
-export function BrandLoader({ open, message, position = 'fixed' }: BrandLoaderProps) {
+export function BrandLoader({ open, message, fondo = 'scrim', position = 'fixed' }: BrandLoaderProps) {
   const theme = useTheme()
+  const sobreScrim = fondo === 'scrim'
   return (
     <Fade
       in={open}
@@ -44,33 +52,41 @@ export function BrandLoader({ open, message, position = 'fixed' }: BrandLoaderPr
           position: position === 'fixed' ? 'fixed' : 'absolute',
           inset: 0,
           zIndex: position === 'fixed' ? theme.zIndex.modal + 1 : 1,
-          bgcolor: 'background.default',
+          bgcolor: sobreScrim ? 'scrim' : 'background.default',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 3,
           px: 2,
         }}
       >
         <Box
           sx={{
-            animation: `penero-bob 2400ms ${theme.transitions.easing.easeInOut} infinite`,
-            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 2,
+            textAlign: 'center',
+            // Sobre el scrim, la marca va en una superficie elevada.
+            ...(sobreScrim
+              ? {
+                  bgcolor: 'background.elevated',
+                  borderRadius: '8px',
+                  px: 5,
+                  py: 4,
+                  boxShadow: 'none',
+                }
+              : {}),
           }}
         >
-          <BrandMark orientation="vertical" size={112} />
+          <BrandMark variant="isotipo" size={72} />
+          <Typography variant="h3" component="p">
+            {NOMBRE_MARCA}
+          </Typography>
+          <FileteLaton variant="sweep" height={3} width={200} track />
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '75ch' }}>
+            {message ?? 'Cargando'}
+          </Typography>
         </Box>
-        <Box sx={{ width: 220 }}>
-          <PeneroSweep height={10} blockWidth="38%" track />
-        </Box>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ maxWidth: '75ch', textAlign: 'center' }}
-        >
-          {message ?? 'Cargando'}
-        </Typography>
       </Box>
     </Fade>
   )

@@ -22,6 +22,11 @@ const MIN_VISIBLE_MS = TIEMPOS.LOADER_MINIMO_MS
 
 export interface GlobalLoaderShowOptions {
   untilNavigation?: boolean
+  /**
+   * Tapa la página con `background.default` (entrar, cerrar sesión). Sin
+   * esto, el loader va sobre un `scrim` y la página se intuye detrás.
+   */
+  pantallaCompleta?: boolean
 }
 
 export interface GlobalLoader {
@@ -36,6 +41,7 @@ export interface GlobalLoader {
 interface Entry {
   id: number
   message?: string
+  pantallaCompleta: boolean
   /** Ruta en la que se pidió; la llamada deja de contar al salir de ella. */
   navFrom: string | null
 }
@@ -63,9 +69,11 @@ export function GlobalLoaderProvider({ children }: { children: React.ReactNode }
   const live = entries.filter((e) => e.navFrom === null || e.navFrom === pathname)
   const active = live.length > 0
   const message = live.at(-1)?.message
+  const pantallaCompleta = live.at(-1)?.pantallaCompleta ?? false
 
   const [visible, setVisible] = React.useState(false)
   const [shownMessage, setShownMessage] = React.useState<string | undefined>(undefined)
+  const [shownFull, setShownFull] = React.useState(false)
   const shownAt = React.useRef(0)
 
   React.useEffect(() => {
@@ -87,6 +95,9 @@ export function GlobalLoaderProvider({ children }: { children: React.ReactNode }
   if (active && message !== shownMessage) {
     setShownMessage(message)
   }
+  if (active && pantallaCompleta !== shownFull) {
+    setShownFull(pantallaCompleta)
+  }
 
   const api = React.useMemo<GlobalLoader>(() => {
     const release = (id: number) => setEntries((prev) => prev.filter((e) => e.id !== id))
@@ -96,7 +107,12 @@ export function GlobalLoaderProvider({ children }: { children: React.ReactNode }
       setEntries((prev) => [
         // Limpia llamadas `untilNavigation` de rutas anteriores.
         ...prev.filter((e) => e.navFrom === null || e.navFrom === here),
-        { id, message: msg, navFrom: options?.untilNavigation ? here : null },
+        {
+          id,
+          message: msg,
+          pantallaCompleta: options?.pantallaCompleta ?? false,
+          navFrom: options?.untilNavigation ? here : null,
+        },
       ])
       return () => release(id)
     }
@@ -121,7 +137,7 @@ export function GlobalLoaderProvider({ children }: { children: React.ReactNode }
   return (
     <GlobalLoaderContext.Provider value={api}>
       {children}
-      <BrandLoader open={visible} message={shownMessage} />
+      <BrandLoader open={visible} message={shownMessage} fondo={shownFull ? 'pagina' : 'scrim'} />
     </GlobalLoaderContext.Provider>
   )
 }

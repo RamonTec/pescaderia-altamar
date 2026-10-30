@@ -346,7 +346,7 @@ function SignOutMenuItem({ onDone }: { onDone: () => void }) {
     if (isPending) return
     onDone()
     // La action termina en `redirect('/login')`: el loader se libera al cambiar de ruta.
-    const release = globalLoader.show('Cerrando sesión', { untilNavigation: true })
+    const release = globalLoader.show('Cerrando sesión', { untilNavigation: true, pantallaCompleta: true })
     startTransition(async () => {
       try {
         await signOutAction()
