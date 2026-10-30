@@ -2,98 +2,86 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Skeleton from '@mui/material/Skeleton'
-import Typography from '@mui/material/Typography'
 import { useNavigationPending } from '@/components/atoms/NavigationProgress'
+import {
+  SkeletonEncabezado,
+  SkeletonFicha,
+  SkeletonFormulario,
+  SkeletonGrafico,
+  SkeletonKpis,
+  SkeletonTabla,
+} from '@/components/atoms/Skeletons'
+import { ESPACIO } from '@/theme/tokens'
 
-export type PageLoaderVariant = 'table' | 'form' | 'ficha' | 'dashboard'
+export type PageLoaderVariant = 'table' | 'kpisTable' | 'form' | 'ficha' | 'dashboard'
 
-const ROW_COUNT = 6
+const BLOQUES = { xs: ESPACIO.bloquesPaginaXs, md: ESPACIO.bloquesPagina } as const
 
 function TableLoader() {
   return (
-    <Box sx={{ display: 'grid', gap: 1.5, width: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Skeleton variant="text" width={160} height={36} />
-        <Skeleton variant="rounded" width={120} height={36} />
+    <>
+      <SkeletonEncabezado />
+      <SkeletonTabla />
+    </>
+  )
+}
+
+/** Listado con tarjetas de resumen encima (`/tasas`). */
+function KpisTableLoader() {
+  return (
+    <>
+      <SkeletonEncabezado />
+      <Box sx={{ display: 'grid', gap: BLOQUES }}>
+        <SkeletonKpis />
+        <SkeletonTabla estados={false} />
       </Box>
-      <Skeleton variant="rounded" height={48} />
-      {Array.from({ length: ROW_COUNT }).map((_, i) => (
-        <Skeleton
-          key={i}
-          variant="rounded"
-          height={52}
-          sx={{ opacity: 1 - i * 0.12 }}
-        />
-      ))}
-    </Box>
+    </>
   )
 }
 
 function FormLoader() {
   return (
-    <Box sx={{ display: 'grid', gap: 2, maxWidth: 640, width: '100%' }}>
-      <Skeleton variant="text" width={200} height={40} />
-      <Skeleton variant="rounded" height={56} />
-      <Skeleton variant="rounded" height={56} />
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-        <Skeleton variant="rounded" height={56} />
-        <Skeleton variant="rounded" height={56} />
+    <>
+      <SkeletonEncabezado accion={false} />
+      <SkeletonFormulario />
+    </>
+  )
+}
+
+/** Dashboard (15): encabezado, fila de KPIs y dos bloques de gráficos. */
+function DashboardLoader() {
+  return (
+    <>
+      <SkeletonEncabezado accion={false} />
+      <Box sx={{ display: 'grid', gap: BLOQUES }}>
+        <SkeletonKpis />
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+          <SkeletonGrafico altura={260} />
+          <SkeletonGrafico altura={260} />
+        </Box>
       </Box>
-      <Skeleton variant="rounded" height={120} />
-      <Skeleton variant="rounded" width={140} height={40} sx={{ alignSelf: 'flex-end' }} />
-    </Box>
+    </>
   )
 }
 
 function FichaLoader() {
-  return (
-    <Box sx={{ display: 'grid', gap: 3, width: '100%' }}>
-      <Box sx={{ display: 'grid', gap: 1 }}>
-        <Skeleton variant="text" width={80} />
-        <Skeleton variant="text" width={260} height={44} />
-        <Skeleton variant="text" width={180} />
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2 }}>
-        <Skeleton variant="rounded" height={220} />
-        <Skeleton variant="rounded" height={220} />
-      </Box>
-      <Skeleton variant="rounded" height={160} />
-    </Box>
-  )
-}
-
-/** Dashboard (15): título, fila de KPIs (1/2/4 columnas) y dos bloques de gráficos. */
-function DashboardLoader() {
-  return (
-    <Box sx={{ display: 'grid', gap: 3, width: '100%' }}>
-      <Skeleton variant="text" width={220} height={44} />
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-        }}
-      >
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" height={104} />
-        ))}
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-        <Skeleton variant="rounded" height={280} />
-        <Skeleton variant="rounded" height={280} />
-      </Box>
-    </Box>
-  )
+  return <SkeletonFicha />
 }
 
 const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
   table: TableLoader,
+  kpisTable: KpisTableLoader,
   form: FormLoader,
   ficha: FichaLoader,
   dashboard: DashboardLoader,
 }
 
+/**
+ * Skeleton de página para los `loading.tsx` (spec § Carga y feedback): la
+ * forma de la plantilla, armada con `atoms/Skeletons`. El aviso «Cargando…»
+ * va en una región `role="status"` oculta a la vista. Mientras está montado
+ * corre la barra de navegación.
+ */
 export function PageLoader({
   variant = 'table',
   children,
@@ -102,15 +90,24 @@ export function PageLoader({
   /** Skeleton extra debajo del de la variante (ej. una sección de la ficha). */
   children?: React.ReactNode
 }) {
-  // Mientras el skeleton de un `loading.tsx` está montado, corre la barra de navegación.
   useNavigationPending(true)
   return (
-    <Box sx={{ width: '100%', p: { xs: 1, sm: 0 } }}>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+    <Box aria-busy="true" sx={{ width: '100%' }}>
+      <Box
+        role="status"
+        sx={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
+          whiteSpace: 'nowrap',
+        }}
+      >
         Cargando…
-      </Typography>
+      </Box>
       {React.createElement(LOADERS[variant])}
-      {children ? <Box sx={{ mt: 3 }}>{children}</Box> : null}
+      {children ? <Box sx={{ mt: BLOQUES }}>{children}</Box> : null}
     </Box>
   )
 }

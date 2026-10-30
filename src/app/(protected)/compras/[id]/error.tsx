@@ -1,12 +1,7 @@
 'use client'
 
-import { ErrorState } from '@/components/molecules/ErrorState'
+import { RouteError } from '@/components/organisms/RouteError'
 
-export default function Error({
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
-  return <ErrorState message="No se pudo cargar el detalle de la compra." onRetry={reset} />
+export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <RouteError mensaje="No se pudo cargar el detalle de la compra." retry={retry} digest={error.digest} />
 }

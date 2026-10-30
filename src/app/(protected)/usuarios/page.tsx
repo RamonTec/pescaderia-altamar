@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
@@ -10,9 +9,10 @@ import TableRow from '@mui/material/TableRow'
 import Chip from '@mui/material/Chip'
 import { CrearUsuarioForm } from '@/components/organisms/CrearUsuarioForm'
 import { requireAdmin, listUsuarios } from '@/lib/services/authService'
+import { SinPermiso } from '@/components/organisms/PaginaFallback'
 
 export default async function UsuariosPage() {
-  if (!(await requireAdmin())) redirect('/login')
+  if (!(await requireAdmin())) return <SinPermiso />
 
   const usuarios = await listUsuarios()
 

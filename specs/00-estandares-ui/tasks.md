@@ -620,15 +620,37 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    Rehacer `atoms/PageLoader.tsx` con ellos (misma API `variant` + `children`): el texto visible «Cargando…» pasa a una región `role="status"` visualmente oculta, y el registro en `useNavigationPending` se conserva. `organisms/DashboardSkeletons.tsx` y `CarteraSeccionSkeleton` reusan los primitivos.
    - Hecho cuando: cada variante de `PageLoader` coincide en medidas con su plantilla real (encabezado de tabla de 40 y filas de 56).
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `atoms/Skeletons.tsx` con `SkeletonEncabezado`, `SkeletonTabla`, `SkeletonSeccion`, `SkeletonFicha`, `SkeletonKpis`, `SkeletonGrafico` y `SkeletonFormulario`. `PageLoader` se arma con ellos (variante nueva `kpisTable` para `/tasas`); `SeccionSkeleton` usa `SkeletonGrafico` con el título real y `CarteraSeccionSkeleton` usa `SkeletonKpis` + `SkeletonTabla`.
 123. **Auditar los 23 `loading.tsx`** (`rg --files -g 'loading.tsx' src/app`): cada uno usa la variante de su plantilla (listado → `table`; `[id]` → `ficha`, con `children` si la ficha tiene secciones con `Suspense`; `(dashboard)` → `dashboard`; `(auth)` → el suyo). En las pantallas con `Suspense` por sección, el `fallback` es el skeleton de esa sección y no un `PageLoader`.
    - Hecho cuando: la tabla de los 23 archivos con su variante queda anotada en esta tarea y ninguno muestra un spinner.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): auditoría (ninguno muestra spinner):
+
+     | `loading.tsx` | Variante |
+     |---|---|
+     | `(auth)` | `AuthFormSkeleton` (propio) |
+     | `(protected)` (raíz), `catalogos`, `clientes`, `cobros`, `compras`, `contratos`, `cotizaciones`, `gastos`, `inventario`, `notas-credito`, `pedidos`, `procesamiento`, `proveedores` | `table` |
+     | `tasas` | `kpisTable` (antes, `Skeleton` sueltos) |
+     | `(dashboard)` | `dashboard`; sus `Suspense` por sección usan `SeccionSkeleton` |
+     | `clientes/[id]` | `ficha` + `CarteraSeccionSkeleton` |
+     | `compras/[id]`, `cotizaciones/[id]`, `facturas/[id]`, `gastos/empleados/[id]`, `inventario/lotes/[id]`, `proveedores/[id]` | `ficha` |
 124. **Resaltado de ítem afectado**:
    - `lib/useResaltado.ts` (nuevo): `resaltar(id)` → `idResaltado` durante `TIEMPOS.RESALTADO_MS`;
    - prop `highlightId` en `AppDataGrid` (`getRowClassName` + `puerto-highlight`) y en `ListaResumen`;
    - tras crear, la fila nueva se muestra en la página actual si está en ella, y si no, no se fuerza la navegación.
    - Hecho cuando: en `/estandares`, «simular alta» resalta la fila 2 s y, con movimiento reducido, solo cambia el fondo sin animar.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `lib/useResaltado.ts` y `highlightId` en `AppDataGrid` (filas y tarjetas de `xs`) y `ListaResumen`, con la clase global `puerto-resaltado` de `globals.css`. Con movimiento reducido, la clase pinta el fondo sin animar y se quita a los 2 s. La demo «simular alta» va en `/estandares` (145); el uso en cada alta, en la 157.
 125. **Operaciones largas → `useGlobalLoader`**. Auditar las acciones de más de 1 s que bloquean: PDF de contrato (`GenerarContratoDialog`), PDF y compartir de cotización (`CompartirCotizacionDialog`, `EnlacePublicoCotizacion`), cierre o pérdida de lote (`useLoteAcciones`) y las importaciones, si existen. Las que hoy solo muestran `Button loading` y bloquean más de 1 s pasan a `useGlobalLoader().run(tarea, 'Generando contrato…')`. `lib/useGlobalLoader.tsx` toma `TIEMPOS.LOADER_RETARDO_MS` y `LOADER_MINIMO_MS` en lugar de sus constantes locales.
    - Hecho cuando: la lista de acciones auditadas, con su decisión, queda anotada en esta tarea.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `useGlobalLoader` toma `TIEMPOS.LOADER_RETARDO_MS` y `LOADER_MINIMO_MS`. Acciones auditadas:
+
+     | Acción | Decisión |
+     |---|---|
+     | Generar contrato (`GenerarContratoDialog` → `useContratoAcciones`) | ya usaba `loader.run`; mensaje con «…» |
+     | PDF de cotización (`CompartirCotizacionDialog`) | se baja en segundo plano al abrir el diálogo, sin bloquear: se queda así |
+     | Descargar PDF de cotización o contrato | es un enlace a la ruta del PDF, lo maneja el navegador: sin loader |
+     | Crear o revocar enlace público (`EnlacePublicoCotizacion`) | corto (< 1 s): `Button loading` |
+     | Cerrar lote / pérdida (`useLoteAcciones`, `PerdidaLoteDialog`) | corto y por fila o en modal: menú `pending` / `AppDialog pending` |
+     | Importaciones | no existen |
 126. **`src/components/molecules/Fallback.tsx`** (nuevo):
    - `tipo` (`vacio` \| `sin-resultados` \| `error` \| `sin-permiso` \| `no-encontrado`), con ícono por defecto según el tipo (`Outlined`);
    - el ícono va en un círculo de 44 px sobre `background.subtle`;
@@ -636,22 +658,28 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
 
    `EmptyState` y `ErrorState` pasan a envolverlo (mismas props; `ErrorState` agrega «Tus datos están a salvo» y «Reintentar»).
    - Hecho cuando: los consumidores actuales de `EmptyState`/`ErrorState` compilan sin cambios.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `molecules/Fallback.tsx` con íconos `InboxOutlined`, `SearchOffOutlined`, `ErrorOutlineOutlined`, `LockOutlined` y `ExploreOffOutlined`, y `tituloComo` para el `h1` de las páginas públicas. `EmptyState` y `ErrorState` lo envuelven sin cambiar sus props.
 127. **Overlays de `AppDataGrid`**:
    - `noRowsOverlay`: `Fallback vacio` con la acción de `emptyState`;
    - `noResultsOverlay`: `Fallback sin-resultados` («Sin resultados para «…»» o «Ningún registro con estos filtros») + «Limpiar filtros», que limpia la búsqueda y llama `onClearFilters`;
    - error: `Fallback error` con `onRetry`;
    - la paginación se oculta en los tres.
    - Hecho cuando: en `/estandares` se ven los tres estados sin «0–0 de 0».
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): «Sin resultados» con un solo «Limpiar filtros» (búsqueda + `onClearFilters`); vacío y error ya pasaban por `EmptyState`/`ErrorState`. La paginación se oculta con 0 filas (4c) y la tabla no se renderiza en error. La vista en `/estandares` va en la 145.
 128. **`src/components/organisms/RouteError.tsx`** (nuevo, `'use client'`): `mensaje`, `reset` y `digest?` (si existe, lo muestra en `caption` como «Código: …»). Los 21 `error.tsx` pasan a `<RouteError mensaje="No se pudieron cargar los clientes." reset={reset} digest={error.digest} />`.
    - Hecho cuando: `rg -l "ErrorState" src/app --glob 'error.tsx'` queda vacío y cada `error.tsx` tiene 3–10 líneas.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `organisms/RouteError.tsx` recibe `retry` en lugar de `reset`: la doc local de Next 16.3 lo marca estable y recomendado (`reset` no vuelve a pedir los datos). Los 21 `error.tsx` tienen 7 líneas.
 129. **404 y sin permiso**:
    - `src/app/not-found.tsx` global (no existe) y `src/app/(protected)/not-found.tsx`, ambos con `Fallback no-encontrado` + «Volver al inicio»;
    - los 7 `not-found.tsx` de ficha pasan a `Fallback no-encontrado` con su acción (texto actual conservado);
    - sin permiso: leer `node_modules/next/dist/docs/` sobre `forbidden()`/`forbidden.tsx`. Si es estable sin flag, usarlo en las rutas solo admin (`requireAdmin`); si no, `Fallback sin-permiso` desde la página;
    - `c/[token]/not-found.tsx` y `CotizacionNoDisponible` pasan a `Fallback` conservando el WhatsApp.
    - Hecho cuando: una URL inexistente dentro y fuera de la app muestra el fallback dentro del shell y fuera de él, respectivamente, y la decisión sobre `forbidden` queda anotada aquí.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `organisms/PaginaFallback.tsx` (`PaginaFallback` y `SinPermiso`). Los 7 `not-found.tsx` de ficha conservan su texto; nuevos `src/app/not-found.tsx` (fuera del shell) y `(protected)/not-found.tsx`. Next manda las URL sin ruta al `not-found` raíz, así que se agregó `(protected)/[...ruta]/page.tsx` (llama `notFound()`) para que una URL inexistente con sesión se vea dentro del shell. Efecto: sin sesión, una URL inexistente lleva al login (lo hace el layout de `(protected)`), y el `not-found` raíz queda para los `notFound()` de fuera de la app. `CotizacionNoDisponible` (que usa `c/[token]/not-found.tsx`) va sobre `Fallback` con su WhatsApp.
+   - **Decisión `forbidden`**: `forbidden.md` de Next 16 dice `version: experimental` (pide `authInterrupts`), así que no se usa. Las páginas solo admin (`compras/[id]`, `contratos`, `facturas/[id]`, `gastos`, `gastos/empleados/[id]`, `usuarios`) muestran `<SinPermiso />` en lugar de `notFound()`/`redirect()`. `/estandares` sigue con `notFound()` (página oculta).
 130. **Dato faltante**: `lib/format.ts` agrega `conGuion(v: string | number | null | undefined, fmt?)` → «—» si está vacío. Las columnas helper de `appDataGridColumns` lo usan, y `formatFecha`/`formatHace` ya devuelven «—».
    - Hecho cuando: `colMonto`, `colKg`, `colTasa` y `colFecha` muestran «—» con `null`.
+   - **Hecho 2026-10-30** (rama `feat/ds-carga`): `conGuion` y `FALTANTE` en `lib/format.ts`; `numberCol` (montos, kg, tasas), `colPrincipal` y `colEstado` lo usan, y `colFecha` ya devolvía «—» con `formatFecha`.
 
 ### Fase 4e — Marca y decorativo heredado de 3b
 

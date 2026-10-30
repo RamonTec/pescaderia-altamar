@@ -1,22 +1,7 @@
 'use client'
 
-import { ErrorState } from '@/components/molecules/ErrorState'
+import { RouteError } from '@/components/organisms/RouteError'
 
-/**
- * Fallo al cargar la ficha en el servidor. `retry` (Next 16) vuelve a pedir
- * los datos al servidor y re-renderiza; `reset` solo re-renderizaría con el
- * mismo error.
- */
-export default function Error({
-  retry,
-}: {
-  error: Error & { digest?: string }
-  retry: () => void
-}) {
-  return (
-    <ErrorState
-      message="No se pudo cargar la ficha del cliente. Revisa tu conexión y vuelve a intentarlo."
-      onRetry={retry}
-    />
-  )
+export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <RouteError mensaje="No se pudo cargar la ficha del cliente. Revisa tu conexión y vuelve a intentarlo." retry={retry} digest={error.digest} />
 }

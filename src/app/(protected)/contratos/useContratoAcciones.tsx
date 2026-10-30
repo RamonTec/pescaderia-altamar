@@ -71,7 +71,7 @@ export function useContratoAcciones() {
         o.tipo === 'venta_credito'
           ? { tipo: o.tipo, factura_id: o.id, dias_credito: values.dias_credito, notas: values.notas }
           : { tipo: o.tipo, compra_id: o.id, dias_credito: values.dias_credito, notas: values.notas }
-      const resultado = await loader.run(() => generarContratoAction(input), 'Generando contrato')
+      const resultado = await loader.run(() => generarContratoAction(input), 'Generando contrato…')
       if (resultado.error) return { error: resultado.error, fieldErrors: resultado.fieldErrors }
       notify.success(resultado.success ?? 'Contrato generado')
       setOrigen(null)

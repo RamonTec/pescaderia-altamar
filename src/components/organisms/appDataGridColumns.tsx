@@ -7,7 +7,15 @@ import type { ChipProps } from '@mui/material/Chip'
 import type { GridColDef, GridValidRowModel } from '@mui/x-data-grid'
 import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { RowActionsMenu, type RowAction } from '@/components/molecules/RowActionsMenu'
-import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/format'
+import {
+  conGuion,
+  FALTANTE,
+  formatBs,
+  formatFecha,
+  formatKg,
+  formatTasa,
+  formatUsd,
+} from '@/lib/format'
 
 /**
  * Helpers de columnas para `AppDataGrid` (spec § Tablas y paginación): montos,
@@ -17,7 +25,6 @@ import { formatBs, formatFecha, formatKg, formatTasa, formatUsd } from '@/lib/fo
  * Un dato faltante (`null`, `''`) se muestra como "—".
  */
 
-const FALTANTE = '—'
 
 type Base<R extends GridValidRowModel> = Partial<GridColDef<R>>
 
@@ -42,7 +49,7 @@ function numberCol<R extends GridValidRowModel>(
     headerName,
     minWidth: 120,
     valueFormatter: (value: number | string | null | undefined) =>
-      value === null || value === undefined || value === '' ? FALTANTE : format(Number(value)),
+      conGuion(value, (v) => format(Number(v))),
     ...extra,
   }
 }
@@ -68,7 +75,7 @@ export function colPrincipal<R extends GridValidRowModel>({
     headerName,
     flex: 1,
     minWidth: 200,
-    valueFormatter: (value: string | null | undefined) => value || FALTANTE,
+    valueFormatter: (value: string | null | undefined) => conGuion(value),
     renderCell: ({ row, formattedValue }) => {
       const sub = secundario?.(row)
       return (
@@ -162,7 +169,7 @@ export function colEstado<R extends GridValidRowModel>(
     headerName,
     minWidth: 120,
     valueFormatter: (value: string | null | undefined) =>
-      value ? (estados[value]?.label ?? value) : FALTANTE,
+      conGuion(value, (v) => estados[v]?.label ?? v),
     renderCell: ({ value }) => {
       if (!value) return FALTANTE
       const def = estados[String(value)]

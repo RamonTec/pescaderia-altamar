@@ -1,12 +1,7 @@
 'use client'
 
-import { ErrorState } from '@/components/molecules/ErrorState'
+import { RouteError } from '@/components/organisms/RouteError'
 
-export default function Error({
-  retry,
-}: {
-  error: Error & { digest?: string }
-  retry: () => void
-}) {
-  return <ErrorState message="No se pudieron cargar las cotizaciones." onRetry={retry} />
+export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <RouteError mensaje="No se pudieron cargar las cotizaciones." retry={retry} digest={error.digest} />
 }

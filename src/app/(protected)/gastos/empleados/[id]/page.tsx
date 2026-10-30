@@ -7,6 +7,7 @@ import { listarCategorias } from '@/lib/services/categoriaGastoService'
 import { getConfigTasas } from '@/lib/services/tasaService'
 import { rangoDesdeParams } from '@/lib/dashboardValidation'
 import { fechaHoy } from '@/lib/format'
+import { SinPermiso } from '@/components/organisms/PaginaFallback'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -23,7 +24,7 @@ export default async function EmpleadoFichaPage({
   params: Promise<{ id: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await requireAdmin())) notFound()
+  if (!(await requireAdmin())) return <SinPermiso />
 
   const { id } = await params
   if (!UUID.test(id)) notFound()

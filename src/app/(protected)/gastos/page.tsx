@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation'
 import { GastosScreen } from './gastos-screen'
 import { requireAdmin } from '@/lib/services/authService'
 import { listarGastos, resumirGastos } from '@/lib/services/gastoService'
@@ -10,6 +9,7 @@ import { mesDe } from '@/lib/gastos/periodos'
 import { rangoDesdeParams } from '@/lib/dashboardValidation'
 import { mapaCategorias } from '@/lib/gastos/textos'
 import { fechaHoy } from '@/lib/format'
+import { SinPermiso } from '@/components/organisms/PaginaFallback'
 
 /**
  * Gastos operativos (20-gastos), solo admin: el operador recibe 404 (no se
@@ -25,7 +25,7 @@ export default async function GastosPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await requireAdmin())) notFound()
+  if (!(await requireAdmin())) return <SinPermiso />
 
   // Generación oportunista de pendientes hasta hoy (P4)
   await generarPendientes().catch(() => null)

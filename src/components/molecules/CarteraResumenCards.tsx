@@ -3,6 +3,7 @@
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import Skeleton from '@mui/material/Skeleton'
+import { SkeletonKpis, SkeletonTabla } from '@/components/atoms/Skeletons'
 import { KpiCard } from '@/components/molecules/KpiCard'
 import { formatUsd } from '@/lib/format'
 import type { EstadoCartera, ResumenCartera } from '@/lib/cartera/types'
@@ -78,20 +79,13 @@ export function CarteraResumenCards({
   )
 }
 
-/** Skeleton de una sección de cartera (tarjetas + filas), para `loading.tsx`. */
+/** Skeleton de una sección de cartera (tarjetas + tabla), para `loading.tsx`. */
 export function CarteraSeccionSkeleton() {
   return (
-    <Box sx={{ display: 'grid', gap: 1.5 }} aria-hidden>
-      <Skeleton variant="text" width={200} height={32} />
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' }, gap: 1.5 }}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" height={84} />
-        ))}
-      </Box>
-      <Skeleton variant="rounded" height={44} />
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} variant="rounded" height={52} sx={{ opacity: 1 - i * 0.2 }} />
-      ))}
+    <Box sx={{ display: 'grid', gap: 2 }} aria-hidden>
+      <Skeleton variant="text" width={200} sx={{ typography: 'h6' }} />
+      <SkeletonKpis />
+      <SkeletonTabla filas={3} estados={false} />
     </Box>
   )
 }
