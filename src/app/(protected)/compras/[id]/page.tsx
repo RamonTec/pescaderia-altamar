@@ -5,6 +5,7 @@ import { getDetalleCompra } from '@/lib/services/edicionCompraService'
 import { getConfigTasas } from '@/lib/services/tasaService'
 import { makeProveedorRepository } from '@/lib/repositories/proveedorRepository'
 import { createClient } from '@/lib/supabase/server'
+import { SinPermiso } from '@/components/organisms/PaginaFallback'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -25,7 +26,7 @@ export default async function CompraPage({
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams])
   if (!UUID.test(id)) notFound()
-  if (!(await requireAdmin())) notFound()
+  if (!(await requireAdmin())) return <SinPermiso />
 
   const db = await createClient()
   const [detalle, proveedores, configTasas] = await Promise.all([

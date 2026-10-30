@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation'
 import { ContratosScreen } from './contratos-screen'
 import { requireAdmin } from '@/lib/services/authService'
 import { listar } from '@/lib/services/contratoService'
 import { filtrosContratosSchema } from '@/lib/contratoValidation'
+import { SinPermiso } from '@/components/organisms/PaginaFallback'
 
 /**
  * Bitácora de contratos (06-contratos), solo admin. Filtros y página en la
@@ -13,7 +13,7 @@ export default async function ContratosPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await requireAdmin())) redirect('/')
+  if (!(await requireAdmin())) return <SinPermiso />
 
   const params = await searchParams
   const plano = Object.fromEntries(

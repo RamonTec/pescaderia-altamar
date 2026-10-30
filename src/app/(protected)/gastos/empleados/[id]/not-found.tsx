@@ -1,17 +1,13 @@
-import Link from 'next/link'
-import Button from '@mui/material/Button'
-import { EmptyState } from '@/components/molecules/EmptyState'
+import { PaginaFallback } from '@/components/organisms/PaginaFallback'
 
 export default function NotFound() {
   return (
-    <EmptyState
-      title="Empleado no encontrado"
-      description="El empleado que buscas no existe."
-      action={
-        <Button component={Link} href="/gastos?tab=empleados" variant="contained">
-          Volver a empleados
-        </Button>
-      }
+    <PaginaFallback
+      tipo="no-encontrado"
+      titulo="Empleado no encontrado"
+      texto="El empleado que buscas no existe."
+      href="/gastos?tab=empleados"
+      accionLabel="Volver a empleados"
     />
   )
 }

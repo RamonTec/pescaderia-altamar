@@ -22,6 +22,8 @@ export interface FallbackProps {
   icono?: React.ReactNode
   /** Para secciones y tarjetas: menos aire y título `subtitle1`. */
   compact?: boolean
+  /** Elemento del título (`h1` cuando el fallback es toda la página pública). */
+  tituloComo?: React.ElementType
 }
 
 const ICONO: Record<FallbackTipo, React.ElementType> = {
@@ -38,7 +40,15 @@ const ICONO: Record<FallbackTipo, React.ElementType> = {
  * sin resultados, error, sin permiso y no encontrado se resuelven aquí;
  * `EmptyState` y `ErrorState` lo envuelven por compatibilidad.
  */
-export function Fallback({ tipo, titulo, texto, accion, icono, compact = false }: FallbackProps) {
+export function Fallback({
+  tipo,
+  titulo,
+  texto,
+  accion,
+  icono,
+  compact = false,
+  tituloComo = 'p',
+}: FallbackProps) {
   const Icono = ICONO[tipo]
   return (
     <Box
@@ -71,7 +81,7 @@ export function Fallback({ tipo, titulo, texto, accion, icono, compact = false }
       >
         {icono ?? <Icono />}
       </Box>
-      <Typography variant={compact ? 'subtitle1' : 'h6'} component="p">
+      <Typography variant={compact ? 'subtitle1' : 'h6'} component={tituloComo}>
         {titulo}
       </Typography>
       {texto ? (
