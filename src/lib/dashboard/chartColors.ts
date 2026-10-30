@@ -2,7 +2,12 @@ import type { Theme } from '@mui/material/styles'
 
 /**
  * Colores de las gráficas del dashboard (15, D1 `@mui/x-charts`), solo desde
- * `theme.palette` (spec § Gráficas): nunca hex ni `brand.ochre` (decorativo).
+ * `theme.palette` (spec § Gráficas): nunca hex ni colores de marca. Las
+ * series categóricas salen de `palette.chart` (P-UI9).
+ *
+ * `usd`, `kg` y `positivo` van en tonos distintos en ambos esquemas: claro
+ * medianoche / bronce / azul; oscuro latón / marfil / azul claro. (Con `info`
+ * para los kg, en oscuro chocaban `#9FB4D3` y el `success` `#ABC7F1`.)
  *
  * Devuelve las variables CSS del theme (`var(--mui-palette-…)`): el theme usa
  * `cssVariables`, así que el mismo valor sirve en claro y oscuro sin volver a
@@ -36,20 +41,13 @@ export function coloresGrafico(theme: Theme): ColoresGrafico {
   const p = (theme.vars ?? theme).palette
   return {
     usd: p.primary.main,
-    kg: p.info.main,
+    kg: p.chart.c3,
     costo: p.warning.main,
     positivo: p.success.main,
     negativo: p.error.main,
     advertencia: p.warning.main,
     info: p.info.main,
     neutro: p.text.secondary,
-    categorias: [
-      p.primary.main,
-      p.info.main,
-      p.success.main,
-      p.warning.main,
-      p.secondary.main,
-      p.error.main,
-    ],
+    categorias: [p.chart.c1, p.chart.c2, p.chart.c3, p.chart.c4, p.chart.c5, p.chart.c6],
   }
 }

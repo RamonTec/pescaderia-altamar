@@ -13,6 +13,7 @@ import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine'
 import { BarPlot } from '@mui/x-charts/BarChart'
 import { LinePlot, MarkPlot } from '@mui/x-charts/LineChart'
 import type { AllSeriesType } from '@mui/x-charts/models'
+import { useTheme } from '@mui/material/styles'
 
 export interface SerieBarLine {
   id: string
@@ -61,6 +62,7 @@ export function BarLineChart({
   referencia,
   ariaLabel,
 }: BarLineChartProps) {
+  const theme = useTheme()
   const series: AllSeriesType[] = [
     ...barras.map(
       (s): AllSeriesType => ({
@@ -121,7 +123,11 @@ export function BarLineChart({
               label={referencia.etiqueta}
               labelAlign="end"
               lineStyle={{ stroke: referencia.color, strokeDasharray: '4 4' }}
-              labelStyle={{ fill: referencia.color, fontSize: 12 }}
+              labelStyle={{
+                fill: referencia.color,
+                fontSize: theme.typography.caption.fontSize,
+                fontFamily: theme.typography.caption.fontFamily,
+              }}
             />
           ) : null}
           <ChartsAxisHighlight x="band" />
