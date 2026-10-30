@@ -132,6 +132,7 @@ export function CobrosScreen({
           getRowHref={esAdmin ? hrefFactura : undefined}
           filtro={filtro}
           onFiltroChange={setFiltro}
+          ocultarFiltroEstados
           nombre={{ singular: 'factura', plural: 'facturas por cobrar' }}
         />
       </Box>

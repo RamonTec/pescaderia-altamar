@@ -68,6 +68,11 @@ export interface DocumentosCarteraTableProps {
   /** Filtro controlado (ej. por las tarjetas de `CarteraResumenCards`). */
   filtro?: FiltroCartera
   onFiltroChange?: (filtro: FiltroCartera) => void
+  /**
+   * El filtro de estado lo controlan las tarjetas (`CarteraResumenCards`):
+   * la tabla no muestra sus propios chips de estado, así no se duplican.
+   */
+  ocultarFiltroEstados?: boolean
   /** Sustantivo del documento ("factura"/"facturas"). */
   nombre?: { singular: string; plural: string }
   pageParam?: string
@@ -99,6 +104,7 @@ export function DocumentosCarteraTable({
   filtroInicial = 'todas',
   filtro: filtroControlado,
   onFiltroChange,
+  ocultarFiltroEstados = false,
   nombre = DEFAULT_NOMBRE,
   pageParam,
   embedded = false,
@@ -265,34 +271,37 @@ export function DocumentosCarteraTable({
       embedded={embedded}
       emptyState={emptyState}
       getRowHref={getRowHref}
+      onClearFilters={filtro !== 'todas' ? () => cambiarFiltro('todas') : undefined}
       filters={
-        <Box role="group" aria-label={`Filtrar ${nombre.plural}`} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {CHIPS.map((c) => {
-            const activo = c.value === filtro
-            return (
+        ocultarFiltroEstados && conteo.anuladas === 0 ? undefined : (
+          <Box role="group" aria-label={`Filtrar ${nombre.plural}`} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {(ocultarFiltroEstados ? [] : CHIPS).map((c) => {
+              const activo = c.value === filtro
+              return (
+                <Chip
+                  key={c.value}
+                  label={`${c.label} (${conteo[c.value]})`}
+                  variant={activo ? 'soft' : 'outlined'}
+                  color={activo ? (c.value === 'vencida' ? 'error' : 'primary') : 'default'}
+                  aria-pressed={activo}
+                  onClick={() => cambiarFiltro(c.value)}
+                />
+              )
+            })}
+            {conteo.anuladas > 0 ? (
               <Chip
-                key={c.value}
-                label={`${c.label} (${conteo[c.value]})`}
-                variant={activo ? 'soft' : 'outlined'}
-                color={activo ? (c.value === 'vencida' ? 'error' : 'primary') : 'default'}
-                aria-pressed={activo}
-                onClick={() => cambiarFiltro(c.value)}
+                label={`Ver anuladas (${conteo.anuladas})`}
+                variant={verAnuladas ? 'soft' : 'outlined'}
+                color={verAnuladas ? 'primary' : 'default'}
+                aria-pressed={verAnuladas}
+                onClick={() => {
+                  setVerAnuladas((v) => !v)
+                  if (filtro !== 'todas') cambiarFiltro('todas')
+                }}
               />
-            )
-          })}
-          {conteo.anuladas > 0 ? (
-            <Chip
-              label={`Ver anuladas (${conteo.anuladas})`}
-              variant={verAnuladas ? 'soft' : 'outlined'}
-              color={verAnuladas ? 'primary' : 'default'}
-              aria-pressed={verAnuladas}
-              onClick={() => {
-                setVerAnuladas((v) => !v)
-                if (filtro !== 'todas') cambiarFiltro('todas')
-              }}
-            />
-          ) : null}
-        </Box>
+            ) : null}
+          </Box>
+        )
       }
       mobileCard={(row) => ({
         primary: mostrarCliente && row.contraparte ? `${row.numero} · ${row.contraparte.nombre}` : row.numero,
