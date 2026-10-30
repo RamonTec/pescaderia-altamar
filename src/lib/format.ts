@@ -77,6 +77,21 @@ export function formatTasaCorta(n: number): string {
   return tasaCortaFormatter.format(n)
 }
 
+/** Marca de dato faltante en tablas y fichas (spec § Fallbacks). */
+export const FALTANTE = '—'
+
+/**
+ * Valor listo para mostrar o «—» si falta (`null`, `undefined` o `''`).
+ * `fmt` da formato al valor presente: `conGuion(row.saldo, formatUsd)`.
+ */
+export function conGuion<T extends string | number>(
+  v: T | null | undefined,
+  fmt?: (v: T) => string
+): string {
+  if (v === null || v === undefined || v === '') return FALTANTE
+  return fmt ? fmt(v) : String(v)
+}
+
 /** "hace 5 min", "hace 2 h", "hace 3 días" (08-tasas, tarjetas de /tasas). */
 export function formatHace(iso: string | null | undefined): string {
   if (!iso) return '—'
