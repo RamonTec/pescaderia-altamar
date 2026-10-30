@@ -30,7 +30,8 @@ export interface FichaHeaderProps {
 }
 
 /**
- * Encabezado de una ficha de detalle (cliente, proveedor…). La vuelta usa
+ * Encabezado de una ficha de detalle (cliente, proveedor…): vuelta en
+ * `text.secondary` (sin latón), nombre `h5` y `meta` en `body2`. La vuelta usa
  * `router.back()` si la ficha se abrió desde ese listado (conserva su página
  * y filtros en la URL); si no (enlace directo, recarga), navega a `backHref`.
  */
@@ -86,7 +87,14 @@ export function FichaHeader({
         onClick={handleBack}
         variant="body2"
         underline="hover"
-        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifySelf: 'start' }}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          justifySelf: 'start',
+          color: 'text.secondary',
+          '&:hover': { color: 'text.primary' },
+        }}
       >
         <ArrowBackOutlinedIcon fontSize="small" />
         {backLabel}

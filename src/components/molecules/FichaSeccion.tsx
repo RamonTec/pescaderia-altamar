@@ -15,12 +15,32 @@ export interface FichaSeccionProps {
   children: React.ReactNode
 }
 
-/** Sección de una ficha de detalle (cliente, proveedor…): título h6 + contenido. */
+/**
+ * Sección de una ficha de detalle (cliente, proveedor…): superficie de nivel 0
+ * (radio 8, borde `divider`, sin sombra), título `h6` y la acción a la
+ * derecha. Los 48 px entre secciones los pone el contenedor de la ficha
+ * (`gap: ESPACIO.bloquesPagina`).
+ */
 export function FichaSeccion({ titulo, accion, loading = false, children }: FichaSeccionProps) {
+  const tituloId = React.useId()
   return (
-    <Paper variant="outlined" component="section" sx={{ p: { xs: 2, sm: 3 }, display: 'grid', gap: 2, alignContent: 'start' }}>
+    <Paper
+      variant="outlined"
+      component="section"
+      aria-labelledby={tituloId}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        display: 'grid',
+        gap: 2,
+        alignContent: 'start',
+        borderRadius: '8px',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        boxShadow: 'none',
+      }}
+    >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <Typography variant="h6" component="h2">
+        <Typography id={tituloId} variant="h6" component="h2">
           {titulo}
         </Typography>
         {accion}
