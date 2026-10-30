@@ -27,15 +27,15 @@ export interface FilaResumen {
 /**
  * Lista compacta de un resumen (15-dashboard: deudores, clientes inactivos,
  * contratos): principal + secundaria a la izquierda, monto tabular y estado a
- * la derecha. Filas de ≥ 56 px (táctil en `xs`); con `href`, toda la fila es
- * un enlace.
+ * la derecha. Filas de 56 px con divisor `rowDivider`; con `href`, toda la
+ * fila es un enlace.
  */
 export function ListaResumen({ filas, ariaLabel }: { filas: readonly FilaResumen[]; ariaLabel: string }) {
   return (
     <List disablePadding aria-label={ariaLabel}>
       {filas.map((f, i) => {
         const contenido = (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', minHeight: 56, py: 0.75 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', minHeight: 56, py: 1 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
                 {f.primary}
@@ -72,7 +72,12 @@ export function ListaResumen({ filas, ariaLabel }: { filas: readonly FilaResumen
           </Box>
         )
         return (
-          <ListItem key={f.id} disablePadding divider={i < filas.length - 1}>
+          <ListItem
+            key={f.id}
+            disablePadding
+            divider={i < filas.length - 1}
+            sx={{ borderColor: 'rowDivider' }}
+          >
             {f.href ? (
               <ListItemButton component={Link} href={f.href} sx={{ px: 1 }}>
                 {contenido}
