@@ -17,6 +17,13 @@
   to { transform: translateX(340%); }
 }
 
+/* Entrada del modal (MuiDialog en theme.ts): 8 px hacia arriba; el fundido
+   lo hace el `Fade` de MUI. */
+@keyframes puerto-dialog-in {
+  from { transform: translateY(8px); }
+  to { transform: none; }
+}
+
 /* Aparición diferida (no parpadea si la operación es corta). */
 @keyframes puerto-fade-in {
   from { opacity: 0; }
