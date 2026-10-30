@@ -85,12 +85,15 @@ const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
 export function PageLoader({
   variant = 'table',
   children,
+  registrarNavegacion = true,
 }: {
   variant?: PageLoaderVariant
   /** Skeleton extra debajo del de la variante (ej. una sección de la ficha). */
   children?: React.ReactNode
+  /** `false` no enciende la barra de navegación (muestra en `/estandares`). */
+  registrarNavegacion?: boolean
 }) {
-  useNavigationPending(true)
+  useNavigationPending(registrarNavegacion)
   return (
     <Box aria-busy="true" sx={{ width: '100%' }}>
       <Box

@@ -99,6 +99,19 @@ export interface AppDataGridEstados<T extends string = string> {
   options: readonly SegmentedControlOption<T>[]
 }
 
+/**
+ * Tipa `estados` con los literales de la pantalla (`'todos' | 'activo'`) y lo
+ * entrega como lo recibe la tabla (no genérica en el estado). El cast es
+ * seguro: el `SegmentedControl` solo emite valores de `options`.
+ */
+export function estadosTabla<T extends string>(estados: AppDataGridEstados<T>): AppDataGridEstados {
+  return {
+    value: estados.value,
+    options: estados.options,
+    onChange: (value) => estados.onChange(value as T),
+  }
+}
+
 export interface AppDataGridProps<R extends GridValidRowModel> {
   /** Identificador estable: clave del tamaño de página en `localStorage`. */
   tableId: string
