@@ -16,9 +16,11 @@ import type { DatosCotizacionPdf } from '@/types/domain'
  * pie con número de página. Nunca recibe notas internas.
  */
 
-const TEXTO = '#13262C'
-const SECUNDARIO = '#4A5D63'
-const BORDE = MARCA_CLARO.onHullMuted
+const TEXTO = '#0B1B33'
+const SECUNDARIO = '#4A5260'
+const BORDE = '#E4E1D8'
+/** `palette.error.main` (claro): sello de anulada. */
+const ERROR = '#B3261E'
 
 function estilos(f: FuentesPdf) {
   return StyleSheet.create({
@@ -32,13 +34,13 @@ function estilos(f: FuentesPdf) {
     },
     bloque: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, marginBottom: 14 },
     etiqueta: { fontSize: 7.5, color: SECUNDARIO, textTransform: 'uppercase', letterSpacing: 0.6 },
-    titulo: { ...f.titulo, fontSize: 16, color: MARCA_CLARO.hull, marginTop: 2 },
+    titulo: { ...f.titulo, fontSize: 16, color: MARCA_CLARO.midnight, marginTop: 2 },
     sello: {
       ...f.cuerpoNegrita,
       fontSize: 9,
-      color: MARCA_CLARO.red,
+      color: ERROR,
       borderWidth: 1,
-      borderColor: MARCA_CLARO.red,
+      borderColor: ERROR,
       paddingHorizontal: 6,
       paddingVertical: 2,
       alignSelf: 'flex-start',
@@ -46,11 +48,11 @@ function estilos(f: FuentesPdf) {
     },
     secundario: { color: SECUNDARIO },
     negrita: f.cuerpoNegrita,
-    tabla: { borderTopWidth: 1, borderTopColor: MARCA_CLARO.hull },
+    tabla: { borderTopWidth: 1, borderTopColor: MARCA_CLARO.midnight },
     filaCabecera: {
       flexDirection: 'row',
-      backgroundColor: MARCA_CLARO.hull,
-      color: MARCA_CLARO.onHull,
+      backgroundColor: MARCA_CLARO.midnight,
+      color: MARCA_CLARO.onMidnight,
       paddingVertical: 4,
       paddingHorizontal: 6,
       ...f.cuerpoNegrita,
@@ -72,15 +74,15 @@ function estilos(f: FuentesPdf) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       borderTopWidth: 1,
-      borderTopColor: MARCA_CLARO.hull,
+      borderTopColor: MARCA_CLARO.midnight,
       marginTop: 3,
       paddingTop: 4,
       ...f.titulo,
       fontSize: 12,
-      color: MARCA_CLARO.hull,
+      color: MARCA_CLARO.midnight,
     },
     seccion: { marginTop: 14 },
-    seccionTitulo: { ...f.cuerpoNegrita, fontSize: 9, color: MARCA_CLARO.hull, marginBottom: 3 },
+    seccionTitulo: { ...f.cuerpoNegrita, fontSize: 9, color: MARCA_CLARO.midnight, marginBottom: 3 },
     parrafo: { lineHeight: 1.35 },
   })
 }
