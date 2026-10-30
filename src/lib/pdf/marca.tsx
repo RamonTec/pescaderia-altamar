@@ -1,6 +1,6 @@
 import { Path, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import { MARCA_CLARO, NOMBRE_MARCA } from '@/theme/marca'
-import { ISOTIPO_ALTO, ISOTIPO_ANCHO, ISOTIPO_CASCO, ISOTIPO_FRANJAS, ISOTIPO_VIEWBOX } from '@/lib/marca/isotipo'
+import { ISOTIPO_ALTO, ISOTIPO_ANCHO, ISOTIPO_CASCO, ISOTIPO_FILETE, ISOTIPO_VIEWBOX } from '@/lib/marca/isotipo'
 import type { NegocioDocumento } from '@/types/domain'
 import type { FuentesPdf } from './fuentes'
 
@@ -39,10 +39,8 @@ export function estilosMarca(f: FuentesPdf) {
 export function IsotipoPdf({ ancho = 56 }: { ancho?: number }) {
   return (
     <Svg viewBox={ISOTIPO_VIEWBOX} width={ancho} height={(ancho * ISOTIPO_ALTO) / ISOTIPO_ANCHO}>
-      <Path d={ISOTIPO_CASCO} fill={MARCA_CLARO.hull} />
-      <Polygon points={ISOTIPO_FRANJAS.ochre} fill={MARCA_CLARO.ochre} />
-      <Polygon points={ISOTIPO_FRANJAS.trim} fill={MARCA_CLARO.trim} />
-      <Polygon points={ISOTIPO_FRANJAS.red} fill={MARCA_CLARO.red} />
+      <Path d={ISOTIPO_CASCO} fill={MARCA_CLARO.midnight} />
+      <Polygon points={ISOTIPO_FILETE} fill={MARCA_CLARO.brass} />
     </Svg>
   )
 }
