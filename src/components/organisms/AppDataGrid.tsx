@@ -159,6 +159,8 @@ export interface AppDataGridProps<R extends GridValidRowModel> {
    * fondo propios, para no dibujar una tarjeta dentro de otra.
    */
   embedded?: boolean
+  /** Fila recién creada o editada (`useResaltado`): fondo latón tenue que se desvanece en 2 s. */
+  highlightId?: string | number | null
 }
 
 declare module '@mui/x-data-grid' {
@@ -407,6 +409,7 @@ export function AppDataGrid<R extends GridValidRowModel>({
   normalizeSearch = normalizarBusqueda,
   getSearchValues,
   embedded = false,
+  highlightId = null,
 }: AppDataGridProps<R>) {
   const theme = useTheme()
   const router = useRouter()
@@ -580,6 +583,7 @@ export function AppDataGrid<R extends GridValidRowModel>({
         mobileCard={mobileCard}
         getRowHref={getRowHref}
         toolbar={toolbar}
+        highlightId={highlightId}
         onClearSearch={clearSearch}
         onClearFilters={onClearFilters}
         onPage={(p) => handlePagination({ page: p, pageSize })}
@@ -624,6 +628,11 @@ export function AppDataGrid<R extends GridValidRowModel>({
           sortModel={sortModel}
           onSortModelChange={handleSort}
           columnVisibilityModel={columnVisibilityModel}
+          getRowClassName={
+            highlightId != null
+              ? ({ id }) => (id === highlightId ? 'puerto-resaltado' : '')
+              : undefined
+          }
           onRowClick={getRowHref ? ({ row }) => openRow(row as R) : undefined}
           onCellKeyDown={
             getRowHref
@@ -697,6 +706,7 @@ interface MobileCardsProps<R extends GridValidRowModel> {
   mobileCard: (row: R) => AppDataGridMobileCard
   getRowHref?: (row: R) => string
   toolbar: React.ReactNode
+  highlightId: string | number | null
   onClearSearch: () => void
   onClearFilters?: () => void
   onPage: (page: number) => void
@@ -718,6 +728,7 @@ function MobileCards<R extends GridValidRowModel>({
   mobileCard,
   getRowHref,
   toolbar,
+  highlightId,
   onClearSearch,
   onClearFilters,
   onPage,
@@ -785,6 +796,7 @@ function MobileCards<R extends GridValidRowModel>({
         <Paper
           key={idOf(row, i)}
           component="li"
+          className={highlightId != null && idOf(row, i) === highlightId ? 'puerto-resaltado' : undefined}
           sx={{
             display: 'flex',
             alignItems: 'center',

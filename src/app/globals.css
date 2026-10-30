@@ -51,6 +51,11 @@
   100% { background-color: transparent; }
 }
 
+/* Fila o ítem resaltado (`useResaltado` + `highlightId`): se desvanece en 2 s. */
+.puerto-resaltado {
+  animation: puerto-highlight 2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 /* Accesibilidad: respeta la preferencia de reducción de movimiento del sistema. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -60,5 +65,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Sin animación: el fondo cambia y vuelve cuando se quita la clase (2 s). */
+  .puerto-resaltado {
+    animation: none !important;
+    background-color: var(--mui-palette-highlight) !important;
   }
 }

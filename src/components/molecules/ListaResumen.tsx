@@ -30,7 +30,16 @@ export interface FilaResumen {
  * la derecha. Filas de 56 px con divisor `rowDivider`; con `href`, toda la
  * fila es un enlace.
  */
-export function ListaResumen({ filas, ariaLabel }: { filas: readonly FilaResumen[]; ariaLabel: string }) {
+export function ListaResumen({
+  filas,
+  ariaLabel,
+  highlightId = null,
+}: {
+  filas: readonly FilaResumen[]
+  ariaLabel: string
+  /** Fila recién creada o editada (`useResaltado`). */
+  highlightId?: string | null
+}) {
   return (
     <List disablePadding aria-label={ariaLabel}>
       {filas.map((f, i) => {
@@ -76,6 +85,7 @@ export function ListaResumen({ filas, ariaLabel }: { filas: readonly FilaResumen
             key={f.id}
             disablePadding
             divider={i < filas.length - 1}
+            className={f.id === highlightId ? 'puerto-resaltado' : undefined}
             sx={{ borderColor: 'rowDivider' }}
           >
             {f.href ? (
