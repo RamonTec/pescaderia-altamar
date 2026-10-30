@@ -3,20 +3,22 @@
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { BrandLoader } from '@/components/organisms/BrandLoader'
+import { TIEMPOS } from '@/theme/tokens'
 
 /**
  * Loader global con logo (nivel 1 de spec § Loaders): carga posterior al
  * login, cierre de sesión y operaciones que bloquean toda la pantalla.
  *
- * - Aparece a los 150 ms: si la operación termina antes, no parpadea.
- * - Una vez visible, dura al menos 400 ms.
+ * - Aparece a los 150 ms (`TIEMPOS.LOADER_RETARDO_MS`): si la operación
+ *   termina antes, no parpadea.
+ * - Una vez visible, dura al menos 400 ms (`TIEMPOS.LOADER_MINIMO_MS`).
  * - Contador: llamadas anidadas mantienen el loader hasta que se liberan todas.
  *   El mensaje visible es el de la llamada más reciente.
  * - `untilNavigation`: la llamada se libera sola cuando cambia la ruta (útil
  *   con Server Actions que terminan en `redirect()`, cuya promesa no resuelve).
  */
-const SHOW_DELAY_MS = 150
-const MIN_VISIBLE_MS = 400
+const SHOW_DELAY_MS = TIEMPOS.LOADER_RETARDO_MS
+const MIN_VISIBLE_MS = TIEMPOS.LOADER_MINIMO_MS
 
 export interface GlobalLoaderShowOptions {
   untilNavigation?: boolean
