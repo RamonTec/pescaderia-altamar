@@ -261,80 +261,82 @@ Hay un solo componente, `molecules/Fallback` (nuevo): ícono en un círculo de 4
 
 #### Unificación
 
-| Componente | Rol | Duplicado de… | Destino | Tarea |
-|---|---|---|---|---|
-| **Átomos** | | | | |
-| `atoms/BrandMark` | Dominio / marca | — | Se queda (se actualiza con isotipo provisional Puerto) | 138 |
-| `atoms/ColorModeToggle` | Primitivo | — | Se queda | 99 |
-| `atoms/EstadoCarteraChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 |
-| `atoms/NavigationProgress` | Primitivo / carga | — | Se queda (ajustar retardo a 100 ms y filete de latón) | 122, 137 |
-| `atoms/NumberField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
-| `atoms/PageLoader` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 |
-| `atoms/PasswordField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
-| `atoms/PeneroStripes` | Marca (obsoleto) | `FileteLaton` | Se retira (reemplazado por `FileteLaton`) | 140 |
-| `atoms/PhoneField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
-| `atoms/RifCiField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 |
-| `atoms/SenalFacturaChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 |
-| **Moléculas** | | | | |
-| `molecules/CadenaTrazabilidad` | Patrón / dominio | — | Se queda (superficie nivel 0) | 154 |
-| `molecules/CarteraIndicador` | Dominio | — | Se queda | 153 |
-| `molecules/CarteraResumenCards` | Patrón / dominio | `KpiCard` | Se apoya en `KpiCard` seleccionable | 120, 153 |
-| `molecules/ChartCard` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, unifica tarjetas de gráfico) | 121 |
-| `molecules/ChartLegendTable` | Patrón | — | Se queda | 121 |
-| `molecules/ClienteFormFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 |
-| `molecules/CompraItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
-| `molecules/ConfirmDialog` | Patrón | — | Se queda (superficie elevada) | 116 |
-| `molecules/CopyableText` | Primitivo | — | Se queda | 110 |
-| `molecules/CotizacionEstadoChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 152 |
-| `molecules/CotizacionItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 152 |
-| `molecules/CreditoResumen` | Dominio | `FichaSeccion` | Se queda (superficie normal, texto sin latón) | 139, 153 |
-| `molecules/DiasCreditoField` | Primitivo / dominio | — | Se queda | 105 |
-| `molecules/DocumentosRequeridos` | Dominio | — | Se queda (lista de filas, sin cajas punteadas anidadas) | 155 |
-| `molecules/DocumentoUpload` | Patrón | — | Se queda (zona sin cajas punteadas anidadas) | 155 |
-| `molecules/EmptyState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 |
-| `molecules/ErrorState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 |
-| `molecules/FichaHeader` | Patrón | — | Se queda (vuelta en `text.secondary`, nombre `h5`) | 120 |
-| `molecules/FichaSeccion` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, reemplaza a `Paper` suelto) | 120 |
-| `molecules/FormSection` | Patrón | — | Se queda (encabezado `sectionTitle` + divisor) | 114 |
-| `molecules/IvaVentaSwitch` | Dominio | — | Se queda | 150 |
-| `molecules/KpiCard` | Patrón | `CarteraResumenCards` | Se queda (agrega variante seleccionable) | 120 |
-| `molecules/ListaResumen` | Patrón | — | Se queda | 120 |
-| `molecules/LoteAutocomplete` | Primitivo / dominio | — | Se queda | 105 |
-| `molecules/LoteChip` | Dominio | `EstadoChip` | Se queda | 104 |
-| `molecules/MetodoPagoCard` | Dominio | — | Se queda | 150 |
-| `molecules/MetodosPagoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 |
-| `molecules/PageHeader` | Patrón | — | Se queda (título Fraunces `h4`) | 113 |
-| `molecules/PedidoItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
-| `molecules/ProveedorIdentificacionFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 |
-| `molecules/RangoFechasSelector` | Patrón | — | Se queda (se apoya en `DateField`) | 106, 118 |
-| `molecules/RepresentantesLegalesFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 |
-| `molecules/RowActionsMenu` | Patrón | — | Se queda (gatillo de 32 px, destructivo en `error` con `ConfirmDialog`) | 110 |
-| `molecules/SalidasProcesoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 |
-| `molecules/StatusChips` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 147 |
-| `molecules/TasaChip` | Dominio | — | Se queda | 148 |
-| `molecules/TasaIndicador` | Dominio | — | Se queda | 148 |
-| `molecules/TotalesVenta` | Dominio | — | Se queda | 119 |
-| **Plantillas (Templates)** | | | | |
-| `templates/AppShell` | Patrón / plantilla | — | Se queda (quitar `ActiveStripes`, márgenes 16/24/64, 48 px entre bloques) | 136 |
-| `templates/AuthLayout` | Patrón / plantilla | — | Se queda | 147 |
-| `templates/DashboardTemplate` | Patrón / plantilla | — | Se queda | 148 |
-| `templates/DocumentoPublicoLayout` | Patrón / plantilla | — | Se queda (`FileteLaton`) | 136, 152 |
-| **Organismos genéricos, carga, feedback y fallbacks** | | | | |
-| `organisms/AppDataGrid` y `appDataGridColumns` | Patrón | — | Se queda (búsqueda 340 px, `SegmentedControl`, 56 px, `rowDivider`, celdas centradas) | 101, 111, 112, 127 |
-| `organisms/AppDialog` | Patrón | — | Se queda (superficie elevada `#1A2A45`, sin overlay, `dialogDivider`, `lg`, pending, error) | 97, 116, 126 |
-| `organisms/BarLineChart` | Patrón | — | Se queda | 121 |
-| `organisms/BrandLoader` | Carga | `PeneroStripes` | Se queda (`FileteLaton`, sin vaivén, tokens de tiempos) | 125, 137 |
-| `organisms/DashboardSkeletons` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 |
-| `organisms/NotificationProvider` | Feedback | — | Se queda (toast nuevo, elevación 1, action) | 108, 124 |
-| `organisms/PagePlaceholder` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` | 128 |
-| `organisms/CotizacionNoDisponible` | Fallback / dominio | `Fallback` | Se apoya en `molecules/Fallback` | 128, 152 |
-| `organisms/TasaSelector` | Dominio | — | Se queda | 148 |
-| **Patrones duplicados en pantallas** | | | | |
-| Chips de filtro con contador (`catalogos`, `proveedores`, `clientes`, `cartera`) y `ToggleButtonGroup` de filtros (`notas-credito`, `pedidos`, `tasas`) y de opciones (Contado/Crédito, USD/Bs, BCV/Paralela, Tipo de persona; 21 archivos en `src/app/(protected)/**/*-screen.tsx`) | Patrón | `SegmentedControl` | Se retiran y se unifican en `atoms/SegmentedControl` | 103, 147, 149, 150 |
-| **Organismos específicos de dominio (sin duplicación)** | | | | |
-| Diálogos y formularios de dominio (`ClienteForm`, `CompraForm`, `GastoForm`, `PedidoForm`, `CotizacionForm`, `ProductoForm`, `ProcesamientoForm`, `NotaCreditoForm`, `PagoProveedorDialog`, `RegistrarPagoDialog`, `BloqueoDialog`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDialog`, `FormGrid`, `FormSection`, `SubmitButton`) | 150, 151 |
-| Tablas de dominio (`ClientesTable`, `ComprasTable`, `CotizacionesTable`, `GastosTable`, `PedidosTable`, `ProcesamientosTable`, `ProductosTable`, `ProveedoresTable`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDataGrid` con `SegmentedControl` y sin chips normales) | 147, 149 |
-| Paneles, gráficos y listas de dominio (`AgingCarteraChart`, `AntiguedadLotesChart`, `FlujoCajaChart`, `TopClientesPareto`, `TopDeudoresList`, `FacturaTotalesCard`, `LoteTimeline`, etc.) | Dominio | — | Se quedan (superficies nivel 0, `sectionTitle`, tipografía tabular) | 148, 153, 154 |
+La columna «Estado» se actualizó al cerrar la Fase 4f (tarea 146): «Hecho» es que el componente ya cumple su destino; lo pendiente se resuelve en la migración de la Fase 4g.
+
+| Componente | Rol | Duplicado de… | Destino | Tarea | Estado (2026-10-30) |
+|---|---|---|---|---|---|
+| **Átomos** | | | | | |
+| `atoms/BrandMark` | Dominio / marca | — | Se queda (se actualiza con isotipo provisional Puerto) | 138 | Hecho (4a–4f) |
+| `atoms/ColorModeToggle` | Primitivo | — | Se queda | 99 | Hecho (4a–4f) |
+| `atoms/EstadoCarteraChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 | Hecho (4a–4f) |
+| `atoms/NavigationProgress` | Primitivo / carga | — | Se queda (ajustar retardo a 100 ms y filete de latón) | 122, 137 | Hecho (4a–4f) |
+| `atoms/NumberField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 | Hecho (4a–4f) |
+| `atoms/PageLoader` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 | Hecho (4a–4f) |
+| `atoms/PasswordField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 | Hecho (4a–4f) |
+| `atoms/PeneroStripes` | Marca (obsoleto) | `FileteLaton` | Se retira (reemplazado por `FileteLaton`) | 140 | Retirado (140) |
+| `atoms/PhoneField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 | Hecho (4a–4f) |
+| `atoms/RifCiField` | Primitivo | — | Se queda (etiqueta fija DS-1 por theme) | 98, 105 | Hecho (4a–4f) |
+| `atoms/SenalFacturaChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 153 | Hecho (4a–4f) |
+| **Moléculas** | | | | | |
+| `molecules/CadenaTrazabilidad` | Patrón / dominio | — | Se queda (superficie nivel 0) | 154 | Hecho (4a–4f) |
+| `molecules/CarteraIndicador` | Dominio | — | Se queda | 153 | Hecho (4a–4f) |
+| `molecules/CarteraResumenCards` | Patrón / dominio | `KpiCard` | Se apoya en `KpiCard` seleccionable | 120, 153 | Hecho (4a–4f) |
+| `molecules/ChartCard` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, unifica tarjetas de gráfico) | 121 | Hecho (4a–4f) |
+| `molecules/ChartLegendTable` | Patrón | — | Se queda | 121 | Hecho (4a–4f) |
+| `molecules/ClienteFormFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 | Pendiente: migración (150) |
+| `molecules/CompraItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 | Pendiente: migración (151) |
+| `molecules/ConfirmDialog` | Patrón | — | Se queda (superficie elevada) | 116 | Hecho (4a–4f) |
+| `molecules/CopyableText` | Primitivo | — | Se queda | 110 | Hecho (4a–4f) |
+| `molecules/CotizacionEstadoChip` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 152 | Hecho (4a–4f) |
+| `molecules/CotizacionItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 152 | Pendiente: migración (151) |
+| `molecules/CreditoResumen` | Dominio | `FichaSeccion` | Se queda (superficie normal, texto sin latón) | 139, 153 | Hecho (4a–4f) |
+| `molecules/DiasCreditoField` | Primitivo / dominio | — | Se queda | 105 | Hecho (4a–4f) |
+| `molecules/DocumentosRequeridos` | Dominio | — | Se queda (lista de filas, sin cajas punteadas anidadas) | 155 | Hecho (4a–4f) |
+| `molecules/DocumentoUpload` | Patrón | — | Se queda (zona sin cajas punteadas anidadas) | 155 | Hecho (4a–4f) |
+| `molecules/EmptyState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 | Hecho (4a–4f) |
+| `molecules/ErrorState` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` (envoltorio de compatibilidad) | 128 | Hecho (4a–4f) |
+| `molecules/FichaHeader` | Patrón | — | Se queda (vuelta en `text.secondary`, nombre `h5`) | 120 | Hecho (4a–4f) |
+| `molecules/FichaSeccion` | Patrón | `Paper` suelto | Se queda (superficie nivel 0, reemplaza a `Paper` suelto) | 120 | Hecho (4a–4f) |
+| `molecules/FormSection` | Patrón | — | Se queda (encabezado `sectionTitle` + divisor) | 114 | Hecho (4a–4f) |
+| `molecules/IvaVentaSwitch` | Dominio | — | Se queda | 150 | Hecho (4a–4f) |
+| `molecules/KpiCard` | Patrón | `CarteraResumenCards` | Se queda (agrega variante seleccionable) | 120 | Hecho (4a–4f) |
+| `molecules/ListaResumen` | Patrón | — | Se queda | 120 | Hecho (4a–4f) |
+| `molecules/LoteAutocomplete` | Primitivo / dominio | — | Se queda | 105 | Hecho (4a–4f) |
+| `molecules/LoteChip` | Dominio | `EstadoChip` | Se queda | 104 | Hecho (4a–4f) |
+| `molecules/MetodoPagoCard` | Dominio | — | Se queda | 150 | Hecho (4a–4f) |
+| `molecules/MetodosPagoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 | Pendiente: migración (150) |
+| `molecules/PageHeader` | Patrón | — | Se queda (título Fraunces `h4`) | 113 | Hecho (4a–4f) |
+| `molecules/PedidoItemsFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 | Pendiente: migración (151) |
+| `molecules/ProveedorIdentificacionFields` | Dominio | `FormGrid` | Se apoya en `FormGrid` | 115, 150 | Pendiente: migración (150) |
+| `molecules/RangoFechasSelector` | Patrón | — | Se queda (se apoya en `DateField`) | 106, 118 | Pendiente: sigue con `DatePicker` propio; pasa a `DateField` en 152 |
+| `molecules/RepresentantesLegalesFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 150 | Pendiente: migración (150) |
+| `molecules/RowActionsMenu` | Patrón | — | Se queda (gatillo de 32 px, destructivo en `error` con `ConfirmDialog`) | 110 | Hecho (4a–4f) |
+| `molecules/SalidasProcesoFieldArray` | Dominio | `LineasEditor` | Se apoya en `LineasEditor` | 119, 151 | Pendiente: migración (151) |
+| `molecules/StatusChips` | Dominio | `EstadoChip` | Se apoya en `atoms/EstadoChip` | 104, 147 | Hecho (4a–4f) |
+| `molecules/TasaChip` | Dominio | — | Se queda | 148 | Pendiente: migración de `/tasas` (155) |
+| `molecules/TasaIndicador` | Dominio | — | Se queda | 148 | Pendiente: migración de `/tasas` (155) |
+| `molecules/TotalesVenta` | Dominio | — | Se queda | 119 | Hecho (4a–4f) |
+| **Plantillas (Templates)** | | | | | |
+| `templates/AppShell` | Patrón / plantilla | — | Se queda (quitar `ActiveStripes`, márgenes 16/24/64, 48 px entre bloques) | 136 | Hecho (4a–4f) |
+| `templates/AuthLayout` | Patrón / plantilla | — | Se queda | 147 | Hecho (4a–4f) |
+| `templates/DashboardTemplate` | Patrón / plantilla | — | Se queda | 148 | Pendiente: migración del dashboard (156) |
+| `templates/DocumentoPublicoLayout` | Patrón / plantilla | — | Se queda (`FileteLaton`) | 136, 152 | Hecho (4a–4f) |
+| **Organismos genéricos, carga, feedback y fallbacks** | | | | | |
+| `organisms/AppDataGrid` y `appDataGridColumns` | Patrón | — | Se queda (búsqueda 340 px, `SegmentedControl`, 56 px, `rowDivider`, celdas centradas) | 101, 111, 112, 127 | Hecho (4a–4f) |
+| `organisms/AppDialog` | Patrón | — | Se queda (superficie elevada `#1A2A45`, sin overlay, `dialogDivider`, `lg`, pending, error) | 97, 116, 126 | Hecho (4a–4f) |
+| `organisms/BarLineChart` | Patrón | — | Se queda | 121 | Hecho (4a–4f) |
+| `organisms/BrandLoader` | Carga | `PeneroStripes` | Se queda (`FileteLaton`, sin vaivén, tokens de tiempos) | 125, 137 | Hecho (4a–4f) |
+| `organisms/DashboardSkeletons` | Carga | `atoms/Skeletons` | Se apoya en `atoms/Skeletons` | 123 | Hecho (4a–4f) |
+| `organisms/NotificationProvider` | Feedback | — | Se queda (toast nuevo, elevación 1, action) | 108, 124 | Hecho (4a–4f) |
+| `organisms/PagePlaceholder` | Fallback | `Fallback` | Se apoya en `molecules/Fallback` | 128 | Sin uso en el código: se borra en los barridos (158) |
+| `organisms/CotizacionNoDisponible` | Fallback / dominio | `Fallback` | Se apoya en `molecules/Fallback` | 128, 152 | Hecho (4a–4f) |
+| `organisms/TasaSelector` | Dominio | — | Se queda | 148 | Pendiente: pasa a `SegmentedControl` (153) |
+| **Patrones duplicados en pantallas** | | | | | |
+| Chips de filtro con contador (`catalogos`, `proveedores`, `clientes`, `cartera`) y `ToggleButtonGroup` de filtros (`notas-credito`, `pedidos`, `tasas`) y de opciones (Contado/Crédito, USD/Bs, BCV/Paralela, Tipo de persona; 21 archivos en `src/app/(protected)/**/*-screen.tsx`) | Patrón | `SegmentedControl` | Se retiran y se unifican en `atoms/SegmentedControl` | 103, 147, 149, 150 | Pendiente: migración de pantallas (147–153) |
+| **Organismos específicos de dominio (sin duplicación)** | | | | | |
+| Diálogos y formularios de dominio (`ClienteForm`, `CompraForm`, `GastoForm`, `PedidoForm`, `CotizacionForm`, `ProductoForm`, `ProcesamientoForm`, `NotaCreditoForm`, `PagoProveedorDialog`, `RegistrarPagoDialog`, `BloqueoDialog`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDialog`, `FormGrid`, `FormSection`, `SubmitButton`) | 150, 151 | Pendiente: migración (150–151) |
+| Tablas de dominio (`ClientesTable`, `ComprasTable`, `CotizacionesTable`, `GastosTable`, `PedidosTable`, `ProcesamientosTable`, `ProductosTable`, `ProveedoresTable`, etc.) | Dominio | — | Se quedan (se adaptan a `AppDataGrid` con `SegmentedControl` y sin chips normales) | 147, 149 | Pendiente: migración (147–149) |
+| Paneles, gráficos y listas de dominio (`AgingCarteraChart`, `AntiguedadLotesChart`, `FlujoCajaChart`, `TopClientesPareto`, `TopDeudoresList`, `FacturaTotalesCard`, `LoteTimeline`, etc.) | Dominio | — | Se quedan (superficies nivel 0, `sectionTitle`, tipografía tabular) | 148, 153, 154 | Pendiente: migración (153–156) |
 
 - **`/estandares` es el catálogo vivo**, con una sección por bloque (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks). Cada componente aparece en sus estados y en ambos modos lado a lado. Un componente compartido nuevo **no se da por hecho** hasta estar en el catálogo.
 
@@ -649,49 +651,52 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `NumberField` | `atoms` | Input numérico sobre `NumericFormat` (bloquea letras en vivo): `decimals`, `prefix`/`suffix` (USD/Bs/kg), `value: number \| null` |
 | `PhoneField` | `atoms` | Teléfono venezolano con máscara `0414-1234567` (`PatternFormat`), normaliza `+58` |
 | `RifCiField` | `atoms` | RIF/cédula con máscara completa `V-/E-/J-/G-` sobre `PatternFormat`, label dinámico |
-| `FormSection` | `molecules` | Sección de formulario: título `h6` + `ayuda` + divisor 1 px (excepto primera); `dense` para diálogos `xs` |
-| `PageLoader` | `atoms` | Skeleton de carga de página completa (`table`/`form`/`ficha`/`dashboard`); mientras está montado enciende `NavigationProgress`. `children`: skeleton extra debajo (ej. `CarteraSeccionSkeleton` en la ficha de cliente, 09) |
-| `PageHeader` | `molecules` | Título `h4` + subtítulo + acciones. `primaryAction` (contained en `sm+`, `Fab` en `xs`) y `secondaryActions` (outlined en `sm+`, menú `⋮` en `xs`); `children` sigue funcionando |
-| `EmptyState` | `molecules` | Lista/tabla vacía; `compact` para secciones de ficha (menos aire, título `subtitle1`) |
-| `ErrorState` | `molecules` | Error al cargar datos |
-| `ConfirmDialog` | `molecules` | Confirmación de acción destructiva |
-| `AppShell` | `templates` | Shell persistente en `(protected)/layout.tsx`: menú 248 px (`md+`) / riel 72 px (`sm`) / temporal (`xs`), barra superior con `topBarStart`, cuenta y modo; usuario y rol por props desde el servidor |
-| `NotificationProvider` | `organisms` | Toasts de éxito/error, vía `useNotify()` |
-| `DocumentoUpload` | `molecules` | Subir/ver/reemplazar documentos vía adaptador `DocumentoStore` (drag&drop, validación, compresión, reemplazo real); `disabled` bloquea subir, reemplazar, eliminar y soltar (no "Ver") mientras el formulario dueño guarda; el botón usa `loading` |
-| `DocumentosRequeridos` | `molecules` | Documentos exigidos por un proveedor según su tipo de persona (cédula, RIF, acta, cédulas de representantes), con ✓/⚠ según los presentes; `disabled` propaga a cada `DocumentoUpload` mientras el form dueño guarda (11-refactor-visual-proveedores) |
+| `FormSection` | `molecules` | Sección de formulario: título `sectionTitle` + `ayuda`, divisor **inferior** (`dialogDivider` dentro de un modal), 16 px al contenido y 24 px entre campos; `role="group"` + `aria-labelledby`. `dense` (16 px) para diálogos cortos; `primera` se acepta sin efecto. Los 40 px entre secciones los da el contenedor (`gap: ESPACIO.formSecciones`) |
+| `PageLoader` | `atoms` | Skeleton de página para `loading.tsx` sobre `atoms/Skeletons` (`table`/`kpisTable`/`form`/`ficha`/`dashboard`); «Cargando…» en `role="status"` oculto. Mientras está montado enciende `NavigationProgress` (`registrarNavegacion={false}` para mostrarlo sin encenderla). `children`: skeleton extra debajo |
+| `PageHeader` | `molecules` | Título `h4` + subtítulo + acciones alineadas con el título; deja 48 px (32 en `xs`) hasta el bloque siguiente. `primaryAction` (contained en `sm+`, `Fab` en `xs`) y `secondaryActions` (outlined en `sm+`, menú `⋮` en `xs`); `children` sigue funcionando |
+| `EmptyState` | `molecules` | Envoltorio de compatibilidad de `Fallback tipo="vacio"` (`icon`, `title`, `description`, `action`, `compact`) |
+| `ErrorState` | `molecules` | Envoltorio de compatibilidad de `Fallback tipo="error"`: mensaje + «Tus datos están a salvo» + «Reintentar» |
+| `ConfirmDialog` | `molecules` | Confirmación: misma superficie elevada y padding que `AppDialog`, pie con `dialogDivider`, «Cancelar» en `text.secondary`; no se cierra mientras `loading` |
+| `AppShell` | `templates` | Shell persistente en `(protected)/layout.tsx`: sidebar `brand.midnight` de 248 px (`md+`) / riel 72 px (`sm`) / temporal (`xs`) con logo claro y `FileteLaton`; ítem activo en `brand.navy` con punto de latón de 6 px; barra superior `background.paper` con `topBarStart`, cuenta y modo; márgenes de página 16/24/64 (`ESPACIO`); usuario y rol por props desde el servidor |
+| `NotificationProvider` | `organisms` | Toasts vía `useNotify()`: fondo medianoche, elevación 1, 5 s; `notify.success(msg, { action: { label, href \| onClick } })` («Ver»; «Deshacer» solo en reversibles) |
+| `DocumentoUpload` | `molecules` | Documento vía adaptador `DocumentoStore`: cada archivo es una fila (ícono, nombre, tamaño, «Ver», `⋮` con «Reemplazar» y «Eliminar» confirmado); la zona para soltar solo sin archivo; validación, compresión y reemplazo real; `estado` junto a la etiqueta; `disabled` bloquea todo salvo «Ver» |
+| `DocumentosRequeridos` | `molecules` | Documentos exigidos por un proveedor según su tipo de persona (cédula, RIF, acta, cédulas de representantes), en lista plana de `DocumentoUpload`; el que falta lleva `EstadoChip` «Falta» (`warning`); `disabled` se propaga (11) |
 | `RepresentantesLegalesFieldArray` | `molecules` | Lista editable de representantes legales (tipado genérico, filas con `Collapse`) |
 | `CopyableText` | `molecules` | Texto + botón copiar al portapapeles + toast; `variant` (ej. `h5` para el código de un lote) y `copiedMessage` (07-lotes) |
-| `StatusChips` | `molecules` | Chips `soft` de 22 px: Activo (solo con `mostrarActivo`, en listados) / Inactivo, Bloqueado (tooltip con el motivo, convive con Activo) y Doc. incompleta (tooltip con faltantes). Sin chips que mostrar no renderiza nada. *Fase 4*: sobre `EstadoChip`; "Activo" deja de mostrarse (`mostrarActivo` queda sin efecto, deprecado) |
-| `PeneroStripes` | `atoms` | Franjas de la borda (Peñero). **Se retira en la Fase 4** (tarea 140); lo reemplaza `FileteLaton` |
-| `FileteLaton` (Fase 4, tarea 131; *P-UI2*) | `atoms` | Único decorativo de Puerto: filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`) y `variant="sweep"` (progreso indeterminado, quieto con `prefers-reduced-motion`). Reemplaza a `PeneroStripes` y `PeneroSweep` |
-| `SegmentedControl` (Fase 4) | `atoms` | Filtro de estado u opción excluyente: `value`, `onChange`, `options` (`value`, `label`, `count?`), `aria-label`, `fullWidth`, `disabled`. Reemplaza a los chips-filtro y a `ToggleButtonGroup` |
-| `EstadoChip` (Fase 4) | `atoms` | Chip de estado de 22 px con punto, `tono` `error`/`warning`/`success`/`neutral`, `label`, `tooltip?`. Base de los chips de dominio; `appDataGridColumns` lo reexporta |
-| `DateField` (Fase 4) | `atoms` | Fecha `dd/mm/aaaa` sobre `DatePicker`; `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`; mín. 160 px. Prohíbe `type="date"` |
-| `SubmitButton` (Fase 4) | `atoms` | Botón de envío: `pending`, `pendingLabel` ("Guardando…"), ancho conservado, ignora el doble clic |
-| `Skeletons` (Fase 4) | `atoms` | Primitivos de skeleton con la forma de las plantillas (`SkeletonTabla`, `SkeletonFicha`, `SkeletonKpis`, `SkeletonGrafico`, `SkeletonFormulario`); los usan `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección |
-| `FilterMenuButton` (Fase 4) | `molecules` | Filtro adicional como botón-menú ("Tipo: todos"), opción única o múltiple, "Limpiar" |
-| `FormGrid` + `FormSubgroup` (Fase 4) | `molecules` | Grilla de campos (1/2 columnas, 24/16 px, `full`) y subgrupo con etiqueta `label` dentro de una `FormSection` |
-| `LineasEditor` (Fase 4) | `molecules` | Disposición de líneas repetibles: fila de encabezados, filas sin caja, papelera de 36 px, "Agregar línea" debajo, slot de totales; la lógica (`useFieldArray`) la pone el consumidor |
-| `Fallback` (Fase 4) | `molecules` | Vacío / sin resultados / error / sin permiso / no encontrado: ícono en círculo de 44 px, título, texto, acción. `EmptyState` y `ErrorState` lo envuelven |
-| `RouteError` (Fase 4) | `organisms` | Contenido de todo `error.tsx`: `Fallback tipo="error"` + "Reintentar" (`reset`) + "Tus datos están a salvo" |
-| `src/theme/tokens.ts` (Fase 4) | `src/theme` | Movimiento (duraciones y curvas), tiempos de carga (150/400 ms, 100 ms de navegación, 5 s de toast, 2 s de resaltado), espaciado semántico y sombras por elevación |
-| `BrandMark` | `atoms` | Logo de Altamar (`variant: full / isotipo`, `size`, `orientation`); isotipo provisional en SVG hasta tener el archivo real (ícono de la app en `src/app/icon.svg`) |
-| `NavigationProgress` | `atoms` | Barra de progreso (Peñero: 3 px con las franjas; Puerto: 2 px, `FileteLaton sweep`); `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)` |
-| `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global con logo: `show(msg, { untilNavigation })` devuelve `release`, `hide()`, `run(tarea, msg)`; 150 ms de retardo, 400 ms mínimo, contador |
-| `AppDataGrid` | `organisms` | Toda tabla: toolbar (búsqueda, filtros, acciones), `mode` cliente/servidor (`rowCount` + `onQueryChange`), `?pagina=` en la URL (`paginaDesdeParam` para `page.tsx`), tamaño recordado por `tableId`, `mobileCard` en `xs`, `hideOnMobile`, `getRowHref` (clic o Enter en una celda; recuerda el origen para `FichaHeader`), estados vacío/sin resultados/error/cargando. Búsqueda en modo cliente: `normalizeSearch` (por defecto `normalizarBusqueda`, sin acentos y minúsculas; `normalizarBusquedaSinSeparadores` quita además espacios, puntos y guiones) y `getSearchValues(row)` (por defecto, el valor crudo de cada columna); cada palabra debe aparecer en algún valor, igual en grilla y tarjetas |
-| `AppDialog` | `organisms` | Todo diálogo de formulario: `size` xs/sm/md, `title`/`subtitle`, `primaryAction`, `pending`, `dirty`, `error`, `onSubmit` (el diálogo es un `<form>`), `footer` (pie custom que reemplaza el estándar, ej. navegación de Stepper; 11-refactor-visual-proveedores); pantalla completa + `Slide` en `xs`, cierre protegido, foco al primer campo. Referencia: `ClienteForm` |
-| `colMonto` / `colKg` / `colTasa` / `colFecha` / `colEstado` / `colAcciones` + `EstadoChip` | `organisms/appDataGridColumns` | Columnas estándar de `AppDataGrid` (formato de `lib/format.ts`, montos a la derecha, chip `soft`, menú `⋮`) |
-| `RowActionsMenu` | `molecules` | Menú `⋮` de una fila o tarjeta, con estado `pending` y opciones destructivas |
-| `FichaHeader` | `molecules` | Encabezado de ficha: vuelta (`backHref`, `backLabel`; `router.back()` si se vino de ese listado, para conservar `?pagina=` y filtros), nombre `h5` (`component="h1"`), `meta` (documento, tipo, chips), `primaryAction` (`outlined` en `sm+`, primera opción del `⋮` en `xs`), `menuActions` (`RowAction[]`, en `RowActionsMenu`) y `pending` (10-refactor-visual-clientes) |
+| `StatusChips` | `molecules` | Chips de excepción sobre `EstadoChip`: Inactivo, Bloqueado (tooltip con el motivo) y Doc. incompleta (tooltip con faltantes). «Activo» ya no se muestra (`mostrarActivo` deprecado, sin efecto). Sin chips no renderiza nada |
+| ~~`PeneroStripes`~~ | `atoms` | **Retirado** el 2026-10-30 (tarea 140); lo reemplaza `FileteLaton` |
+| `FileteLaton` | `atoms` | Único decorativo de Puerto (*P-UI2*): filete de `brand.brass`. `variant="rule"` (estático, 2 px por defecto, `width`, `sx`) y `variant="sweep"` (progreso indeterminado, `FILETE_SWEEP_MS`, quieto con `prefers-reduced-motion`; `track`) |
+| `SegmentedControl` | `atoms` | Filtro de estado u opción excluyente: `value`, `onChange`, `options` (`value`, `label`, `count?`), `aria-label`, `fullWidth`, `disabled`. Reemplaza a los chips-filtro y a `ToggleButtonGroup` |
+| `EstadoChip` | `atoms` | Chip de estado de 22 px con punto, `tono` `error`/`warning`/`success`/`neutral`, `label`, `tooltip?`. Base de los chips de dominio; `appDataGridColumns` lo reexporta |
+| `DateField` | `atoms` | Fecha `dd/mm/aaaa` sobre `DatePicker`; `value`/`onChange` en ISO `YYYY-MM-DD` \| `null`; mín. 160 px. Prohíbe `type="date"` |
+| `SubmitButton` | `atoms` | Botón de envío: `pending`, `pendingLabel` ("Guardando…"), ancho conservado, ignora el doble clic |
+| `Skeletons` | `atoms` | Skeletons con la forma de las plantillas (`SkeletonEncabezado`, `SkeletonTabla` 40/56, `SkeletonSeccion`, `SkeletonFicha`, `SkeletonKpis`, `SkeletonGrafico` con título real, `SkeletonFormulario`); pulso, decorativos (`aria-hidden`). Los usan `PageLoader`, `DashboardSkeletons` y `CarteraSeccionSkeleton` |
+| `FilterMenuButton` | `molecules` | Filtro adicional como botón-menú ("Tipo: todos"), opción única o múltiple, "Limpiar" |
+| `FormGrid` + `FormSubgroup` | `molecules` | Grilla de campos (1 columna en `xs`, 2 en `sm+`, 24/16 px; `FormGrid.Full` para el campo sin pareja) y subgrupo (`etiqueta` en `label`, sin divisor) dentro de una `FormSection` |
+| `LineasEditor` | `molecules` | Disposición de líneas repetibles: `columnas` (`key`, `label`, `width`, `align`), `filas`, `renderCelda(fila, columna, index)`, `onAgregar`, `onQuitar`, `totales`; encabezados en `sm+` (la etiqueta de cada campo queda oculta a la vista), papelera de 36 px, «Agregar línea» debajo, `Collapse` por fila, bloque por línea en `xs`. La lógica (`useFieldArray`) la pone el consumidor |
+| `Fallback` | `molecules` | Vacío / sin resultados / error / sin permiso / no encontrado: ícono en círculo de 44 px, `titulo`, `texto` (≤ 75ch), `accion`, `icono`, `compact`, `tituloComo` (`h1` en páginas públicas). `EmptyState` y `ErrorState` lo envuelven |
+| `RouteError` | `organisms` | Contenido de todo `error.tsx`: `Fallback tipo="error"` + «Tus datos están a salvo» + «Reintentar» (`retry` de Next 16.3) + «Código: …» con el `digest` |
+| `PaginaFallback` + `SinPermiso` | `organisms` | Página entera de fallback con una acción (por defecto «Volver al inicio»): los `not-found.tsx` (raíz, `(protected)` y de cada ficha) y `SinPermiso` en las rutas solo admin (`forbidden()` sigue experimental en Next 16) |
+| `FichaSeccion` (+ `FichaDatos`, `FichaDato`) | `molecules` | Sección de ficha: superficie de nivel 0 (radio 8, borde `divider`), título `h6` con `aria-labelledby`, `accion` a la derecha, `loading`; los 48 px entre secciones los da la ficha. `FichaDatos`/`FichaDato`: lista etiqueta → valor con «—» si falta |
+| `useResaltado` + `conGuion` | `lib` | `useResaltado()` → `{ idResaltado, resaltar(id) }` durante `TIEMPOS.RESALTADO_MS` (para `highlightId`); `conGuion(v, fmt?)` y `FALTANTE` en `lib/format.ts` para el dato faltante |
+| `src/theme/tokens.ts` | `src/theme` | Movimiento (`MOTION`: duraciones y curvas), tiempos (`TIEMPOS`: 150/400 ms del loader, 100 ms de navegación, 5 s de toast, 2 s de resaltado), espaciado semántico (`ESPACIO`) y sombras por elevación (`SOMBRAS`) |
+| `BrandMark` | `atoms` | Logo (`variant: full / isotipo`, `size`, `orientation`, `sobreMedianoche`); isotipo provisional Puerto (proa medianoche + filete de latón; «Altamar» en Fraunces en `full`) hasta tener el archivo real; `src/app/icon.svg` es su copia estática |
+| `NavigationProgress` | `atoms` | Filete de latón de 3 px (`FileteLaton sweep`) fijo en el borde superior de la ventana, sin ocupar lugar, tras `TIEMPOS.NAV_RETARDO_MS`; `NavigationProgressProvider` + `NavLinkStatus` (`useLinkStatus` dentro de cada `Link`) + `useNavigationPending(activo)`. Con `active` (muestra) queda en su lugar |
+| `BrandLoader` + `useGlobalLoader` | `organisms` / `lib` | Loader global: isotipo, nombre en `h3`, `FileteLaton sweep` y mensaje, sobre `scrim` (o a pantalla completa con `pantallaCompleta`). `show(msg, { untilNavigation, pantallaCompleta })` devuelve `release`, `hide()`, `run(tarea, msg)`; retardo y mínimo de `TIEMPOS`, contador |
+| `AppDataGrid` | `organisms` | Toda tabla: barra (búsqueda de 340 px, `estados` → `SegmentedControl` con contadores, tipado con `estadosTabla`, `filters` para `FilterMenuButton`, `actions`), filas de 56 px y encabezado de 40, columnas que llenan el ancho, `mode` cliente/servidor (`rowCount` + `onQueryChange`), `?pagina=` en la URL (`paginaDesdeParam`), tamaño recordado por `tableId`, `mobileCard` en `xs`, `hideOnMobile`, `getRowHref`, `highlightId` (resaltado de 2 s, con `useResaltado`), estados vacío / sin resultados («Limpiar filtros» + `onClearFilters`) / error / cargando con `Fallback` y sin paginación cuando no hay filas. Búsqueda en modo cliente con `normalizeSearch` y `getSearchValues` |
+| `AppDialog` | `organisms` | Todo diálogo de formulario: `size` xs 400 / sm 600 / md 900 / lg 1120 (lista por formulario en § Patrones › Formulario), una sola superficie elevada con `dialogDivider` en encabezado y pie, padding 24/16, `title`/`subtitle`, `primaryAction`, `pending`, `dirty`, `error` arriba del contenido con `onRetry`, `onSubmit` (el diálogo es un `<form>`), `footer`; entra con fundido + 8 px; pantalla completa + `Slide` en `xs` (y `lg` por debajo de `md`), cierre protegido, foco al primer campo |
+| `colPrincipal` / `colMonto` / `colKg` / `colTasa` / `colFecha` / `colEstado` / `colAcciones` + `EstadoChip` | `organisms/appDataGridColumns` | Columnas estándar de `AppDataGrid`: `colPrincipal` (nombre `body2` 500 + secundario en `caption` en la misma celda, flexible), montos a la derecha con `destacarPositivo`, «—» con `conGuion` para el dato faltante, chip de estado, menú `⋮` |
+| `RowActionsMenu` | `molecules` | Menú `⋮` de 32 px de una fila o tarjeta, con estado `pending`; las destructivas van dentro, en `error`, siempre con confirmación |
+| `FichaHeader` | `molecules` | Encabezado de ficha: vuelta en `text.secondary` (`backHref`, `backLabel`; `router.back()` si se vino de ese listado), nombre `h5` (`component="h1"`), `meta`, `primaryAction` (`outlined` en `sm+`, primera opción del `⋮` en `xs`), `menuActions` y `pending` |
 | `BloqueoDialog` | `organisms` | Bloqueo con motivo obligatorio (clientes y proveedores): `AppDialog xs`, primario `color="error"` con `loading`, `pending` y `dirty` (motivo escrito) protegen el cierre, guarda contra doble envío; error del motivo en el campo, otros en el `Alert` |
-| `PeneroSweep` | `atoms` (en `PeneroStripes.tsx`) | Franjas barriendo (progreso indeterminado) para `NavigationProgress` y `BrandLoader`. **Se retira en la Fase 3** (→ `FileteLaton variant="sweep"`) |
+| ~~`PeneroSweep`~~ | `atoms` | **Retirado** el 2026-10-30 (tarea 140); lo reemplaza `FileteLaton variant="sweep"` |
 | `TasaChip` | `molecules` | Chip de una tasa referencial: valor, fuente, fecha valor y aviso de "arrastrada" (08-tasas) |
 | `TasaSelector` | `organisms` | Selector de tasa de una operación (08-tasas): referencial por fecha (BCV/paralela, Server Action con debounce) o manual con desviación en vivo; escribe `tasa_origen`/`tasa_fuente`/`tasa` en el form dueño (`FormProvider`); `pedirConfirmacionTasaManual` centraliza el ConfirmDialog del umbral |
 | `EstadoCarteraChip` (+ `COLOR_ESTADO_CARTERA`) | `atoms` | Estado de cobro/pago de un documento de cartera: Vencida/Por vencer/Pendiente/Pagada/Anulada, chip `soft` 22 px (09-cuentas-por-cobrar; ficha de cliente, `/cobros`, futuro CxP) |
 | `CarteraIndicador` | `molecules` | Ícono `ReceiptLongOutlined` + badge coloreado por el peor estado de un `ResumenCartera`; tooltip con conteos, montos (si el resumen los trae) y último recordatorio; accesible por teclado y táctil sin abrir la fila (09; listado de clientes, futuro proveedores) |
-| `CarteraResumenCards` (+ `CarteraSeccionSkeleton`) | `molecules` | Cuatro tarjetas Vencidas/Por vencer/Pendientes/Pagadas con cantidad y monto (si hay `montos_usd`); con `onSeleccionar` filtran la tabla (09; ficha de cliente, `/cobros`) |
+| `CarteraResumenCards` (+ `CarteraSeccionSkeleton`) | `molecules` | Cuatro `KpiCard` Vencidas/Por vencer/Pendientes/Pagadas con cantidad y monto (si hay `montos_usd`); con `onSeleccionar` son la variante seleccionable y **son** el filtro de la tabla (09; ficha de cliente, `/cobros`) |
 | `DiasCreditoField` | `molecules` | Días de crédito de una venta: `NumberField` entero, atajos 7/15/30, "Vence el …" en vivo y aviso si difiere de lo habitual del cliente (09; POS y entrega de pedido). `diasHabituales={null}` = sin habituales: vacío y sin aviso propio (06, `GenerarContratoDialog`) |
-| `DocumentosCarteraTable` | `organisms` | Tabla genérica de `DocumentoCartera` sobre `AppDataGrid`: número, contraparte opcional, vencimiento con "vence en / vencida hace", montos solo con `mostrarMontos`, estado; orden por gravedad, chips por estado + "Ver anuladas", `renderAcciones` (menú `⋮`), filtro controlado o inicial (09; ficha de cliente, `/cobros`, futuro CxP) |
+| `DocumentosCarteraTable` | `organisms` | Tabla genérica de `DocumentoCartera` sobre `AppDataGrid`: número, contraparte opcional, vencimiento con «vence en / vencida hace», montos solo con `mostrarMontos`, estado; orden por gravedad; chips por estado (`ocultarFiltroEstados` cuando los controlan las tarjetas) + «Ver anuladas», `renderAcciones`, filtro controlado o inicial y «Limpiar filtros» (09) |
 | `RecordatorioDialog` | `organisms` | Recordatorio de cobro (admin): facturas con casillas y total en vivo, canal con disponibilidad y motivo, vista previa editable (correo en `iframe sandbox`), aviso de 24 h, WhatsApp abierto en el mismo clic y correo con `loading` (09; ficha de cliente, `/cobros`) |
 | `HistorialRecordatorios` | `organisms` | Historial de recordatorios (fecha, canal, destinatario, quién, estado; error y "Reintentar" en correos fallidos) (09; ficha de cliente) |
 | `TasaIndicador` | `molecules` | Chip compacto de la barra superior con las vigentes de hoy (BCV/paralela USD, EUR en `sm+`), tooltip con fecha valor/origen, ícono de advertencia si arrastrada, clic → `/tasas` (08-tasas) |
@@ -700,21 +705,21 @@ No se agrega ninguna librería de animación de terceros (Framer Motion, GSAP, e
 | `LotesCreadosDialog` | `organisms` | Códigos de los lotes recién creados, grandes y copiables, para rotular; enlace a cada ficha (07-lotes; compras y procesamiento) |
 | `LotesLineaVenta` + `AsignacionLotesPanel` | `organisms` | Lotes de una línea de venta: propuesta PEPS (debounce 300 ms, `Skeleton`), chips, "Cambiar lotes" en línea (kg por lote, aviso en vivo si no cuadra o excede), "Volver a PEPS", error de stock insuficiente y `onSuficiencia` para bloquear la emisión (07-lotes; POS y entrega de pedido) |
 | `PerdidaLoteDialog` | `organisms` | Pérdida en un lote: kg ≤ stock, motivo (dañado/vencido/faltante/otro), detalle; `AppDialog sm` (07-lotes; inventario y ficha del lote) |
-| `KpiCard` | `molecules` | Indicador: título `body2` (Puerto: `subtitle2`), cifra `h5` (Peñero: Barlow Condensed; Puerto: Fraunces 500, tabular), secundaria `caption`, radio 6 en Puerto, acento de estado `tone` (`error`/`warning`/`success`, borde izquierdo; en Puerto también con ícono, porque el color no basta), `href` (toda la tarjeta enlaza), `loading` (skeleton), `children` extra (15-dashboard) |
-| `ChartCard` | `molecules` | Tarjeta de sección o gráfico: radio 8, borde `divider`, sin sombra; título `h6`, `help`, `action`; estados `loading` (skeleton de `skeletonHeight`), `error` (`ErrorState`), `empty` (`EmptyState compact`); `Fade` al llegar el contenido (15-dashboard) |
+| `KpiCard` | `molecules` | Indicador: título `subtitle2`, cifra `h5` Fraunces 500 tabular, secundaria `caption`, radio 6; `tone` (`error`/`warning`/`success`) con ícono y borde izquierdo; `href` (toda la tarjeta enlaza) o `onClick` + `selected` (variante seleccionable, `aria-pressed`, borde de 2 px en `text.primary`); `loading`, `children` (15) |
+| `ChartCard` | `molecules` | Tarjeta de sección o gráfico: superficie de nivel 0 (radio 8, borde `divider`, sin sombra), cifras tabulares; título `h6`, `help`, `action`; estados `loading`, `error` (`ErrorState`), `empty` (`EmptyState compact`); `Fade` al llegar el contenido (15) |
 | `ChartLegendTable` | `molecules` | Alternativa accesible a un gráfico: tabla con los mismos datos, colapsable ("Ver tabla") o `variant="hidden"` (solo lectores de pantalla); columnas con `render` ya formateado y `align: 'right'` para números (15-dashboard) |
-| `ListaResumen` | `molecules` | Lista compacta de resumen: principal + secundaria, monto tabular (+ detalle) y estado a la derecha, filas ≥ 56 px, `href` hace la fila enlace (15-dashboard: deudores, clientes inactivos, contratos) |
+| `ListaResumen` | `molecules` | Lista compacta de resumen: principal + secundaria, monto tabular (+ detalle) y estado a la derecha, filas de 56 px con `rowDivider`, `href` hace la fila enlace, `highlightId` para el resaltado (15) |
 | `BarLineChart` | `organisms` | Barras + líneas sobre categorías con eje doble opcional (`formatoEjeDer`, `rangoEjeDer`), línea de `referencia`, leyenda arriba y tooltip por eje; composición de `@mui/x-charts` (15-dashboard: ventas USD/kg, flujo, Pareto, spread) |
 | `RangoFechasSelector` | `molecules` | Rango de fechas por URL: chips de presets (Hoy, 7 días, mes en curso, mes anterior, 90 días, año) + "Personalizado" con `DatePicker` desde/hasta (dayjs, `es`); `router.replace` de `?desde`/`?hasta` conservando los demás parámetros; en `xs`, `Select` + diálogo. Valida con `rangoFechasSchema` (15-dashboard) |
 | `SenalFacturaChip` (+ `NivelSenalChip`, `COLOR_NIVEL_SENAL`) | `atoms` | Señal de posible error de una línea de factura: Pérdida (error), Por debajo / Cobro mayor (aviso) e indicadores neutros Sin referencia / Sin costo; chip `soft` 22 px con tooltip de la regla y las cifras. `NivelSenalChip`: nivel de la factura con el conteo (17-trazabilidad-y-correccion-facturas; ficha `/facturas/[id]`) |
 | `IvaVentaSwitch` | `molecules` | Interruptor "Factura con IVA (16 %)" de una venta (% de configuración), controlado, precargado con el "Aplica IVA" del cliente; aviso «Este cliente normalmente sí/no lleva IVA» si difiere; `helperText`/`error` (18-iva-opcional; POS y entrega de pedido) |
 | `TotalesVenta` (+ `totalesVenta`) | `molecules` | Subtotal, IVA (`IVA (16 %)` o «Sin IVA») y total de una venta con `totalesDe` y `lib/format.ts`, cifras tabulares a la derecha; `totalesVenta(items, ivaPct)` omite líneas incompletas; `etiquetaTotal` (18-iva-opcional; POS, entrega de pedido, nota de crédito) |
-| `CadenaTrazabilidad` | `molecules` | Cadena genérica de eslabones `{ icono, titulo, lineas, href? }` unidos por flechas: horizontal en `md+`, vertical en `xs`/`sm`; bordes `divider`, radio 8, cifras tabulares (17; compra → proceso → venta por lote) |
-| `DocumentoPublicoLayout` | `templates` | Página pública sin sesión (21-cotizaciones, `/c/[token]`): `BrandMark` + franjas de la borda (Puerto: filete de latón), datos del negocio, contenido centrado (máx. 880 px), sin `AppShell` ni datos de usuario. Reutilizable para otros documentos públicos |
+| `CadenaTrazabilidad` | `molecules` | Cadena genérica de eslabones `{ icono, titulo, lineas, href? }` unidos por flechas: horizontal en `md+`, vertical en `xs`/`sm`; superficies de nivel 0 (radio 8); los íconos llegan con `fontSize="small"` (17) |
+| `DocumentoPublicoLayout` | `templates` | Página pública sin sesión (21, `/c/[token]`): `BrandMark` + filete de latón bajo el encabezado, datos del negocio, contenido centrado (máx. 880 px), sin `AppShell` ni datos de usuario |
 | `CotizacionDocumento` | `organisms` | Vista de solo lectura de una cotización (cliente, líneas, totales USD, notas y términos), mismo orden que el PDF; la comparten la ficha y la página pública; solo recibe datos para el cliente (21) |
-| `CotizacionNoDisponible` | `organisms` | Página de respaldo de un enlace público (`vencida` con número / `generica` sin datos) con WhatsApp al negocio (21). Patrón a seguir si otro documento tiene enlace público |
-| `lib/pdf/marca.tsx` + `lib/pdf/fuentes.ts` | `src/lib/pdf` | PDF con la identidad (react-pdf): `EncabezadoMarca` (isotipo + nombre + datos del negocio + franjas; Puerto: filete de latón), `PiePagina` con «Página N de M», `registrarFuentesMarca()` (Barlow desde TTF en `lib/pdf/fuentes/`; Puerto: Fraunces + Instrument Sans; Helvetica si faltan). Para cualquier PDF nuevo (21) |
-| `src/theme/marca.ts` + `src/lib/marca/isotipo.ts` | `src/theme`, `src/lib/marca` | Hex de `palette.brand` (claro/oscuro) y geometría del isotipo: única fuente para lo que vive fuera de MUI (PDF, correo). `theme.ts` y `BrandMark` los leen (21, tarea agregada en 00) |
+| `CotizacionNoDisponible` | `organisms` | Página de respaldo de un enlace público (`vencida` con número / `generica` sin datos) sobre `Fallback` (`h1`) con WhatsApp al negocio (21) |
+| `lib/pdf/marca.tsx` + `lib/pdf/fuentes.ts` | `src/lib/pdf` | PDF con la identidad (react-pdf): `EncabezadoMarca` (isotipo Puerto + nombre + datos del negocio + `FiletePdf` de latón), `PiePagina` con «Página N de M», `registrarFuentesMarca()` (Fraunces 600 + Instrument Sans 400/600 desde los TTF de `lib/pdf/fuentes/`; Helvetica si faltan). Las cifras salen proporcionales (react-pdf no activa `tnum`) |
+| `src/theme/marca.ts` + `src/lib/marca/isotipo.ts` | `src/theme`, `src/lib/marca` | Hex de `palette.brand` Puerto (claro/oscuro: `midnight`, `navy`, `onMidnight`, `onMidnightMuted`, `brass`, `brassText`) y geometría del isotipo (proa + filete): única fuente para lo que vive fuera de MUI (PDF, correo) |
 
 Gráficas: `@mui/x-charts` (v9, alineada con `x-data-grid`; agregada en 15-dashboard, D1). Colores con `coloresGrafico(theme)` de `lib/dashboard/chartColors.ts` (variables CSS de `theme.palette`, nunca hex ni `brand.*` decorativo). En Puerto, la serie categórica sale de un token nuevo `palette.chart` (`c1`–`c6`, claro y oscuro, *P-UI9*). Cada color debe dar ≥ 3:1 contra `background.paper` (WCAG 1.4.11), y por eso no se usa `brand.brass` claro (`#C9A66B`). `success` y `primary` ya no se distinguen por tono, así que los gráficos no dependen solo del color para positivo/negativo: van con leyenda, etiqueta y `ChartLegendTable`; cada gráfico lleva `aria-label` y su `ChartLegendTable`. Las animaciones del paquete respetan `prefers-reduced-motion`.
 

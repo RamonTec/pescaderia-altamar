@@ -156,9 +156,11 @@ _4d hecha el 2026-10-30 (`feat/ds-carga`, tareas 122–130): lint, tsc y build e
 _4e hecha el 2026-10-30 (`feat/ds-marca`, tareas 131–140): lint, tsc y build en verde. Revisión visual pendiente para el PR y la 160 (las pantallas piden sesión)._
 
 ### Catálogo vivo (4f)
-- [ ] `/estandares` partido en secciones (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks), con índice y vista en ambos modos.
-- [ ] Cada primitivo en todos sus estados y cada patrón de los artboards 2–4 presente en el catálogo.
-- [ ] Tabla «Componentes compartidos» de `spec.md` al día (tarea 146).
+- [x] `/estandares` partido en secciones (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks), con índice y vista en ambos modos.
+- [x] Cada primitivo en todos sus estados y cada patrón de los artboards 2–4 presente en el catálogo.
+- [x] Tabla «Componentes compartidos» de `spec.md` al día (tarea 146).
+
+_4f hecha el 2026-10-30 (`feat/ds-catalogo`, tareas 141–146): lint, tsc y build en verde. «Ambos modos» usa `data-mui-color-scheme` anidado (verificado con `generateStyleSheets`). La revisión visual del catálogo queda para el PR (la página pide sesión de admin)._
 
 ### Migración y verificación (4g)
 - [ ] Listados (tareas 147–149) con el patrón único de filtros y sin chips de estados normales.
