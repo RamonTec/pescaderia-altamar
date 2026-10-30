@@ -209,6 +209,17 @@ Los filtros viven en la URL (`?estado=`, como hoy). No se usan chips como filtro
 
   Las páginas dedicadas (`/compras/nueva`) quedan fuera del MVP, salvo que DS-4 diga otra cosa.
 
+  **Lista final por tamaño** (tarea 117, 2026-10-30; DS-4 aprobada). Sale de `rg "<AppDialog" src` y de contar secciones y líneas repetibles de cada formulario. La aplicación del tamaño va en las tareas 150–151; «hoy» es el tamaño en el código al planificar:
+
+  | Tamaño | Diálogos | Hoy |
+  |---|---|---|
+  | `xs` (400 px, confirmación o un campo) | `AnularCotizacionDialog`, `AnularGastoDialog`, `BloqueoDialog`, `CategoriaGastoForm`, `ConvertirPedidoDialog`, `GenerarContratoDialog`, `ResponderCotizacionDialog` | `xs` |
+  | `sm` (1 sección o ≤ 6 campos) | `ProductoForm`, `EmpleadoForm`, `TasaManualDialog`, `PagoProveedorDialog`, `PerdidaLoteDialog`, `EntregaPedidoDialog`, `CambiarIvaFacturaDialog`, `CorregirLineaFacturaDialog`, `CompartirCotizacionDialog`, `LotesCreadosDialog`, `GastoDetalleDialog` | `sm` |
+  | `md` (2 secciones sin líneas) | `RecordatorioDialog`, `ProveedorForm` (asistente por pasos: cada paso es corto, así que se queda en `md` aunque tenga representantes y cuentas repetibles) | `md` |
+  | `lg` (líneas repetibles o > 2 secciones) | `CompraForm`, `EditarCompraDialog`, `PedidoForm`, `CotizacionForm`, `ProcesamientoForm`, `NotaCreditoForm`, `ClienteForm` (representantes legales), `GastoForm` (5 secciones), `GastoRecurrenteForm` (3 secciones) | `md`, salvo `NotaCreditoForm` y `GastoRecurrenteForm` (`sm`) |
+
+  `ProveedorForm` es la única excepción a la regla; si al migrar `GastoForm` o `GastoRecurrenteForm` sus secciones se funden en dos, bajan a `md`.
+
 **Ficha**:
 - `FichaHeader`: vuelta en `text.secondary`, nombre `h5` y `meta`.
 - **Secciones**: superficies de nivel 0 (`FichaSeccion`, radio 8) separadas por 48 px. Ningún bloque de color (`CreditoResumen` pasa a superficie normal).

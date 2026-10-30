@@ -51,7 +51,7 @@ function eslabonCompra(
 ): EslabonCadena {
   return {
     clave,
-    icono: <LocalShippingOutlinedIcon />,
+    icono: <LocalShippingOutlinedIcon fontSize="small" />,
     titulo: `Compra${compra?.proveedor_nombre ? ` · ${compra.proveedor_nombre}` : ''}`,
     lineas: [
       `${formatFecha(compra?.fecha ?? lote.fecha_ingreso)} · lote ${lote.codigo}${lote.kg != null ? ` · ${formatKg(lote.kg)}` : ''}`,
@@ -68,7 +68,7 @@ function eslabonInicial(
 ): EslabonCadena {
   return {
     clave,
-    icono: <Inventory2OutlinedIcon />,
+    icono: <Inventory2OutlinedIcon fontSize="small" />,
     titulo: 'Inventario inicial',
     lineas: [`${formatFecha(lote.fecha_ingreso)} · lote ${lote.codigo} · sin proveedor`, costoEntrada(lote.costo, lote.moneda, lote.tasa)],
     href: `/inventario/lotes/${lote.id}`,
@@ -93,7 +93,7 @@ function eslabonPadre(padre: LotePadreTrazabilidad): EslabonCadena {
 function cadenaDeLote(lote: EslabonLoteVendido, precioVenta: number): EslabonCadena[] {
   const venta: EslabonCadena = {
     clave: 'venta',
-    icono: <ReceiptLongOutlinedIcon />,
+    icono: <ReceiptLongOutlinedIcon fontSize="small" />,
     titulo: `Venta · lote ${lote.codigo}`,
     lineas: [
       `${formatKg(lote.peso_kg)} × ${formatUsd(precioVenta)}/kg = ${formatUsd(lote.peso_kg * precioVenta)}`,
@@ -116,7 +116,7 @@ function cadenaDeLote(lote: EslabonLoteVendido, precioVenta: number): EslabonCad
   if (lote.origen === 'compra') {
     return [
       eslabonCompra('compra', lote.compra, propio),
-      { clave: 'sin-proceso', icono: <SetMealOutlinedIcon />, titulo: 'Vendido sin procesar', lineas: ['Crudo vendido tal cual entró'] },
+      { clave: 'sin-proceso', icono: <SetMealOutlinedIcon fontSize="small" />, titulo: 'Vendido sin procesar', lineas: ['Crudo vendido tal cual entró'] },
       venta,
     ]
   }
@@ -127,7 +127,7 @@ function cadenaDeLote(lote: EslabonLoteVendido, precioVenta: number): EslabonCad
   const merma = Math.max(p.peso_entrada_kg - p.peso_salida_total_kg, 0)
   const proceso: EslabonCadena = {
     clave: 'proceso',
-    icono: <ContentCutOutlinedIcon />,
+    icono: <ContentCutOutlinedIcon fontSize="small" />,
     titulo: `Procesamiento · ${formatFecha(p.fecha)}`,
     lineas: [
       `Lote crudo ${p.lote_padre?.codigo ?? '—'}: entrada ${formatKg(p.peso_entrada_kg)} → ${formatKg(p.peso_salida_total_kg)} en ${p.salidas} ${p.salidas === 1 ? 'salida' : 'salidas'}`,

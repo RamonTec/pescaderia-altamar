@@ -32,8 +32,8 @@ export interface ChartCardProps {
 }
 
 /**
- * Tarjeta de sección del dashboard (15): radio 8, borde `divider`, sin
- * sombra. Título `h6`, ayuda, acción opcional y los estados del bloque:
+ * Tarjeta de sección del dashboard (15): superficie de nivel 0 (radio 8,
+ * borde `divider`, sin sombra) y montos tabulares. Título `h6` sans, ayuda, acción opcional y los estados del bloque:
  * skeleton al cargar, `ErrorState` en error, `EmptyState compact` sin datos.
  */
 export function ChartCard({
@@ -73,7 +73,21 @@ export function ChartCard({
   }
 
   return (
-    <Paper component="section" sx={{ p: 2, display: 'grid', gap: 1.5, minWidth: 0, alignContent: 'start' }}>
+    <Paper
+      component="section"
+      variant="outlined"
+      sx={{
+        p: { xs: 2, sm: 3 },
+        display: 'grid',
+        gap: 2,
+        minWidth: 0,
+        alignContent: 'start',
+        borderRadius: '8px',
+        borderColor: 'divider',
+        boxShadow: 'none',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap' }}>
         <Box sx={{ flex: 1, minWidth: 180 }}>
           <Typography variant="h6" component="h3">

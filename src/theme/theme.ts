@@ -1,12 +1,19 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { createTheme, type Theme, type Overlays } from '@mui/material/styles'
+import { createTheme, keyframes, type Theme, type Overlays } from '@mui/material/styles'
 import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
 import { MARCA_CLARO, MARCA_OSCURO } from './marca'
 import { MOTION, SOMBRAS } from './tokens'
+
+// Entrada del modal (spec § Movimiento): fundido (lo hace el `Fade` de MUI)
+// + 8 px hacia arriba. En pantalla completa entra con `Slide`.
+const dialogEntrada = keyframes`
+  from { transform: translateY(8px); }
+  to { transform: none; }
+`
 
 /**
  * Identidad "Puerto" (Altamar Sea Food): azul medianoche (#0B1B33), blanco
@@ -592,9 +599,13 @@ export const theme = createTheme(
       styleOverrides: { root: { borderRadius: 4 } },
     },
     MuiDialog: {
+      defaultProps: {
+        transitionDuration: { enter: MOTION.duraciones.lenta, exit: MOTION.duraciones.salida },
+      },
       styleOverrides: {
         paper: ({ theme }) => ({
           borderRadius: 8,
+          animation: `${dialogEntrada} ${MOTION.duraciones.lenta}ms ${MOTION.curvas.entrada}`,
           backgroundColor: theme.vars.palette.background.elevated,
           boxShadow: SOMBRAS.claro.elevacion2,
           ...theme.applyStyles('dark', {
@@ -602,7 +613,7 @@ export const theme = createTheme(
             border: `1px solid ${theme.vars.palette.dialogDivider}`,
           }),
         }),
-        paperFullScreen: { borderRadius: 0, border: 0 },
+        paperFullScreen: { borderRadius: 0, border: 0, animation: 'none' },
       },
     },
     MuiTooltip: {

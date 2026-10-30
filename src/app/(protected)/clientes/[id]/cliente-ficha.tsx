@@ -341,6 +341,7 @@ export function ClienteFicha({
                 mostrarMontos={contexto.mostrarMontos}
                 filtro={filtroCartera}
                 onFiltroChange={setFiltroCartera}
+                ocultarFiltroEstados
                 pageParam="pfacturas"
                 embedded
                 renderAcciones={esAdmin ? accionesFactura : undefined}

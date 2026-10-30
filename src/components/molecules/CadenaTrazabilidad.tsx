@@ -69,7 +69,8 @@ export function CadenaTrazabilidad({ eslabones, ariaLabel }: CadenaTrazabilidadP
               minWidth: 0,
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: '8px',
+              bgcolor: 'background.paper',
               p: 1.5,
               display: 'grid',
               gap: 0.5,
@@ -77,7 +78,7 @@ export function CadenaTrazabilidad({ eslabones, ariaLabel }: CadenaTrazabilidadP
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-              <Box sx={{ display: 'inline-flex', '& svg': { fontSize: 20 } }}>{e.icono}</Box>
+              <Box sx={{ display: 'inline-flex' }}>{e.icono}</Box>
               <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', minWidth: 0 }}>
                 {e.titulo}
               </Typography>

@@ -63,7 +63,14 @@ export function ChartLegendTable<R>({
   const id = React.useId()
 
   const tabla = (
-    <TableContainer sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+    <TableContainer
+      sx={{
+        maxWidth: '100%',
+        overflowX: 'auto',
+        fontVariantNumeric: 'tabular-nums',
+        '& .MuiTableCell-root': { borderColor: 'rowDivider', fontVariantNumeric: 'tabular-nums' },
+      }}
+    >
       <Table size="small" aria-label={caption}>
         <caption style={VISUALLY_HIDDEN}>{caption}</caption>
         <TableHead>
