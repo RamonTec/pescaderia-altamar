@@ -150,7 +150,7 @@ _4d hecha el 2026-10-30 (`feat/ds-carga`, tareas 122–130): lint, tsc y build e
 - [x] `BrandLoader` sin vaivén; `NavigationProgress` y `BrandLoader` conservan el retardo, el mínimo, `role="status"` y la versión quieta.
 - [x] `BrandMark`, `isotipo.ts` e `icon.svg` con el isotipo provisional Puerto (el logo real sigue en el pendiente (g)).
 - [x] `AppShell` sin `ActiveStripes`, con márgenes 16/24/64 y 48 px entre bloques. `CreditoResumen` como superficie normal con el exceso comunicado por texto.
-- [x] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia. _Las fuentes nuevas quedan registradas en código, pero faltan los TTF en `src/lib/pdf/fuentes/` (ver tarea 138): hasta entonces, Helvetica._
+- [x] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia. _TTF de Fraunces e Instrument Sans agregados (OFL); cifras proporcionales en el PDF, anotado en la tarea 138._
 - [x] `PeneroStripes.tsx` borrado; `rg -i "penero|hull|ochre|brand\.red|brand\.trim|barlow" src` vacío.
 
 _4e hecha el 2026-10-30 (`feat/ds-marca`, tareas 131–140): lint, tsc y build en verde. Revisión visual pendiente para el PR y la 160 (las pantallas piden sesión)._
