@@ -3,15 +3,13 @@
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import IconButton from '@mui/material/IconButton'
-import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 import Skeleton from '@mui/material/Skeleton'
 import Fade from '@mui/material/Fade'
 import LinearProgress from '@mui/material/LinearProgress'
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
+import { RowActionsMenu } from '@/components/molecules/RowActionsMenu'
 import type { DocumentoStore, DocumentoItem } from '@/lib/documentoStore'
 import { useNotify } from '@/lib/useNotify'
 import { useConfirm } from '@/lib/useConfirm'
@@ -22,6 +20,8 @@ export interface DocumentoUploadProps<TTipo extends string = string> {
   label: string
   accept?: string
   representanteId?: string
+  /** Estado junto a la etiqueta (`EstadoChip` "Falta"). */
+  estado?: React.ReactNode
   /**
    * Deshabilita subir, reemplazar, eliminar y soltar archivos (p. ej.
    * mientras el formulario dueño guarda). "Ver" sigue funcionando.
@@ -76,7 +76,10 @@ function nombreArchivo(item: DocumentoItem): string {
 
 /**
  * Subir/ver/reemplazar un documento (cédula/RIF/acta). Desacoplado del
- * repositorio concreto vía `DocumentoStore`. Soporta arrastrar y soltar,
+ * repositorio concreto vía `DocumentoStore`. Cada documento cargado es una
+ * fila (ícono, nombre, tamaño, "Ver" y `⋮` con "Reemplazar" y "Eliminar"),
+ * sin cajas anidadas ni papelera suelta; la zona para soltar archivos solo
+ * aparece si no hay archivo. Soporta arrastrar y soltar,
  * validación de tipo/tamaño antes de subir, compresión de fotos en el cliente,
  * miniatura/ícono, y reemplazo real (sube el nuevo y luego borra el anterior).
  */
@@ -86,6 +89,7 @@ export function DocumentoUpload<TTipo extends string = string>({
   label,
   accept,
   representanteId,
+  estado,
   disabled = false,
 }: DocumentoUploadProps<TTipo>) {
   const notify = useNotify()
@@ -201,133 +205,137 @@ export function DocumentoUpload<TTipo extends string = string>({
     }
   }
 
+  const elegirArchivo = () => inputRef.current?.click()
+
   return (
-    <Box sx={{ display: 'grid', gap: 1.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ flexGrow: 1 }}>
+    <Box sx={{ display: 'grid', gap: 1, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        <Typography variant="label" component="div">
           {label}
         </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<CloudUploadOutlinedIcon />}
-          loading={uploading}
-          loadingPosition="start"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-        >
-          {docs.length > 0 ? 'Reemplazar' : 'Subir'}
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          capture="environment"
-          hidden
-          disabled={bloqueado}
-          onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-        />
+        {estado}
       </Box>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        capture="environment"
+        hidden
+        disabled={bloqueado}
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+      />
 
-      {uploading ? <LinearProgress /> : null}
+      {uploading ? <LinearProgress aria-label={`Subiendo ${label}`} /> : null}
 
-      <Box
-        onDragOver={(e) => {
-          e.preventDefault()
-          if (!bloqueado) setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          handleFile(e.dataTransfer.files?.[0] ?? null)
-        }}
-        sx={{
-          border: '1px dashed',
-          borderColor: dragOver && !bloqueado ? 'primary.main' : 'divider',
-          borderRadius: 2,
-          bgcolor: dragOver && !bloqueado ? 'action.hover' : 'transparent',
-          transition: (t) => t.transitions.create(['border-color', 'background-color']),
-        }}
-      >
-        {loading ? (
-          <Skeleton variant="rounded" height={56} sx={{ m: 1 }} />
-        ) : docs.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-            Sin documentos. Arrastra y suelta un archivo aquí o usa &quot;Subir&quot;.
+      {loading ? (
+        <Skeleton variant="rounded" height={48} />
+      ) : docs.length === 0 ? (
+        // La zona para soltar solo aparece cuando no hay archivo.
+        <Box
+          onDragOver={(e) => {
+            e.preventDefault()
+            if (!bloqueado) setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            handleFile(e.dataTransfer.files?.[0] ?? null)
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            px: 2,
+            py: 1.5,
+            border: '1px dashed',
+            borderColor: dragOver && !bloqueado ? 'text.primary' : 'divider',
+            borderRadius: '6px',
+            bgcolor: dragOver && !bloqueado ? 'background.subtle' : 'transparent',
+            transition: (t) => t.transitions.create(['border-color', 'background-color']),
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+            Arrastra un archivo aquí o
           </Typography>
-        ) : (
-          <Fade in timeout={200}>
-            <Box sx={{ display: 'grid', gap: 1, p: 1 }}>
-              {docs.map((doc) => (
-                <Box
-                  key={doc.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 0.75,
-                  }}
-                >
-                  {esImagenDoc(doc) && urls[doc.id] ? (
-                    <Box
-                      component="img"
-                      src={urls[doc.id]}
-                      alt={nombreArchivo(doc)}
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        objectFit: 'cover',
-                        borderRadius: 1,
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'text.secondary',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <PictureAsPdfOutlinedIcon />
-                    </Box>
-                  )}
-                  <Typography
-                    variant="body2"
-                    sx={{ flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<CloudUploadOutlinedIcon />}
+            loading={uploading}
+            loadingPosition="start"
+            disabled={disabled}
+            onClick={elegirArchivo}
+          >
+            Subir
+          </Button>
+        </Box>
+      ) : (
+        <Fade in timeout={200}>
+          <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid' }}>
+            {docs.map((doc) => (
+              <Box
+                component="li"
+                key={doc.id}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minHeight: 48, minWidth: 0 }}
+              >
+                {esImagenDoc(doc) && urls[doc.id] ? (
+                  <Box
+                    component="img"
+                    src={urls[doc.id]}
+                    alt=""
+                    sx={{ width: 32, height: 32, objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+                  />
+                ) : (
+                  <PictureAsPdfOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', flexShrink: 0 }} />
+                )}
+                <Box sx={{ minWidth: 0, flexGrow: 1, display: 'grid' }}>
+                  <Typography variant="body2" noWrap>
                     {nombreArchivo(doc)}
                   </Typography>
-                  {urls[doc.id] ? (
-                    <Link href={urls[doc.id]} target="_blank" rel="noreferrer" variant="body2">
-                      Ver
-                    </Link>
+                  {doc.tamano_bytes ? (
+                    <Typography variant="caption" color="text.secondary">
+                      {tamanoLegible(doc.tamano_bytes)}
+                    </Typography>
                   ) : null}
-                  <IconButton
-                    aria-label={`Eliminar documento de ${label}`}
-                    color="error"
-                    size="small"
-                    disabled={bloqueado}
-                    onClick={() => handleDelete(doc)}
-                  >
-                    <DeleteOutlinedIcon />
-                  </IconButton>
                 </Box>
-              ))}
-            </Box>
-          </Fade>
-        )}
-      </Box>
+                {urls[doc.id] ? (
+                  <Button
+                    size="small"
+                    variant="text"
+                    component="a"
+                    href={urls[doc.id]}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver
+                  </Button>
+                ) : null}
+                <RowActionsMenu
+                  label={`documento de ${label}`}
+                  pending={uploading}
+                  actions={[
+                    { label: 'Reemplazar', onClick: elegirArchivo, disabled: bloqueado },
+                    {
+                      label: 'Eliminar',
+                      onClick: () => void handleDelete(doc),
+                      destructive: true,
+                      disabled: bloqueado,
+                    },
+                  ]}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Fade>
+      )}
     </Box>
   )
+}
+
+function tamanoLegible(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 function esImagenDoc(doc: DocumentoItem): boolean {

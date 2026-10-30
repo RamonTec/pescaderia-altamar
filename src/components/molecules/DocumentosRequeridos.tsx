@@ -2,10 +2,7 @@
 
 import * as React from 'react'
 import Box from '@mui/material/Box'
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
-import ErrorOutlineOutlinedIcon from '@mui/icons-material/ErrorOutlineOutlined'
+import { EstadoChip } from '@/components/atoms/EstadoChip'
 import { DocumentoUpload } from './DocumentoUpload'
 import type { TipoDocumentoProveedor } from '@/types/domain'
 import type { DocumentoStore } from '@/lib/documentoStore'
@@ -21,13 +18,6 @@ export interface DocumentosRequeridosProps {
   disabled?: boolean
 }
 
-const LABEL_TIPO: Record<TipoDocumentoProveedor, string> = {
-  cedula: 'Cédula',
-  rif: 'RIF',
-  acta_constitutiva: 'Acta constitutiva',
-  otro: 'Otro',
-}
-
 interface Item {
   key: string
   tipo: TipoDocumentoProveedor
@@ -36,6 +26,11 @@ interface Item {
   presente: boolean
 }
 
+/**
+ * Documentos que pide la ficha según el tipo de persona: una lista de
+ * `DocumentoUpload` sin cajas anidadas. Solo el que falta lleva estado
+ * (`EstadoChip` `warning` "Falta"): el cargado no necesita chip.
+ */
 export function DocumentosRequeridos({
   tipoPersona,
   representantes,
@@ -70,43 +65,29 @@ export function DocumentosRequeridos({
     })
   }
 
-  return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'grid', gap: 1 }}>
-        {items.map((item) => (
-          <Box key={item.key} sx={{ display: 'grid', gap: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {item.presente ? (
-                <CheckCircleOutlinedIcon color="success" fontSize="small" />
-              ) : (
-                <ErrorOutlineOutlinedIcon color="warning" fontSize="small" />
-              )}
-              <Typography variant="subtitle2">{item.label}</Typography>
-            </Box>
-            <DocumentoUpload
-              store={makeStore(item.representanteId)}
-              tipo={item.tipo}
-              label={LABEL_TIPO[item.tipo]}
-              representanteId={item.representanteId}
-              disabled={disabled}
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-            />
-          </Box>
-        ))}
-      </Box>
+  const accept = 'image/jpeg,image/png,image/webp,application/pdf'
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <Typography variant="h6">Otros documentos</Typography>
-          <DocumentoUpload
-            store={makeStore()}
-            tipo="otro"
-            label="Otro documento"
-            disabled={disabled}
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-          />
-        </Grid>
-      </Grid>
+  return (
+    <Box sx={{ display: 'grid', gap: 3, minWidth: 0 }}>
+      {items.map((item) => (
+        <DocumentoUpload
+          key={item.key}
+          store={makeStore(item.representanteId)}
+          tipo={item.tipo}
+          label={item.label}
+          representanteId={item.representanteId}
+          estado={item.presente ? null : <EstadoChip tono="warning" label="Falta" />}
+          disabled={disabled}
+          accept={accept}
+        />
+      ))}
+      <DocumentoUpload
+        store={makeStore()}
+        tipo="otro"
+        label="Otros documentos"
+        disabled={disabled}
+        accept={accept}
+      />
     </Box>
   )
 }
