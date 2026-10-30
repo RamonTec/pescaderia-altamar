@@ -146,12 +146,14 @@ _4c hecha el 2026-10-30 (`feat/ds-patrones`, tareas 111–121): lint y tsc en ve
 _4d hecha el 2026-10-30 (`feat/ds-carga`, tareas 122–130): lint, tsc y build en verde. La revisión visual queda para el PR y para la 160 (las pantallas piden sesión)._
 
 ### Marca y decorativo (4e)
-- [ ] `FileteLaton` es el único decorativo: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación (3 px, arriba) y loader global. Duraciones como constantes (cierra el pendiente (c)).
-- [ ] `BrandLoader` sin vaivén; `NavigationProgress` y `BrandLoader` conservan el retardo, el mínimo, `role="status"` y la versión quieta.
-- [ ] `BrandMark`, `isotipo.ts` e `icon.svg` con el isotipo provisional Puerto (el logo real sigue en el pendiente (g)).
-- [ ] `AppShell` sin `ActiveStripes`, con márgenes 16/24/64 y 48 px entre bloques. `CreditoResumen` como superficie normal con el exceso comunicado por texto.
-- [ ] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia.
-- [ ] `PeneroStripes.tsx` borrado; `rg -i "penero|hull|ochre|brand\.red|brand\.trim|barlow" src` vacío.
+- [x] `FileteLaton` es el único decorativo: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación (3 px, arriba) y loader global. Duraciones como constantes (cierra el pendiente (c)).
+- [x] `BrandLoader` sin vaivén; `NavigationProgress` y `BrandLoader` conservan el retardo, el mínimo, `role="status"` y la versión quieta.
+- [x] `BrandMark`, `isotipo.ts` e `icon.svg` con el isotipo provisional Puerto (el logo real sigue en el pendiente (g)).
+- [x] `AppShell` sin `ActiveStripes`, con márgenes 16/24/64 y 48 px entre bloques. `CreditoResumen` como superficie normal con el exceso comunicado por texto.
+- [x] PDF de cotización y correo de recordatorio con la marca y las fuentes nuevas (tarea agregada en 21 y 09); el PDF de contratos no cambia. _Las fuentes nuevas quedan registradas en código, pero faltan los TTF en `src/lib/pdf/fuentes/` (ver tarea 138): hasta entonces, Helvetica._
+- [x] `PeneroStripes.tsx` borrado; `rg -i "penero|hull|ochre|brand\.red|brand\.trim|barlow" src` vacío.
+
+_4e hecha el 2026-10-30 (`feat/ds-marca`, tareas 131–140): lint, tsc y build en verde. Revisión visual pendiente para el PR y la 160 (las pantallas piden sesión)._
 
 ### Catálogo vivo (4f)
 - [ ] `/estandares` partido en secciones (Fundamentos, Primitivos, Patrones, Carga y feedback, Fallbacks), con índice y vista en ambos modos.
@@ -177,7 +179,7 @@ _4d hecha el 2026-10-30 (`feat/ds-carga`, tareas 122–130): lint, tsc y build e
 ### Pendientes de la Fase 2a (2026-10-07)
 - [ ] (a) Volver desde una ficha a una tabla en modo servidor con la caché del router (la página vive en `?pagina=` escrita con `history.replaceState`): probarlo en la primera tabla que se migre a servidor (Fase 2b).
 - [ ] (b) Filas clicables de `AppDataGrid` (`getRowHref`) solo responden al mouse: `onRowClick` no se dispara con Enter. Decidir en la Fase 2b (enlace en la primera celda, manejar `onCellKeyDown` u otra solución). _(Resuelto el 2026-10-07 en 10-refactor-visual-clientes: `onCellKeyDown` navega con Enter solo si `event.target === event.currentTarget` (el foco está en la propia celda, no en un control dentro de ella ni en el menú `⋮`, cuyo portal también burbujea al árbol de la celda) y la columna no es `ACTIONS_FIELD` ni `type: 'actions'`. Las flechas siguen siendo de la grilla; en `xs` las tarjetas ya eran `Link`. Implementado; falta la prueba con teclado en navegador del usuario, ver `10-refactor-visual-clientes/checklist.md`.)_
-- [ ] (c) Duraciones escritas a mano en animaciones en bucle: `PeneroSweep` 1400 ms, `BrandLoader` 2400 ms (`penero-bob`) y el retardo de 100 ms de `NavigationProgress`. Pasarlas a constantes o anotar la excepción en `spec.md`.
+- [x] (c) _(Cerrado el 2026-10-30, tareas 131–133: `FILETE_SWEEP_MS`, sin `penero-bob`, `TIEMPOS.NAV_RETARDO_MS`.)_ Duraciones escritas a mano en animaciones en bucle: `PeneroSweep` 1400 ms, `BrandLoader` 2400 ms (`penero-bob`) y el retardo de 100 ms de `NavigationProgress`. Pasarlas a constantes o anotar la excepción en `spec.md`.
 - [x] (d) `DocumentoUpload` sigue habilitado mientras `ClienteForm` guarda (no recibe `disabled`). _(Resuelto el 2026-10-07 en 10-refactor-visual-clientes: prop `disabled` (subir, reemplazar, eliminar y soltar; "Ver" sigue activo) y `ClienteForm` la pasa con `isPending`. Verificado en código.)_
 - [ ] (e) Capas que ya venían mal (anteriores a la Fase 2): `ClienteForm` llama directo a `representanteLegalRepository` desde el cliente, y `authService` (`getUsuarioActual`) consulta `perfiles` sin repositorio. _(Proveedores, 11-refactor-visual-proveedores, 2026-10-07: el caso análogo quedó resuelto en proveedores — `ProveedorForm` ya no consulta repos desde el navegador; representantes y documentos llegan por props desde la ficha/listado, que los trae del servidor. `ClienteForm` sigue pendiente; el patrón para cerrarlo está en `useProveedorAcciones`/`datosEdicion`.)_
 - [ ] (f) Retirar `AppShellNestingContext` y la rama sin `usuario` de `AppShell` cuando `cobros/page.tsx` y `pedidos/page.tsx` dejen de envolverse en `<AppShell>`, y quitar el alias `--font-geist-mono` de `globals.css` cuando los archivos de 08-tasas (`CompraForm`, `PedidoForm`, `RegistrarPagoDialog`, `PagoProveedorDialog`) dejen de usarlo.

@@ -575,6 +575,7 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    Absorbe la tarea 83.
    - Hecho cuando: en oscuro, el modal de «Nuevo producto» se ve en un solo tono, con los campos más oscuros que la superficie y el pie sin franja propia.
    - **Hecho 2026-10-30** (rama `feat/ds-patrones`): la transición quedó en el theme (`MuiDialog`: `keyframes` de 8 px + `Fade`, 280/180 ms; sin animación en pantalla completa), así también la toma `ConfirmDialog`. Con scroll, una sombra interior de 1 px bajo el encabezado refuerza el divisor. `ConfirmDialog` no se cierra mientras `loading`.
+   - **Corrección 2026-10-30** (rama `feat/ds-marca`): el `keyframes` de emotion del theme pasó a `@keyframes puerto-dialog-in` en `globals.css`, porque emotion emite `<style>` global en SSR y rompe la hidratación (regla escrita en `globals.css`).
 117. **Regla modal o página (DS-4)**: con DS-4 respondida, anotar en `spec.md` § «Patrones › Formulario» la lista final de formularios por tamaño (`sm`/`md`/`lg`), revisando `rg "size=\"(xs|sm|md)\"" src/components/organisms`. Es solo documental; la aplicación va en 150–151.
    - Hecho cuando: cada `AppDialog` del código tiene un tamaño asignado en la lista.
    - **Hecho 2026-10-30** (rama `feat/ds-patrones`): lista en `spec.md` § «Patrones › Formulario». `ProveedorForm` queda en `md` como excepción (asistente por pasos).
@@ -688,18 +689,23 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - color `brand.brass`;
    - `sweep` con `puerto-sweep` y duración de `MOTION`/constante exportada, quieto con `prefers-reduced-motion` (cierra el pendiente (c)).
    - Hecho cuando: compila; se muestra en 142.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `atoms/FileteLaton.tsx` (`rule`/`sweep`, `height`, `width`, `track`, `sx`) y la constante exportada `FILETE_SWEEP_MS`; curva de `MOTION`. Con movimiento reducido el tramo queda quieto a todo el ancho. Cierra el pendiente (c).
 132. **`atoms/NavigationProgress.tsx`** (era la 71): `PeneroSweep height={3}` → `FileteLaton variant="sweep" height={3}` en el **borde superior** de la ventana (`position: fixed; top: 0`, por encima de la barra superior y del drawer). El retardo pasa a `TIEMPOS.NAV_RETARDO_MS`, y el registro de fuentes no cambia.
    - Hecho cuando: navegar entre secciones muestra la línea de latón arriba, sin mover el layout.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `NavigationProgress` con `FileteLaton sweep` de 3 px, `position: fixed; top: 0` sobre el drawer (`zIndex.drawer + 2`), y `TIEMPOS.NAV_RETARDO_MS`. Con `active` (muestra de `/estandares`) queda en su lugar; prop `position` para forzarlo.
 133. **`organisms/BrandLoader.tsx`** (era la 72):
    - isotipo + «Altamar Sea Food» en `h3` + `FileteLaton sweep` de 3 px y mensaje en `body2`;
    - fondo `scrim` sobre la página, o `background.default` a pantalla completa;
    - sin el vaivén `penero-bob`;
    - conserva el retardo, el mínimo y el contador (desde `TIEMPOS`, en `useGlobalLoader`), `role="status"` y la versión quieta.
    - Hecho cuando: «Entrando» (login) y «Cerrando sesión» muestran el loader nuevo.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): isotipo, «Altamar Sea Food» en `h3`, `FileteLaton sweep` y mensaje. Por defecto va sobre `scrim` con la marca en una tarjeta `background.elevated`; `useGlobalLoader().show(msg, { pantallaCompleta: true })` tapa con `background.default` (lo usan «Entrando» y «Cerrando sesión»).
 134. **`atoms/BrandMark.tsx` + `src/lib/marca/isotipo.ts` + `src/app/icon.svg`** (era la 73): isotipo provisional Puerto (P-UI4) con proa en `brand.midnight` (o `brand.onMidnight` sobre medianoche) y filete `brand.brass`. La variante `full` lleva «Altamar» en Fraunces 600, y `size`/`orientation` no cambian. `icon.svg` se regenera con los hex claros de `marca.ts`.
    - Hecho cuando: el menú, el loader, el login y la pestaña del navegador no muestran franjas ocre ni rojas.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `ISOTIPO_FILETE` reemplaza a `ISOTIPO_FRANJAS`; prop `sobreMedianoche` para la proa clara. La variante `full` dice «Altamar» en Fraunces 600. `IsotipoPdf` usa la misma geometría.
 135. **`templates/AuthLayout.tsx` y `templates/DocumentoPublicoLayout.tsx`** (era la 74): panel `brand.midnight` con texto `onMidnight`/`onMidnightMuted`, logo y `FileteLaton rule` en lugar de `PeneroStripes`; en la página pública, el filete va bajo el encabezado.
    - Hecho cuando: `/login`, `/recuperar`, `/actualizar-password` y `/c/[token]` (vigente y respaldo) no usan franjas.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): panel `brand.midnight` con isotipo (en `md+`), nombre y `FileteLaton` de 56 px; en la página pública, el filete va bajo el encabezado.
 136. **`templates/AppShell.tsx`** (era la 77):
    - sidebar `brand.midnight` en ambos esquemas;
    - nombre en Fraunces y `FileteLaton rule` de 2 px bajo el logo;
@@ -709,26 +715,31 @@ Lo pidió el usuario el 2026-10-29, tras la auditoría con capturas de la Fase 3
    - contenido con márgenes de 16/24/**64** (`lg+`) y 48 px entre bloques (`ESPACIO`);
    - foco visible sobre medianoche.
    - Hecho cuando: `rg "brand\\.(ochre|red|trim)" src/components/templates/AppShell.tsx` queda vacío y los tres breakpoints se ven bien.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): el punto de latón va a 6 px del borde izquierdo del ítem; el hover usa `color-mix` de `brand.navy` al 60 %. La barra superior ya era `background.paper` con borde `divider`. Los 48 px entre bloques los da `PageHeader` (113) y cada pantalla; el `main` toma los márgenes de `ESPACIO`.
 137. **`molecules/CreditoResumen.tsx`** (era la 75, **revisada**):
    - pasa a superficie de nivel 0 (`background.paper`, borde `divider`, radio 8) en lugar del bloque `brand.hull`, porque la Fase 4 no admite bloques de color ni latón fuera de lo permitido;
    - la cifra disponible en `h5`;
    - la barra de uso va en `text.primary` sobre `background.subtle`, y pasa a `error.main` + ícono `ErrorOutlineOutlined` + texto «Límite superado» al superar el límite;
    - textos en `text.secondary`.
    - Hecho cuando: la ficha de cliente muestra el bloque sin `brand.*` y con el estado de exceso comunicado por texto.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): «Límite superado» aparece cuando el saldo supera el límite (no al llegar justo a él).
 138. **PDF y correo con la marca nueva** (era la 76; tarea agregada en `21-cotizaciones` y `09-cuentas-por-cobrar`):
    - `lib/pdf/fuentes.ts` y `lib/pdf/fuentes/LEEME.md`: Fraunces 600 e Instrument Sans 400/600 en TTF estáticos (OFL), con Helvetica de respaldo;
    - `lib/pdf/marca.tsx`: filete de latón en lugar de franjas;
    - `lib/cotizaciones/pdf/CotizacionPdf.tsx`: `MARCA_CLARO.hull` → `MARCA_CLARO.midnight`;
    - `lib/cartera/recordatorios/plantillas.ts`: colores del correo desde las claves Puerto.
    - Hecho cuando: `npx tsx scripts/probar-cotizaciones.ts --pdf` genera el PDF con la marca nueva y la vista previa de `RecordatorioDialog` no lleva franjas.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `lib/pdf/marca.tsx` (`FiletePdf` reemplaza a `FranjasBorda`), `CotizacionPdf` y el correo usan medianoche, latón y los neutros de la paleta clara (anotados como tales en cada archivo); el sello de anulada va en `error`. `fuentes.ts` y `LEEME.md` piden `InstrumentSans-Regular.ttf`, `InstrumentSans-SemiBold.ttf` y `Fraunces-SemiBold.ttf`. **Pendiente**: los TTF no están en el repo (tampoco estaban los de Barlow), así que el PDF sale en Helvetica hasta que se agreguen; `probar-cotizaciones.ts --pdf` genera el PDF de 3 páginas con la marca nueva y avisa del respaldo. La vista previa de `RecordatorioDialog` usa la plantilla del correo, sin franjas.
 139. **Gráficos** (era la 85, P-UI9): `lib/dashboard/chartColors.ts` toma `categorias` de `palette.chart`, quita la referencia a `brand.*` y revisa que `usd`/`kg`/`positivo` no coincidan en tono. En `organisms/BarLineChart.tsx`, el `labelStyle` `fontSize: 12` pasa a `theme.typography.caption`.
    - Hecho cuando: las series del dashboard se distinguen en claro y oscuro.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `kg` pasa de `info` a `palette.chart.c3`: en oscuro `info` (`#9FB4D3`) y `success` (`#ABC7F1`) casi coincidían. `categorias` = `palette.chart.c1–c6`. La etiqueta de la línea de referencia de `BarLineChart` toma tamaño y familia de `caption`.
 140. **Retirar Peñero** (era la 88; al final de 4e, con 105 hecha):
    - borrar `atoms/PeneroStripes.tsx`;
    - borrar las claves `hull`, `hullDeep`, `onHull`, `onHullMuted`, `ochre`, `red` y `trim` de `BrandPalette` (`theme.ts`) y de `MarcaPaleta` (`marca.ts`);
    - borrar los keyframes `penero-*` de `globals.css`;
    - borrar el comentario «Barlow» de `KpiCard`.
    - Hecho cuando: `rg -i "penero|hull|ochre|brand\\.red|brand\\.trim|barlow" src` no encuentra nada.
+   - **Hecho 2026-10-30** (rama `feat/ds-marca`): `rg -i "penero|peñero|hull|ochre|brand\.red|brand\.trim|barlow" src` vacío. `/estandares` muestra `FileteLaton` en lugar de las franjas.
 
 ### Fase 4f — Catálogo vivo `/estandares`
 
