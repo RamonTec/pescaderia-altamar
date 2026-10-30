@@ -136,12 +136,14 @@
 
 _4c hecha el 2026-10-30 (`feat/ds-patrones`, tareas 111–121): lint y tsc en verde. La revisión visual en claro y oscuro queda para la tarea 160 y para el PR, porque las pantallas piden sesión; la tabla con `estados`, el formulario con `FormGrid` y `LineasEditor` se ven en `/estandares` al hacer la 4f (143–144). Los 40 px entre secciones de formulario y los 48 px entre secciones de ficha se aplican al migrar los contenedores (150, 151 y 154)._
 ### Carga, feedback y fallbacks (4d)
-- [ ] Una sola señal por nivel; loader global con 150 ms de retardo y 400 ms de mínimo (constantes de `tokens.ts`).
-- [ ] `atoms/Skeletons` alimenta `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección. Los 23 `loading.tsx` auditados (tabla en la tarea 123).
-- [ ] Éxito: el modal cierra, el ítem se resalta 2 s y aparece el toast con el verbo + «Ver». «Deshacer» solo en reversibles (lista en la tarea 157).
-- [ ] Error de acción: el modal sigue abierto con los datos intactos y la alerta arriba con «Reintentar».
-- [ ] Operaciones largas auditadas y en `useGlobalLoader` (lista en la tarea 125).
-- [ ] `Fallback` único; `EmptyState`/`ErrorState` como envoltorios; 21 `error.tsx` con `RouteError`; `not-found.tsx` global y de `(protected)`; decisión sobre `forbidden` anotada; «—» en celdas vacías.
+- [x] Una sola señal por nivel; loader global con 150 ms de retardo y 400 ms de mínimo (constantes de `tokens.ts`).
+- [x] `atoms/Skeletons` alimenta `PageLoader`, `DashboardSkeletons` y los `Suspense` de sección. Los 23 `loading.tsx` auditados (tabla en la tarea 123).
+- [ ] Éxito: el modal cierra, el ítem se resalta 2 s y aparece el toast con el verbo + «Ver». «Deshacer» solo en reversibles (lista en la tarea 157). _Pendiente: las piezas están (`useResaltado`, `highlightId`, toast con acción de la 4b); su uso en cada alta y edición es la tarea 157._
+- [x] Error de acción: el modal sigue abierto con los datos intactos y la alerta arriba con «Reintentar». _(En `AppDialog` desde la 4c; cada formulario pasa `onRetry` al migrar, 150–151.)_
+- [x] Operaciones largas auditadas y en `useGlobalLoader` (lista en la tarea 125).
+- [x] `Fallback` único; `EmptyState`/`ErrorState` como envoltorios; 21 `error.tsx` con `RouteError`; `not-found.tsx` global y de `(protected)`; decisión sobre `forbidden` anotada; «—» en celdas vacías.
+
+_4d hecha el 2026-10-30 (`feat/ds-carga`, tareas 122–130): lint, tsc y build en verde. La revisión visual queda para el PR y para la 160 (las pantallas piden sesión)._
 
 ### Marca y decorativo (4e)
 - [ ] `FileteLaton` es el único decorativo: filete del sidebar, punto del ítem activo, login, documento público, barra de navegación (3 px, arriba) y loader global. Duraciones como constantes (cierra el pendiente (c)).
