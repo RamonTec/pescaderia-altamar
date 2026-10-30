@@ -17,7 +17,6 @@ import { useTheme } from '@mui/material/styles'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined'
 import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined'
-import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined'
 import {
   DataGrid,
   type GridColDef,
@@ -32,6 +31,7 @@ import {
   type SegmentedControlOption,
 } from '@/components/atoms/SegmentedControl'
 import { EmptyState, type EmptyStateProps } from '@/components/molecules/EmptyState'
+import { Fallback } from '@/components/molecules/Fallback'
 import { ErrorState } from '@/components/molecules/ErrorState'
 import { ACTIONS_FIELD } from '@/components/organisms/appDataGridColumns'
 import { paginaDesdeParam } from '@/lib/pagination'
@@ -53,9 +53,10 @@ export { paginaDesdeParam }
  *   página la resuelve el servidor leyendo `?pagina` con `paginaDesdeParam()`.
  * - En `xs`, si hay `mobileCard`, muestra tarjetas en lista; si no, oculta
  *   las columnas de `hideOnMobile` en `xs`/`sm`.
- * - Estados: vacío (`emptyState`), sin resultados ("Limpiar búsqueda"),
- *   error (`ErrorState` dentro del área de la tabla), cargando (skeleton si no
- *   hay filas, barra si ya hay).
+ * - Estados (`Fallback`, sin paginación): vacío (`emptyState`), sin
+ *   resultados ("Limpiar filtros": búsqueda + `onClearFilters`), error
+ *   (`ErrorState` con `onRetry`) y cargando (skeleton si no hay filas, barra
+ *   si ya hay).
  * - Fila con `getRowHref`: clic en cualquier parte o Enter con el foco en
  *   una celda (no en el `⋮` ni en otro control) abre la ficha.
  * - Búsqueda en `mode="client"`: la filtra el propio `AppDataGrid` antes de
@@ -183,31 +184,32 @@ interface NoResultsProps {
   onClearFilters?: () => void
 }
 
+/**
+ * Sin resultados (búsqueda o filtros activos): `Fallback sin-resultados` con
+ * un solo «Limpiar filtros» que limpia la búsqueda y los filtros.
+ */
 function NoResults({ search, onClearSearch, onClearFilters }: NoResultsProps) {
-  const limpiarBusqueda = search && onClearSearch
+  const limpiar =
+    (search && onClearSearch) || onClearFilters
+      ? () => {
+          if (search) onClearSearch?.()
+          onClearFilters?.()
+        }
+      : undefined
   return (
-    <EmptyState
-      icon={<SearchOffOutlinedIcon />}
-      title={search ? `Sin resultados para «${search}»` : 'Sin resultados'}
-      description={
+    <Fallback
+      tipo="sin-resultados"
+      titulo={search ? `Sin resultados para «${search}»` : 'Ningún registro con estos filtros'}
+      texto={
         search
           ? 'Revisa lo que escribiste o prueba con otra palabra.'
-          : 'Ningún registro cumple los filtros elegidos.'
+          : 'Cambia o quita los filtros para ver más registros.'
       }
-      action={
-        limpiarBusqueda || onClearFilters ? (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-            {limpiarBusqueda ? (
-              <Button variant="outlined" onClick={onClearSearch}>
-                Limpiar búsqueda
-              </Button>
-            ) : null}
-            {onClearFilters ? (
-              <Button variant="text" onClick={onClearFilters}>
-                Limpiar filtros
-              </Button>
-            ) : null}
-          </Box>
+      accion={
+        limpiar ? (
+          <Button variant="outlined" onClick={limpiar}>
+            Limpiar filtros
+          </Button>
         ) : undefined
       }
     />
