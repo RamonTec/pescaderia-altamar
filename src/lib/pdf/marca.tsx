@@ -1,25 +1,27 @@
 import { Path, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import { MARCA_CLARO, NOMBRE_MARCA } from '@/theme/marca'
-import { ISOTIPO_ALTO, ISOTIPO_ANCHO, ISOTIPO_CASCO, ISOTIPO_FRANJAS, ISOTIPO_VIEWBOX } from '@/lib/marca/isotipo'
+import { ISOTIPO_ALTO, ISOTIPO_ANCHO, ISOTIPO_CASCO, ISOTIPO_FILETE, ISOTIPO_VIEWBOX } from '@/lib/marca/isotipo'
 import type { NegocioDocumento } from '@/types/domain'
 import type { FuentesPdf } from './fuentes'
 
 /**
  * Piezas de marca para los PDF de react-pdf (21-cotizaciones; reutilizables):
  * encabezado con el isotipo (mismas coordenadas que `atoms/BrandMark`), el
- * nombre y los datos del negocio, y las franjas de la borda como filete (el
- * único gesto decorativo); pie con número de página. Colores solo de
+ * nombre y los datos del negocio, y el filete de latón (el único gesto
+ * decorativo); pie con número de página. Colores solo de
  * `src/theme/marca.ts` (modo claro). Puros: datos → elementos.
  */
 
-const GRIS = MARCA_CLARO.hullDeep
+/** `palette.text.secondary` y `divider` del modo claro. */
+const GRIS = '#4A5260'
+const DIVISOR = '#E4E1D8'
 
 export function estilosMarca(f: FuentesPdf) {
   return StyleSheet.create({
     encabezado: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    nombre: { ...f.titulo, fontSize: 18, color: MARCA_CLARO.hull },
+    nombre: { ...f.titulo, fontSize: 18, color: MARCA_CLARO.midnight },
     datos: { fontSize: 8.5, color: GRIS, marginTop: 2 },
-    franjas: { marginTop: 10, marginBottom: 14 },
+    filete: { marginTop: 10, marginBottom: 14 },
     pie: {
       position: 'absolute',
       left: 48,
@@ -30,7 +32,7 @@ export function estilosMarca(f: FuentesPdf) {
       fontSize: 7.5,
       color: GRIS,
       borderTopWidth: 0.5,
-      borderTopColor: MARCA_CLARO.hull,
+      borderTopColor: DIVISOR,
       paddingTop: 6,
     },
   })
@@ -39,23 +41,15 @@ export function estilosMarca(f: FuentesPdf) {
 export function IsotipoPdf({ ancho = 56 }: { ancho?: number }) {
   return (
     <Svg viewBox={ISOTIPO_VIEWBOX} width={ancho} height={(ancho * ISOTIPO_ALTO) / ISOTIPO_ANCHO}>
-      <Path d={ISOTIPO_CASCO} fill={MARCA_CLARO.hull} />
-      <Polygon points={ISOTIPO_FRANJAS.ochre} fill={MARCA_CLARO.ochre} />
-      <Polygon points={ISOTIPO_FRANJAS.trim} fill={MARCA_CLARO.trim} />
-      <Polygon points={ISOTIPO_FRANJAS.red} fill={MARCA_CLARO.red} />
+      <Path d={ISOTIPO_CASCO} fill={MARCA_CLARO.midnight} />
+      <Polygon points={ISOTIPO_FILETE} fill={MARCA_CLARO.brass} />
     </Svg>
   )
 }
 
-/** Franjas de la borda (ocre, blanca, roja) a todo el ancho. */
-export function FranjasBorda() {
-  return (
-    <View>
-      <View style={{ height: 4, backgroundColor: MARCA_CLARO.ochre }} />
-      <View style={{ height: 1.5, backgroundColor: MARCA_CLARO.trim }} />
-      <View style={{ height: 4, backgroundColor: MARCA_CLARO.red }} />
-    </View>
-  )
+/** Filete de latón a todo el ancho (como `atoms/FileteLaton`). */
+export function FiletePdf() {
+  return <View style={{ height: 1.5, backgroundColor: MARCA_CLARO.brass }} />
 }
 
 export function EncabezadoMarca({ negocio, fuentes }: { negocio: NegocioDocumento; fuentes: FuentesPdf }) {
@@ -75,8 +69,8 @@ export function EncabezadoMarca({ negocio, fuentes }: { negocio: NegocioDocument
           {lineas.length > 0 ? <Text style={e.datos}>{lineas.join(' · ')}</Text> : null}
         </View>
       </View>
-      <View style={e.franjas}>
-        <FranjasBorda />
+      <View style={e.filete}>
+        <FiletePdf />
       </View>
     </View>
   )

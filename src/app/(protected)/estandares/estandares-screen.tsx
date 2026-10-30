@@ -24,7 +24,7 @@ import { NavigationProgress } from '@/components/atoms/NavigationProgress'
 import { NumberField } from '@/components/atoms/NumberField'
 import { PhoneField } from '@/components/atoms/PhoneField'
 import { RifCiField } from '@/components/atoms/RifCiField'
-import { PeneroStripes } from '@/components/atoms/PeneroStripes'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
 import { PageHeader } from '@/components/molecules/PageHeader'
 import { FormSection } from '@/components/molecules/FormSection'
 import { RowActionsMenu } from '@/components/molecules/RowActionsMenu'
@@ -150,7 +150,7 @@ function MarcaSection() {
             <BrandMark variant="isotipo" size={34} />
             <BrandMark orientation="vertical" size={72} />
           </div>
-          <PeneroStripes />
+          <FileteLaton />
         </Demo>
         <Demo label="Escala tipográfica">
           <Typography variant="h4">h4 · Título de página</Typography>

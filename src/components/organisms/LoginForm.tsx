@@ -47,7 +47,7 @@ export function LoginForm() {
       formData.set('password', values.password)
       // Si el login sale bien, la action redirige a `/`: el loader se libera
       // solo al cambiar de ruta. Si falla, se libera aquí.
-      const release = globalLoader.show('Entrando', { untilNavigation: true })
+      const release = globalLoader.show('Entrando', { untilNavigation: true, pantallaCompleta: true })
       // `finally`: si la action lanza (red caída), el loader no queda pegado.
       try {
         const result = await loginAction({ error: null }, formData)

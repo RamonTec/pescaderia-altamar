@@ -7,16 +7,16 @@ import {
   ISOTIPO_ALTO,
   ISOTIPO_ANCHO,
   ISOTIPO_CASCO,
-  ISOTIPO_FRANJAS,
+  ISOTIPO_FILETE,
   ISOTIPO_VIEWBOX,
 } from '@/lib/marca/isotipo'
 
 /**
  * Marca de Altamar Sea Food.
  *
- * PROVISIONAL: el repo todavía no tiene el logo real. Este isotipo (proa de
- * peñero con las franjas de la borda) se dibuja en SVG con los tokens
- * `palette.brand.*`. Cuando llegue el archivo del logo se reemplaza solo
+ * PROVISIONAL: el repo todavía no tiene el logo real. Este isotipo (P-UI4:
+ * proa en `brand.midnight`, o `brand.onMidnight` sobre medianoche, con un
+ * filete de `brand.brass`) se dibuja en SVG con los tokens `palette.brand.*`. Cuando llegue el archivo del logo se reemplaza solo
  * aquí y en `src/lib/marca/isotipo.ts` (geometría compartida con el PDF),
  * manteniendo la interfaz (`variant`, `size`, `orientation`).
  * El ícono de la app (`src/app/icon.svg`) es una copia estática de este
@@ -31,11 +31,22 @@ export interface BrandMarkProps {
   orientation?: 'horizontal' | 'vertical'
   /** Etiqueta accesible del isotipo cuando va solo. Si se omite, es decorativo. */
   title?: string
+  /** Sobre fondo medianoche (sidebar, panel de auth): proa y nombre claros. */
+  sobreMedianoche?: boolean
 }
 
-const NAME = NOMBRE_MARCA
+/** Nombre corto de la variante `full` (P-UI4). */
+const NOMBRE_CORTO = 'Altamar'
 
-function Isotipo({ size, title }: { size: number; title?: string }) {
+function Isotipo({
+  size,
+  title,
+  sobreMedianoche,
+}: {
+  size: number
+  title?: string
+  sobreMedianoche?: boolean
+}) {
   return (
     <Box
       component="svg"
@@ -50,17 +61,13 @@ function Isotipo({ size, title }: { size: number; title?: string }) {
         return {
           flexShrink: 0,
           display: 'block',
-          '& .bm-hull': { fill: brand.hull },
-          '& .bm-ochre': { fill: brand.ochre },
-          '& .bm-trim': { fill: brand.trim },
-          '& .bm-red': { fill: brand.red },
+          '& .bm-proa': { fill: sobreMedianoche ? brand.onMidnight : brand.midnight },
+          '& .bm-filete': { fill: brand.brass },
         }
       }}
     >
-      <path className="bm-hull" d={ISOTIPO_CASCO} />
-      <polygon className="bm-ochre" points={ISOTIPO_FRANJAS.ochre} />
-      <polygon className="bm-trim" points={ISOTIPO_FRANJAS.trim} />
-      <polygon className="bm-red" points={ISOTIPO_FRANJAS.red} />
+      <path className="bm-proa" d={ISOTIPO_CASCO} />
+      <polygon className="bm-filete" points={ISOTIPO_FILETE} />
     </Box>
   )
 }
@@ -70,9 +77,10 @@ export function BrandMark({
   size = 40,
   orientation = 'horizontal',
   title,
+  sobreMedianoche = false,
 }: BrandMarkProps) {
   if (variant === 'isotipo') {
-    return <Isotipo size={size} title={title ?? NAME} />
+    return <Isotipo size={size} title={title ?? NOMBRE_MARCA} sobreMedianoche={sobreMedianoche} />
   }
 
   const vertical = orientation === 'vertical'
@@ -86,9 +94,19 @@ export function BrandMark({
         minWidth: 0,
       }}
     >
-      <Isotipo size={size} />
-      <Typography variant={vertical ? 'h5' : 'h6'} component="span" noWrap>
-        {NAME}
+      <Isotipo size={size} sobreMedianoche={sobreMedianoche} />
+      <Typography
+        component="span"
+        noWrap
+        sx={{
+          fontFamily: 'var(--font-display), Georgia, serif',
+          fontWeight: 600,
+          fontSize: vertical ? '1.5rem' : '1.25rem',
+          lineHeight: 1.2,
+          color: sobreMedianoche ? 'brand.onMidnight' : 'text.primary',
+        }}
+      >
+        {NOMBRE_CORTO}
       </Typography>
     </Box>
   )

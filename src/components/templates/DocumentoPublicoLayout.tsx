@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import { BrandMark } from '@/components/atoms/BrandMark'
-import { PeneroStripes } from '@/components/atoms/PeneroStripes'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
 
 export interface DocumentoPublicoLayoutProps {
   /** Línea de datos del negocio bajo la marca (razón social, RIF, teléfono…). */
@@ -15,7 +15,7 @@ export interface DocumentoPublicoLayoutProps {
 
 /**
  * Plantilla de las páginas públicas sin sesión (21-cotizaciones, `/c/[token]`):
- * marca + franjas de la borda en el encabezado, sin `AppShell`, menú ni
+ * marca y filete de latón bajo el encabezado, sin `AppShell`, menú ni
  * datos de usuario. Contenido centrado (máx. 880 px), responsive desde
  * 375 px y claro/oscuro según el sistema. Reutilizable para otros
  * documentos públicos.
@@ -32,7 +32,7 @@ export function DocumentoPublicoLayout({ datosNegocio, children }: DocumentoPubl
             </Typography>
           ) : null}
         </Container>
-        <PeneroStripes />
+        <FileteLaton />
       </Box>
       <Container
         component="main"

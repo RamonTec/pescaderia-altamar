@@ -39,6 +39,7 @@ import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import { signOutAction } from '@/app/(auth)/login/actions'
 import { BrandMark } from '@/components/atoms/BrandMark'
 import { ColorModeToggle } from '@/components/atoms/ColorModeToggle'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
 import {
   NavigationProgress,
   NavigationProgressProvider,
@@ -46,6 +47,7 @@ import {
 } from '@/components/atoms/NavigationProgress'
 import type { Rol } from '@/lib/services/authService'
 import { useGlobalLoader } from '@/lib/useGlobalLoader'
+import { ESPACIO } from '@/theme/tokens'
 
 /** Ancho del menú lateral en `md+` y del riel de íconos en `sm`. */
 const NAV_WIDTH = 248
@@ -174,27 +176,50 @@ function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Marcador del ítem activo: las franjas de la borda, verticales. */
-function ActiveStripes() {
+/** Marcador del ítem activo: punto de latón de 6 px. */
+function PuntoActivo() {
   return (
     <Box
       component="span"
       aria-hidden
       sx={{
         position: 'absolute',
-        left: 0,
-        top: 6,
-        bottom: 6,
-        width: 4,
-        display: 'grid',
-        gridTemplateRows: '2fr 1fr 2fr',
-        borderRadius: '1px',
-        overflow: 'hidden',
+        left: 6,
+        top: '50%',
+        width: 6,
+        height: 6,
+        mt: '-3px',
+        borderRadius: '50%',
+        bgcolor: 'brand.brass',
       }}
-    >
-      <Box component="span" sx={{ bgcolor: 'brand.ochre' }} />
-      <Box component="span" sx={{ bgcolor: 'brand.trim' }} />
-      <Box component="span" sx={{ bgcolor: 'brand.red' }} />
+    />
+  )
+}
+
+/** Sidebar en medianoche (ambos esquemas), sin borde propio. */
+const PAPEL_SIDEBAR = {
+  bgcolor: 'brand.midnight',
+  color: 'brand.onMidnight',
+  borderRight: 0,
+  backgroundImage: 'none',
+} as const
+
+/** Logo + filete de latón de 2 px bajo él. */
+function CabeceraSidebar({ alto, children }: { alto: number; children: React.ReactNode }) {
+  return (
+    <Box sx={{ flexShrink: 0 }}>
+      <Box
+        sx={{
+          height: alto,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: { xs: 'flex-start', sm: 'center', md: 'flex-start' },
+          px: { xs: 2.5, sm: 0, md: 2.5 },
+        }}
+      >
+        {children}
+      </Box>
+      <FileteLaton sx={{ mx: { xs: 2.5, sm: 2, md: 2.5 }, width: 'auto' }} />
     </Box>
   )
 }
@@ -242,18 +267,29 @@ function NavList({
                 px: 1.5,
                 gap: 1.5,
                 justifyContent: rail ? { sm: 'center', md: 'flex-start' } : 'flex-start',
-                color: 'text.secondary',
+                color: 'brand.onMidnightMuted',
                 transition: t.transitions.create(['background-color', 'color'], {
                   duration: t.transitions.duration.shortest,
                 }),
-                '&.Mui-selected': { color: 'primary.main', fontWeight: 500 },
-                '&.Mui-selected .MuiListItemIcon-root': {
-                  color: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'color-mix(in srgb, var(--mui-palette-brand-navy) 60%, transparent)',
+                  color: 'brand.onMidnight',
+                },
+                '&.Mui-selected, &.Mui-selected:hover': {
+                  bgcolor: 'brand.navy',
+                  color: 'brand.onMidnight',
+                  fontWeight: 500,
+                },
+                // Foco visible sobre medianoche: contorno de latón.
+                '&.Mui-focusVisible': {
+                  boxShadow: 'none',
+                  outline: `2px solid ${(t.vars ?? t).palette.brand.brass}`,
+                  outlineOffset: '-2px',
                 },
               })}
             >
               <NavLinkStatus />
-              {active ? <ActiveStripes /> : null}
+              {active ? <PuntoActivo /> : null}
               <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>{item.icon}</ListItemIcon>
               <ListItemText
                 primary={item.label}
@@ -346,7 +382,7 @@ function SignOutMenuItem({ onDone }: { onDone: () => void }) {
     if (isPending) return
     onDone()
     // La action termina en `redirect('/login')`: el loader se libera al cambiar de ruta.
-    const release = globalLoader.show('Cerrando sesión', { untilNavigation: true })
+    const release = globalLoader.show('Cerrando sesión', { untilNavigation: true, pantallaCompleta: true })
     startTransition(async () => {
       try {
         await signOutAction()
@@ -404,26 +440,18 @@ function AppShellFrame({ usuario, topBarStart, children }: AppShellProps) {
                 width: { sm: RAIL_WIDTH, md: NAV_WIDTH },
                 boxSizing: 'border-box',
                 overflowX: 'hidden',
+                ...PAPEL_SIDEBAR,
               },
             }}
           >
-            <Box
-              sx={{
-                height: 64,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: { sm: 'center', md: 'flex-start' },
-                px: { sm: 0, md: 2.5 },
-                flexShrink: 0,
-              }}
-            >
+            <CabeceraSidebar alto={64}>
               <Box sx={{ display: { sm: 'none', md: 'flex' } }}>
-                <BrandMark size={40} />
+                <BrandMark size={40} sobreMedianoche />
               </Box>
               <Box sx={{ display: { sm: 'flex', md: 'none' } }}>
-                <BrandMark variant="isotipo" size={40} />
+                <BrandMark variant="isotipo" size={40} sobreMedianoche />
               </Box>
-            </Box>
+            </CabeceraSidebar>
             <NavList items={items} pathname={pathname} rail />
           </Drawer>
         </Box>
@@ -436,20 +464,13 @@ function AppShellFrame({ usuario, topBarStart, children }: AppShellProps) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { width: NAV_WIDTH, boxSizing: 'border-box' },
+            '& .MuiDrawer-paper': { width: NAV_WIDTH, boxSizing: 'border-box', ...PAPEL_SIDEBAR },
           }}
         >
           <Box component="nav" aria-label="Principal">
-            <Box
-              sx={{
-                height: 56,
-                display: 'flex',
-                alignItems: 'center',
-                px: 2.5,
-              }}
-            >
-              <BrandMark size={36} />
-            </Box>
+            <CabeceraSidebar alto={56}>
+              <BrandMark size={36} sobreMedianoche />
+            </CabeceraSidebar>
             <NavList items={items} pathname={pathname} rail={false} onNavigate={closeDrawer} />
           </Box>
         </Drawer>
@@ -496,10 +517,8 @@ function AppShellFrame({ usuario, topBarStart, children }: AppShellProps) {
             <Box sx={{ flexGrow: 1 }} />
             <ColorModeToggle />
             <AccountMenu usuario={usuario} />
-            {/* Progreso de navegación: borde inferior de la barra, arriba del contenido */}
-            <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: -3 }}>
-              <NavigationProgress />
-            </Box>
+            {/* Progreso de navegación: fijo en el borde superior de la ventana */}
+            <NavigationProgress />
           </Box>
 
           <Box
@@ -509,7 +528,9 @@ function AppShellFrame({ usuario, topBarStart, children }: AppShellProps) {
               width: '100%',
               maxWidth: 1440,
               mx: 'auto',
-              px: { xs: 2, sm: 3, lg: 4 },
+              // Márgenes de página 16 / 24 / 64 (spec § Espaciado). Los 48 px
+              // entre bloques los dan PageHeader y cada pantalla.
+              px: { xs: ESPACIO.paginaMargenXs, sm: ESPACIO.paginaMargenSm, lg: ESPACIO.paginaMargenLg },
               py: { xs: 3, md: 4 },
             }}
           >

@@ -4,12 +4,14 @@ import * as React from 'react'
 import Box from '@mui/material/Box'
 import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
-import { PeneroStripes } from '@/components/atoms/PeneroStripes'
+import { BrandMark } from '@/components/atoms/BrandMark'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
 
 /**
  * Plantilla de las pantallas de acceso (login, recuperar, actualizar
- * contraseña). md+: panel de casco a la izquierda (5/12) y formulario a la
- * derecha. xs/sm: el panel se reduce a una banda superior con las franjas.
+ * contraseña). md+: panel medianoche a la izquierda (5/12) con el logo, el
+ * nombre y el filete de latón, y el formulario a la derecha. xs/sm: el panel
+ * se reduce a una banda superior.
  */
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,14 +27,17 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
       <Box
         component="aside"
         sx={{
-          bgcolor: 'brand.hull',
-          color: 'brand.onHull',
+          bgcolor: 'brand.midnight',
+          color: 'brand.onMidnight',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
         }}
       >
         <Box sx={{ px: { xs: 2, sm: 4, md: 6 }, pt: { xs: 2.5, md: 7 }, pb: { xs: 2, md: 4 } }}>
+          <Box sx={{ display: { xs: 'none', md: 'block' }, mb: 4 }}>
+            <BrandMark variant="isotipo" size={56} sobreMedianoche />
+          </Box>
           <Typography
             component="p"
             variant="h3"
@@ -40,10 +45,11 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           >
             Altamar Sea Food
           </Typography>
+          <FileteLaton width={56} sx={{ mt: { xs: 1.5, md: 3 } }} />
           <Typography
             sx={{
               display: { xs: 'none', md: 'block' },
-              color: 'brand.onHullMuted',
+              color: 'brand.onMidnightMuted',
               mt: 2,
               maxWidth: '28ch',
             }}
@@ -51,7 +57,6 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             Compras, inventario por kilo y ventas del día en un solo lugar.
           </Typography>
         </Box>
-        <PeneroStripes />
       </Box>
 
       <Box

@@ -48,14 +48,15 @@ export type MensajeRecordatorio = MensajeWhatsApp | MensajeCorreo
  * resto, de `palette` de `src/theme/theme.ts`.
  */
 const MARCA = {
-  casco: MARCA_CLARO.hull,
-  ocre: MARCA_CLARO.ochre,
+  medianoche: MARCA_CLARO.midnight,
+  sobreMedianoche: MARCA_CLARO.onMidnight,
+  laton: MARCA_CLARO.brass,
   blanco: '#FFFFFF',
-  rojo: MARCA_CLARO.red,
-  texto: '#13262C',
-  textoSecundario: '#4A5D63',
-  hielo: '#F3F6F6',
-  borde: '#D5DEE0',
+  error: '#B3261E', // palette.error.main (claro)
+  texto: '#0B1B33', // palette.text.primary (claro)
+  textoSecundario: '#4A5260', // palette.text.secondary (claro)
+  fondo: '#F7F6F2', // palette.background.default (claro)
+  borde: '#E4E1D8', // palette.divider (claro)
 }
 
 interface Linea {
@@ -140,7 +141,7 @@ function html(datos: DatosRecordatorio, ls: Linea[]): string {
 
   const filas = ls
     .map((l) => {
-      const colorEstado = l.estado === 'vencida' ? MARCA.rojo : MARCA.textoSecundario
+      const colorEstado = l.estado === 'vencida' ? MARCA.error : MARCA.textoSecundario
       const lineaBs = textoBs(l.saldo, datos.tasaBs)
       return `<tr>
 <td style="${celda}">${e(l.doc.numero)}</td>
@@ -158,21 +159,20 @@ function html(datos: DatosRecordatorio, ls: Linea[]): string {
 <p style="margin:0;font-size:14px;line-height:1.5;white-space:pre-line;">${e(instrucciones)}</p>`
     : ''
 
-  const franja = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-<td style="height:6px;background:${MARCA.ocre};width:34%;"></td>
-<td style="height:6px;background:${MARCA.blanco};width:33%;"></td>
-<td style="height:6px;background:${MARCA.rojo};width:33%;"></td>
+  // Filete de latón bajo el encabezado (identidad Puerto).
+  const filete = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
+<td style="height:3px;line-height:3px;font-size:0;background:${MARCA.laton};"></td>
 </tr></table>`
 
   const th = `padding:8px 10px;text-align:left;font-size:12px;color:${MARCA.textoSecundario};border-bottom:1px solid ${MARCA.borde};`
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(asunto(datos, ls))}</title></head>
-<body style="margin:0;padding:0;background:${MARCA.hielo};font-family:Arial,Helvetica,sans-serif;color:${MARCA.texto};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.hielo};"><tr><td align="center" style="padding:16px;">
+<body style="margin:0;padding:0;background:${MARCA.fondo};font-family:Arial,Helvetica,sans-serif;color:${MARCA.texto};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${MARCA.fondo};"><tr><td align="center" style="padding:16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${MARCA.blanco};border:1px solid ${MARCA.borde};border-radius:8px;overflow:hidden;">
-<tr><td style="background:${MARCA.casco};padding:18px 24px;color:${MARCA.blanco};font-size:20px;font-weight:700;">${e(datos.negocio.nombre_comercial)}</td></tr>
-<tr><td>${franja}</td></tr>
+<tr><td style="background:${MARCA.medianoche};padding:18px 24px;color:${MARCA.sobreMedianoche};font-size:20px;font-weight:700;">${e(datos.negocio.nombre_comercial)}</td></tr>
+<tr><td>${filete}</td></tr>
 <tr><td style="padding:24px;">
 <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">Hola, <strong>${e(datos.destinatario.nombre)}</strong>. Le escribimos para recordarle el estado de sus facturas:</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
@@ -183,7 +183,7 @@ function html(datos: DatosRecordatorio, ls: Linea[]): string {
 ${bloqueInstrucciones}
 <p style="margin:24px 0 0;font-size:14px;line-height:1.5;">Si ya realizó el pago, responda a este correo con el comprobante y no tome en cuenta este mensaje. ¡Gracias!</p>
 </td></tr>
-<tr><td style="padding:14px 24px;background:${MARCA.hielo};font-size:12px;color:${MARCA.textoSecundario};">Para cualquier duda, responda a este correo.</td></tr>
+<tr><td style="padding:14px 24px;background:${MARCA.fondo};font-size:12px;color:${MARCA.textoSecundario};">Para cualquier duda, responda a este correo.</td></tr>
 </table>
 </td></tr></table>
 </body></html>`

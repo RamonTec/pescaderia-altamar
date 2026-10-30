@@ -1,19 +1,12 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { createTheme, keyframes, type Theme, type Overlays } from '@mui/material/styles'
+import { createTheme, type Theme, type Overlays } from '@mui/material/styles'
 import { esES as materialEsES } from '@mui/material/locale'
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales'
 import type {} from '@mui/x-data-grid/themeAugmentation'
 import { MARCA_CLARO, MARCA_OSCURO } from './marca'
 import { MOTION, SOMBRAS } from './tokens'
-
-// Entrada del modal (spec § Movimiento): fundido (lo hace el `Fade` de MUI)
-// + 8 px hacia arriba. En pantalla completa entra con `Slide`.
-const dialogEntrada = keyframes`
-  from { transform: translateY(8px); }
-  to { transform: none; }
-`
 
 /**
  * Identidad "Puerto" (Altamar Sea Food): azul medianoche (#0B1B33), blanco
@@ -102,15 +95,6 @@ declare module '@mui/material/styles' {
 }
 
 interface BrandPalette {
-  /** Casco (Peñero, compat). */
-  hull: string
-  hullDeep: string
-  onHull: string
-  onHullMuted: string
-  ochre: string
-  red: string
-  trim: string
-
   /** Identidad Puerto */
   midnight: string
   navy: string
@@ -605,7 +589,9 @@ export const theme = createTheme(
       styleOverrides: {
         paper: ({ theme }) => ({
           borderRadius: 8,
-          animation: `${dialogEntrada} ${MOTION.duraciones.lenta}ms ${MOTION.curvas.entrada}`,
+          // Entrada: fundido (`Fade`) + 8 px hacia arriba (`puerto-dialog-in`, en
+          // globals.css: los `keyframes` de emotion rompen la hidratación).
+          animation: `puerto-dialog-in ${MOTION.duraciones.lenta}ms ${MOTION.curvas.entrada}`,
           backgroundColor: theme.vars.palette.background.elevated,
           boxShadow: SOMBRAS.claro.elevacion2,
           ...theme.applyStyles('dark', {
