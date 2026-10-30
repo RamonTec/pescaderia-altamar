@@ -13,7 +13,7 @@ import {
 } from '@/components/atoms/Skeletons'
 import { ESPACIO } from '@/theme/tokens'
 
-export type PageLoaderVariant = 'table' | 'form' | 'ficha' | 'dashboard'
+export type PageLoaderVariant = 'table' | 'kpisTable' | 'form' | 'ficha' | 'dashboard'
 
 const BLOQUES = { xs: ESPACIO.bloquesPaginaXs, md: ESPACIO.bloquesPagina } as const
 
@@ -22,6 +22,19 @@ function TableLoader() {
     <>
       <SkeletonEncabezado />
       <SkeletonTabla />
+    </>
+  )
+}
+
+/** Listado con tarjetas de resumen encima (`/tasas`). */
+function KpisTableLoader() {
+  return (
+    <>
+      <SkeletonEncabezado />
+      <Box sx={{ display: 'grid', gap: BLOQUES }}>
+        <SkeletonKpis />
+        <SkeletonTabla estados={false} />
+      </Box>
     </>
   )
 }
@@ -57,6 +70,7 @@ function FichaLoader() {
 
 const LOADERS: Record<PageLoaderVariant, () => React.ReactElement> = {
   table: TableLoader,
+  kpisTable: KpisTableLoader,
   form: FormLoader,
   ficha: FichaLoader,
   dashboard: DashboardLoader,
