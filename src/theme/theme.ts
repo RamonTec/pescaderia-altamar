@@ -95,15 +95,6 @@ declare module '@mui/material/styles' {
 }
 
 interface BrandPalette {
-  /** Casco (Peñero, compat). */
-  hull: string
-  hullDeep: string
-  onHull: string
-  onHullMuted: string
-  ochre: string
-  red: string
-  trim: string
-
   /** Identidad Puerto */
   midnight: string
   navy: string
