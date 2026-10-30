@@ -3,7 +3,8 @@
 import * as React from 'react'
 import { useLinkStatus } from 'next/link'
 import Box from '@mui/material/Box'
-import { PeneroSweep } from '@/components/atoms/PeneroStripes'
+import { FileteLaton } from '@/components/atoms/FileteLaton'
+import { TIEMPOS } from '@/theme/tokens'
 
 /**
  * Progreso de navegación (nivel 2 de loaders, ver spec § Loaders).
@@ -76,16 +77,24 @@ export function NavLinkStatus() {
 export interface NavigationProgressProps {
   /** Fuerza el estado (página de muestra). Por defecto lee el provider. */
   active?: boolean
+  /**
+   * `fixed` (por defecto en la app): borde superior de la ventana, encima de
+   * la barra y del drawer. `static`: en su lugar (por defecto con `active`,
+   * para la muestra de `/estandares`).
+   */
+  position?: 'fixed' | 'static'
 }
 
 /**
- * Barra de 3 px con las franjas de la borda. Se ubica arriba del área de
- * contenido (el shell la pone en el borde inferior de la barra superior).
- * Aparece con 100 ms de retardo para no parpadear en navegaciones rápidas.
+ * Filete de latón de 3 px que barre en el borde superior de la ventana
+ * (`FileteLaton sweep`). No ocupa lugar en el layout. Aparece con
+ * `TIEMPOS.NAV_RETARDO_MS` de retardo para no parpadear en navegaciones
+ * rápidas.
  */
-export function NavigationProgress({ active }: NavigationProgressProps) {
+export function NavigationProgress({ active, position }: NavigationProgressProps) {
   const fromProvider = React.useContext(ActiveContext)
   const on = active ?? fromProvider
+  const fija = (position ?? (active === undefined ? 'fixed' : 'static')) === 'fixed'
 
   return (
     <Box
@@ -94,13 +103,16 @@ export function NavigationProgress({ active }: NavigationProgressProps) {
         height: 3,
         width: '100%',
         pointerEvents: 'none',
+        ...(fija
+          ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: theme.zIndex.drawer + 2 }
+          : {}),
         visibility: on ? 'visible' : 'hidden',
         animation: on
-          ? `penero-fade-in ${theme.transitions.duration.shorter}ms ${theme.transitions.easing.easeOut} 100ms both`
+          ? `puerto-fade-in ${theme.transitions.duration.shorter}ms ${theme.transitions.easing.easeOut} ${TIEMPOS.NAV_RETARDO_MS}ms both`
           : 'none',
       })}
     >
-      {on ? <PeneroSweep height={3} /> : null}
+      {on ? <FileteLaton variant="sweep" height={3} /> : null}
     </Box>
   )
 }

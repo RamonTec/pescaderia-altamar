@@ -496,10 +496,8 @@ function AppShellFrame({ usuario, topBarStart, children }: AppShellProps) {
             <Box sx={{ flexGrow: 1 }} />
             <ColorModeToggle />
             <AccountMenu usuario={usuario} />
-            {/* Progreso de navegación: borde inferior de la barra, arriba del contenido */}
-            <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: -3 }}>
-              <NavigationProgress />
-            </Box>
+            {/* Progreso de navegación: fijo en el borde superior de la ventana */}
+            <NavigationProgress />
           </Box>
 
           <Box
