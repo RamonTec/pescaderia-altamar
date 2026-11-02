@@ -28,6 +28,7 @@ import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOu
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined'
 import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import CurrencyExchangeOutlinedIcon from '@mui/icons-material/CurrencyExchangeOutlined'
@@ -98,6 +99,13 @@ const NAV_ITEMS: NavItem[] = [
   },
   // 21-cotizaciones: admin y operador (P4).
   { href: '/cotizaciones', label: 'Cotizaciones', icon: <RequestQuoteOutlinedIcon /> },
+  // Hotfix: listado de todas las facturas (contado y crédito), solo admin.
+  {
+    href: '/facturas',
+    label: 'Facturas',
+    icon: <ReceiptLongOutlinedIcon />,
+    adminOnly: true,
+  },
   { href: '/cobros', label: 'Cobros y pagos', icon: <PaymentsOutlinedIcon /> },
   // 06-contratos: bitácora de contratos, solo admin.
   {
